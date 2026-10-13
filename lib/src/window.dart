@@ -14,6 +14,7 @@ import 'model.dart';
 import 'settings.dart';
 import 'apps.dart';
 import 'column_view.dart';
+import 'dialog.dart';
 import 'drag.dart';
 import 'gallery_view.dart';
 import 'icon_view.dart';
@@ -32,6 +33,7 @@ import 'tags.dart';
 
 part 'window_columns.dart';
 part 'window_context.dart';
+part 'window_dialog.dart';
 part 'window_drag.dart';
 part 'window_operations.dart';
 part 'window_search.dart';
@@ -172,7 +174,15 @@ class MustacheWindow extends StatefulWidget {
     this.tabBar,
     this.onLocation,
     this.focused = true,
+    this.dialog,
+    this.onDialogFinish,
   });
+
+  /// La finestra è un dialogo Apri o Salva per il portale (null: la finestra normale).
+  final DialogOptions? dialog;
+
+  /// Come finisce il dialogo (test); null: scrive sullo stdout ed esce.
+  final void Function(List<String> paths)? onDialogFinish;
 
   /// La scheda è quella attiva: diventandolo riprende la tastiera.
   final bool focused;
@@ -279,24 +289,37 @@ class _MustacheWindowState extends State<MustacheWindow>
   int _searchToken = 0;
 
   /// Barra di stato, pannello di anteprima, lato delle icone, spazio libero.
-  late bool _statusBar = widget.settings?.statusBar ?? false;
-  late bool _previewPane = widget.settings?.previewPane ?? false;
+  // Nei dialoghi niente barre né pannello (R14.6).
+  late bool _statusBar =
+      widget.dialog == null && (widget.settings?.statusBar ?? false);
+  late bool _previewPane =
+      widget.dialog == null && (widget.settings?.previewPane ?? false);
   late double _iconSide = widget.settings?.iconSide ?? defaultIconSide;
   int? _free;
+
+  /// Il nome del file del dialogo Salva.
+  late final TextEditingController _saveName = TextEditingController(
+    text: widget.dialog?.name ?? '',
+  );
+  final FocusNode _saveFocus = FocusNode();
 
   /// La visualizzazione rapida aperta (Spazio).
   bool _quickLook = false;
 
   /// La barra del percorso (⌥⌘P), ricordata per le finestre nuove.
-  late bool _pathBar = widget.settings?.pathBar ?? false;
+  late bool _pathBar =
+      widget.dialog == null && (widget.settings?.pathBar ?? false);
 
   /// Il contenuto delle colonne, letto una volta per caricamento.
   final Map<String, List<Entry>> _columnCache = {};
 
-  late ViewMode _view = ViewMode.values.firstWhere(
-    (v) => v.name == widget.settings?.view,
-    orElse: () => ViewMode.icons,
-  );
+  // Nei dialoghi si parte a colonne, e la galleria non c'è (R14.5, R14.6).
+  late ViewMode _view = widget.dialog != null
+      ? ViewMode.columns
+      : ViewMode.values.firstWhere(
+          (v) => v.name == widget.settings?.view,
+          orElse: () => ViewMode.icons,
+        );
 
   /// La larghezza dell'area dei contenuti all'ultimo disegno (per le frecce nella griglia).
   double _contentWidth = 800;
@@ -323,6 +346,8 @@ class _MustacheWindowState extends State<MustacheWindow>
     _searchTimer?.cancel();
     _searchQuery.dispose();
     _searchFocus.dispose();
+    _saveName.dispose();
+    _saveFocus.dispose();
     super.dispose();
   }
 
@@ -412,7 +437,11 @@ class _MustacheWindowState extends State<MustacheWindow>
     // Il titolo della finestra è il nome della cartella (l'embedder di Silica lo passa a
     // Ossido; fuori da Silica la chiamata non fa niente).
     SystemChrome.setApplicationSwitcherDescription(
-      ApplicationSwitcherDescription(label: displayName(_history.current)),
+      ApplicationSwitcherDescription(
+        label: widget.dialog?.title.isNotEmpty ?? false
+            ? widget.dialog!.title
+            : displayName(_history.current),
+      ),
     );
     // In ricerca si rifà la ricerca.
     if (_searching) {
@@ -461,6 +490,9 @@ class _MustacheWindowState extends State<MustacheWindow>
     _slowClick?.cancel();
     if (entry.isDirectory) {
       _navigate(entry.path);
+    } else if (widget.dialog case final d?) {
+      // Nel dialogo Apri il doppio clic su un file lo sceglie.
+      if (!d.save && !d.directory) _finish([entry.path]);
     } else {
       _openWith([entry]);
     }
@@ -496,6 +528,11 @@ class _MustacheWindowState extends State<MustacheWindow>
   }
 
   void _setView(ViewMode view) {
+    // Nei dialoghi niente galleria, e la scelta non cambia quella delle finestre.
+    if (widget.dialog != null) {
+      if (view != ViewMode.gallery) setState(() => _view = view);
+      return;
+    }
     setState(() => _view = view);
     widget.settings?.view = view.name;
   }
@@ -728,6 +765,10 @@ class _MustacheWindowState extends State<MustacheWindow>
               if (_alert != null || _renaming != null) return null;
               switch (intent.command) {
                 case FileCommand.rename:
+                  if (widget.dialog != null) {
+                    _acceptDialog();
+                    return null;
+                  }
                   final only = _selection;
                   if (only.length == 1) _startRename(only.first.path);
                 case FileCommand.newFolder:
@@ -803,7 +844,12 @@ class _MustacheWindowState extends State<MustacheWindow>
           ),
           CloseIntent: CallbackAction<CloseIntent>(
             onInvoke: (_) {
-              if (_quickLook) setState(() => _quickLook = false);
+              if (_quickLook) {
+                setState(() => _quickLook = false);
+              } else if (widget.dialog != null && _alert == null) {
+                // Esc nel dialogo: annulla.
+                _finish(const []);
+              }
               return null;
             },
           ),
@@ -885,6 +931,7 @@ class _MustacheWindowState extends State<MustacheWindow>
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _header(),
+                          if (widget.dialog?.save ?? false) _saveBar(),
                           ?widget.tabBar,
                           if (_searching) _scopeBar(),
                           if (_view == ViewMode.list || _searching)
@@ -958,6 +1005,7 @@ class _MustacheWindowState extends State<MustacheWindow>
                                 }
                               },
                             ),
+                          if (widget.dialog != null) _dialogButtons(),
                           // La barra di stato sotto la barra del percorso (spec 1.5).
                           if (_statusBar)
                             StatusBar(
@@ -1130,7 +1178,9 @@ class _MustacheWindowState extends State<MustacheWindow>
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              _searching
+              widget.dialog != null && widget.dialog!.title.isNotEmpty
+                  ? widget.dialog!.title
+                  : _searching
                   ? 'Ricerca in «${_searchScope == SearchScope.computer ? 'Questo computer' : displayName(_searchFolder)}»'
                   : _tagView ?? displayName(_history.current),
               maxLines: 1,
