@@ -18,6 +18,7 @@ import 'drag.dart';
 import 'icon_view.dart';
 import 'operations.dart';
 import 'path_bar.dart';
+import 'quick_look.dart';
 import 'rename_field.dart';
 import 'transfer.dart';
 import 'transfer_ui.dart';
@@ -73,6 +74,14 @@ class ToggleHiddenIntent extends Intent {
 
 class ToggleSidebarIntent extends Intent {
   const ToggleSidebarIntent();
+}
+
+class QuickLookIntent extends Intent {
+  const QuickLookIntent();
+}
+
+class CloseIntent extends Intent {
+  const CloseIntent();
 }
 
 class TogglePathBarIntent extends Intent {
@@ -199,6 +208,9 @@ class _MustacheWindowState extends State<MustacheWindow>
   final List<Transfer> _transfers = [];
   Transfer? _progress;
   ({String name, bool moving, Completer<ConflictChoice> done})? _conflict;
+
+  /// La visualizzazione rapida aperta (Spazio).
+  bool _quickLook = false;
 
   /// La barra del percorso (⌥⌘P), ricordata per le finestre nuove.
   late bool _pathBar = widget.settings?.pathBar ?? false;
@@ -523,6 +535,9 @@ class _MustacheWindowState extends State<MustacheWindow>
         ),
         SingleActivator(LogicalKeyboardKey.keyP, meta: true, alt: true):
             TogglePathBarIntent(),
+        SingleActivator(LogicalKeyboardKey.space): QuickLookIntent(),
+        SingleActivator(LogicalKeyboardKey.keyY, meta: true): QuickLookIntent(),
+        SingleActivator(LogicalKeyboardKey.escape): CloseIntent(),
       },
       child: Actions(
         actions: {
@@ -587,6 +602,19 @@ class _MustacheWindowState extends State<MustacheWindow>
                 case FileCommand.move:
                   _paste(move: true);
               }
+              return null;
+            },
+          ),
+          QuickLookIntent: CallbackAction<QuickLookIntent>(
+            onInvoke: (_) {
+              if (_renaming != null || _alert != null) return null;
+              setState(() => _quickLook = !_quickLook && _selected.isNotEmpty);
+              return null;
+            },
+          ),
+          CloseIntent: CallbackAction<CloseIntent>(
+            onInvoke: (_) {
+              if (_quickLook) setState(() => _quickLook = false);
               return null;
             },
           ),
@@ -735,6 +763,9 @@ class _MustacheWindowState extends State<MustacheWindow>
                         onDismissed: _closeContextMenu,
                       ),
                     ),
+                  // La visualizzazione rapida: l'ultimo elemento scelto; le frecce la cambiano.
+                  if (_quickLook && _selection.isNotEmpty)
+                    Positioned.fill(child: _quickLookPanel()),
                   // La finestra di avanzamento non blocca il resto.
                   if (_progress != null && _alert == null)
                     Align(
@@ -878,6 +909,28 @@ class _MustacheWindowState extends State<MustacheWindow>
     onCommit: (name) => _commitRename(entry, name),
     onCancel: _endRename,
   );
+
+  Widget _quickLookPanel() {
+    final items = _selection;
+    final shown = items.firstWhere(
+      (e) => e.path == _cursor,
+      orElse: () => items.last,
+    );
+    final app = shown.isDirectory ? null : _registry.defaultFor(_typeOf(shown));
+    return QuickLookPanel(
+      entry: shown,
+      env: widget.iconsEnv,
+      position: items.length > 1
+          ? (items.indexOf(shown) + 1, items.length)
+          : null,
+      openWith: app?.name,
+      onOpenWith: () {
+        setState(() => _quickLook = false);
+        _openWith([shown], app);
+      },
+      onClose: () => setState(() => _quickLook = false),
+    );
+  }
 
   Widget _columnsView() => ColumnView(
     root: _columnRoot,
