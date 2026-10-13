@@ -7,6 +7,7 @@
 // Selezione (spec 4.2): fondo 72 × 72 di raggio ~6 attorno all'icona da 64 (4 pt per lato),
 // capsula del nome alta 17 per riga, raggio ~5, 4 pt di margine, 2 pt sotto il fondo.
 
+import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 
@@ -177,7 +178,14 @@ List<String> labelLines(String name, double maxWidth, TextStyle style) {
   return [first, rest];
 }
 
-class IconView extends StatelessWidget {
+/// Il rettangolo di selezione (spec 7.1): nero ~10 % con un filo di 1 pt al ~33 %, angoli retti.
+const Color rubberFill = Color(0x1A000000);
+const Color rubberBorder = Color(0x55000000);
+
+/// Scorrimento automatico oltre il bordo: ~38,5 pt/s per ogni pt oltre (R7.4).
+const double autoScrollPerPoint = 38.5;
+
+class IconView extends StatefulWidget {
   const IconView({
     super.key,
     required this.entries,
@@ -194,7 +202,11 @@ class IconView extends StatelessWidget {
     this.controller,
     this.renaming,
     this.renameBuilder,
+    this.onRubberBand,
   });
+
+  /// Il rettangolo di selezione: gli elementi toccati, dal vivo; `done` al rilascio.
+  final void Function(Set<String> paths, {required bool done})? onRubberBand;
 
   final List<Entry> entries;
   final Set<String> selected;
@@ -223,6 +235,93 @@ class IconView extends StatelessWidget {
   final Widget Function(Entry entry, double maxWidth)? renameBuilder;
 
   @override
+  State<IconView> createState() => _IconViewState();
+}
+
+class _IconViewState extends State<IconView> {
+  late final ScrollController _scroll = widget.controller ?? ScrollController();
+  Offset? _bandStart;
+  Offset? _bandEnd;
+
+  /// Dove sta il puntatore rispetto alla vista (per lo scorrimento al bordo).
+  double _pointerY = 0;
+  double _viewHeight = 0;
+  Timer? _auto;
+  IconGrid? _grid;
+
+  List<Entry> get entries => widget.entries;
+  Set<String> get selected => widget.selected;
+  ValueChanged<Entry> get onTap => widget.onTap;
+  ValueChanged<Entry> get onOpen => widget.onOpen;
+  VoidCallback get onBackground => widget.onBackground;
+  Widget Function(Entry entry, Widget child)? get wrapItem => widget.wrapItem;
+  void Function(Entry? entry, Offset position)? get onContext =>
+      widget.onContext;
+  bool get active => widget.active;
+  double get side => widget.side;
+  double get text => widget.text;
+  Map<String, String>? get env => widget.env;
+  String? get renaming => widget.renaming;
+  Widget Function(Entry entry, double maxWidth)? get renameBuilder =>
+      widget.renameBuilder;
+
+  @override
+  void dispose() {
+    _auto?.cancel();
+    if (widget.controller == null) _scroll.dispose();
+    super.dispose();
+  }
+
+  /// Il rettangolo di una cella (fondo dell'icona e riga dell'etichetta), nel contenuto.
+  Rect _cellRect(IconGrid grid, int index) {
+    final cx = grid.centerX(index % grid.columns);
+    final top = grid.iconTop(index ~/ grid.columns) - iconSelectionPad;
+    final bg = side + 2 * iconSelectionPad;
+    return Rect.fromLTRB(
+      cx - grid.pitchX / 2 + 4,
+      top,
+      cx + grid.pitchX / 2 - 4,
+      top + bg + labelGap + labelLine,
+    ).intersect(
+      Rect.fromLTWH(cx - grid.pitchX / 2, top, grid.pitchX, grid.pitchY),
+    );
+  }
+
+  void _band({required bool done}) {
+    final grid = _grid;
+    final start = _bandStart;
+    final end = _bandEnd;
+    if (grid == null || start == null || end == null) return;
+    final rect = Rect.fromPoints(start, end);
+    widget.onRubberBand?.call({
+      for (var i = 0; i < entries.length; i++)
+        if (_cellRect(grid, i).overlaps(rect)) entries[i].path,
+    }, done: done);
+  }
+
+  /// Oltre il bordo alto o basso la vista scorre, più veloce quanto più si è fuori.
+  void _autoScroll() {
+    _auto ??= Timer.periodic(const Duration(milliseconds: 16), (_) {
+      final over = _pointerY < 0
+          ? _pointerY
+          : _pointerY > _viewHeight
+          ? _pointerY - _viewHeight
+          : 0.0;
+      if (over == 0 || !_scroll.hasClients || _bandStart == null) return;
+      final pos = _scroll.position;
+      final next = (pos.pixels + over * autoScrollPerPoint * 0.016).clamp(
+        pos.minScrollExtent,
+        pos.maxScrollExtent,
+      );
+      if (next == pos.pixels) return;
+      final moved = next - pos.pixels;
+      _scroll.jumpTo(next);
+      setState(() => _bandEnd = _bandEnd?.translate(0, moved));
+      _band(done: false);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final dark =
         MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark;
@@ -232,19 +331,70 @@ class IconView extends StatelessWidget {
         final grid = iconGrid(constraints.maxWidth, side: side, text: text);
         final rows = (entries.length / grid.columns).ceil();
         final height = rows == 0 ? 0.0 : grid.iconTop(rows - 1) + grid.pitchY;
+        _grid = grid;
+        _viewHeight = constraints.maxHeight;
+        final band = _bandStart == null || _bandEnd == null
+            ? null
+            : Rect.fromPoints(_bandStart!, _bandEnd!);
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onBackground,
           onSecondaryTapDown: (d) => onContext?.call(null, d.globalPosition),
           child: SingleChildScrollView(
-            controller: controller,
-            child: SizedBox(
-              height: math.max(height, constraints.maxHeight),
-              child: Stack(
-                children: [
-                  for (var i = 0; i < entries.length; i++)
-                    _cell(context, grid, i, colors),
-                ],
+            controller: _scroll,
+            child: GestureDetector(
+              // Dal vuoto: il rettangolo di selezione (le celle hanno il loro trascinamento).
+              behavior: HitTestBehavior.translucent,
+              onPanStart: widget.onRubberBand == null
+                  ? null
+                  : (d) {
+                      setState(() {
+                        _bandStart = d.localPosition;
+                        _bandEnd = d.localPosition;
+                      });
+                      _band(done: false);
+                      _autoScroll();
+                    },
+              onPanUpdate: (d) {
+                if (_bandStart == null) return;
+                setState(() => _bandEnd = d.localPosition);
+                _pointerY =
+                    d.localPosition.dy -
+                    (_scroll.hasClients ? _scroll.offset : 0);
+                _band(done: false);
+              },
+              onPanEnd: (_) {
+                _band(done: true);
+                _auto?.cancel();
+                _auto = null;
+                setState(() => _bandStart = _bandEnd = null);
+              },
+              onPanCancel: () {
+                _auto?.cancel();
+                _auto = null;
+                setState(() => _bandStart = _bandEnd = null);
+              },
+              child: SizedBox(
+                height: math.max(height, constraints.maxHeight),
+                child: Stack(
+                  children: [
+                    for (var i = 0; i < entries.length; i++)
+                      _cell(context, grid, i, colors),
+                    if (band != null)
+                      Positioned.fromRect(
+                        rect: band,
+                        child: IgnorePointer(
+                          child: DecoratedBox(
+                            key: const ValueKey('rettangolo di selezione'),
+                            decoration: BoxDecoration(
+                              color: rubberFill,
+                              border: Border.all(color: rubberBorder),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),

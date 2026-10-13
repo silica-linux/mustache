@@ -21,7 +21,7 @@ extension _Operations on _MustacheWindowState {
     _selected
       ..clear()
       ..addAll(paths);
-    _anchor = paths.isEmpty ? null : paths.last;
+    _anchor = _cursor = paths.isEmpty ? null : paths.last;
   }
 
   void _showAlert(Widget alert) => _update(() => _alert = alert);

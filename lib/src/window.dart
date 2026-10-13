@@ -107,8 +107,11 @@ class FileCommandIntent extends Intent {
 }
 
 class MoveSelectionIntent extends Intent {
-  const MoveSelectionIntent(this.move);
+  const MoveSelectionIntent(this.move, {this.extend = false});
   final Move move;
+
+  /// Con ⇧: la selezione si allunga dall'àncora (R7.6).
+  final bool extend;
 }
 
 /// La vista dei contenuti (spec 3–6): a icone (⌘1), a elenco (⌘2), a colonne (⌘3).
@@ -170,6 +173,11 @@ class _MustacheWindowState extends State<MustacheWindow>
     value: 1,
   )..addListener(() => setState(() {}));
   bool _resizing = false;
+
+  /// Il cursore delle frecce (l'àncora resta dove è iniziata la selezione con ⇧) e la
+  /// selezione all'inizio del rettangolo.
+  String? _cursor;
+  Set<String>? _bandBase;
 
   late final Trash _trash = Trash(
     parentOf(widget.trash.path) ?? widget.trash.path,
@@ -325,7 +333,7 @@ class _MustacheWindowState extends State<MustacheWindow>
     if (selected.length == 1) _openEntry(selected.first);
   }
 
-  void _moveSelection(Move move) {
+  void _moveSelection(Move move, {bool extend = false}) {
     if (_view == ViewMode.columns) {
       _moveInColumns(move);
       return;
@@ -340,7 +348,7 @@ class _MustacheWindowState extends State<MustacheWindow>
       Move.right => _view == ViewMode.icons ? 1 : 0,
     };
     if (delta == 0) return;
-    _moveBy(delta);
+    _moveBy(delta, extend: extend);
   }
 
   void _setView(ViewMode view) {
@@ -348,18 +356,54 @@ class _MustacheWindowState extends State<MustacheWindow>
     widget.settings?.view = view.name;
   }
 
-  void _moveBy(int delta) {
+  /// Le frecce: il cursore si sposta di `delta` nell'ordine di lettura. Senza ⇧ seleziona
+  /// solo il cursore; con ⇧ l'intervallo lineare dall'àncora al cursore (R7.6). Oltre la prima
+  /// o l'ultima riga nella griglia non succede niente.
+  void _moveBy(int delta, {bool extend = false}) {
     if (_entries.isEmpty) return;
-    final current = _entries.indexWhere((e) => e.path == _anchor);
-    final next = current < 0
-        ? (delta > 0 ? 0 : _entries.length - 1)
-        : (current + delta).clamp(0, _entries.length - 1);
+    final current = _entries.indexWhere((e) => e.path == (_cursor ?? _anchor));
+    int next;
+    if (current < 0) {
+      next = delta > 0 ? 0 : _entries.length - 1;
+    } else {
+      next = current + delta;
+      if (next < 0 || next >= _entries.length) {
+        // Nella griglia, su e giù oltre il bordo non si muovono; nell'elenco si ferma lì.
+        if (delta.abs() > 1) return;
+        next = next.clamp(0, _entries.length - 1);
+      }
+    }
     setState(() {
-      _anchor = _entries[next].path;
+      _cursor = _entries[next].path;
+      final anchor = _entries.indexWhere((e) => e.path == _anchor);
+      if (extend && anchor >= 0) {
+        final (a, b) = anchor < next ? (anchor, next) : (next, anchor);
+        _selected
+          ..clear()
+          ..addAll([for (var i = a; i <= b; i++) _entries[i].path]);
+      } else {
+        _anchor = _cursor;
+        _selected
+          ..clear()
+          ..add(_cursor!);
+      }
+    });
+  }
+
+  /// Il rettangolo di selezione: con ⌘ o ⇧ alterna sugli elementi di partenza, sennò li
+  /// sostituisce.
+  void _rubberBand(Set<String> paths, {required bool done}) {
+    final keys = HardwareKeyboard.instance;
+    final base = _bandBase ??= keys.isMetaPressed || keys.isShiftPressed
+        ? {..._selected}
+        : <String>{};
+    setState(() {
       _selected
         ..clear()
-        ..add(_anchor!);
+        ..addAll({...base.difference(paths), ...paths.difference(base)});
+      _anchor = _cursor = paths.isEmpty ? _anchor : paths.last;
     });
+    if (done) _bandBase = null;
   }
 
   void _tap(Entry entry) {
@@ -370,11 +414,14 @@ class _MustacheWindowState extends State<MustacheWindow>
         !keys.isMetaPressed && !keys.isControlPressed && !keys.isShiftPressed;
     _clickForRename(entry, wasOnlySelected: plain && wasOnlySelected);
     setState(() {
-      if (keys.isMetaPressed || keys.isControlPressed) {
+      // Nella vista a icone ⇧clic aggiunge o toglie come ⌘clic (R7.3).
+      if (keys.isMetaPressed ||
+          keys.isControlPressed ||
+          (keys.isShiftPressed && _view == ViewMode.icons)) {
         _selected.contains(entry.path)
             ? _selected.remove(entry.path)
             : _selected.add(entry.path);
-        _anchor = entry.path;
+        _anchor = _cursor = entry.path;
       } else if (keys.isShiftPressed && _anchor != null) {
         final a = _entries.indexWhere((e) => e.path == _anchor);
         final b = _entries.indexOf(entry);
@@ -390,7 +437,7 @@ class _MustacheWindowState extends State<MustacheWindow>
         _selected
           ..clear()
           ..add(entry.path);
-        _anchor = entry.path;
+        _anchor = _cursor = entry.path;
       }
     });
     _focus.requestFocus();
@@ -423,15 +470,23 @@ class _MustacheWindowState extends State<MustacheWindow>
         SingleActivator(LogicalKeyboardKey.arrowDown): MoveSelectionIntent(
           Move.down,
         ),
+        SingleActivator(LogicalKeyboardKey.arrowDown, shift: true):
+            MoveSelectionIntent(Move.down, extend: true),
         SingleActivator(LogicalKeyboardKey.arrowUp): MoveSelectionIntent(
           Move.up,
         ),
+        SingleActivator(LogicalKeyboardKey.arrowUp, shift: true):
+            MoveSelectionIntent(Move.up, extend: true),
         SingleActivator(LogicalKeyboardKey.arrowLeft): MoveSelectionIntent(
           Move.left,
         ),
+        SingleActivator(LogicalKeyboardKey.arrowLeft, shift: true):
+            MoveSelectionIntent(Move.left, extend: true),
         SingleActivator(LogicalKeyboardKey.arrowRight): MoveSelectionIntent(
           Move.right,
         ),
+        SingleActivator(LogicalKeyboardKey.arrowRight, shift: true):
+            MoveSelectionIntent(Move.right, extend: true),
         SingleActivator(LogicalKeyboardKey.enter): FileCommandIntent(
           FileCommand.rename,
         ),
@@ -550,7 +605,7 @@ class _MustacheWindowState extends State<MustacheWindow>
           ),
           MoveSelectionIntent: CallbackAction<MoveSelectionIntent>(
             onInvoke: (intent) {
-              _moveSelection(intent.move);
+              _moveSelection(intent.move, extend: intent.extend);
               return null;
             },
           ),
@@ -848,6 +903,7 @@ class _MustacheWindowState extends State<MustacheWindow>
       renameBuilder: (entry, maxWidth) =>
           _renameField(entry, maxWidth: maxWidth),
       onContext: _openContextMenu,
+      onRubberBand: _rubberBand,
       wrapItem: (entry, child) => _draggable(
         entry,
         _folderTarget(
