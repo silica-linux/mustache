@@ -31,6 +31,7 @@ part 'window_columns.dart';
 part 'window_context.dart';
 part 'window_drag.dart';
 part 'window_operations.dart';
+part 'window_search.dart';
 part 'window_tags.dart';
 part 'window_transfers.dart';
 
@@ -78,6 +79,10 @@ class ToggleHiddenIntent extends Intent {
 
 class ToggleSidebarIntent extends Intent {
   const ToggleSidebarIntent();
+}
+
+class SearchIntent extends Intent {
+  const SearchIntent();
 }
 
 class InfoIntent extends Intent {
@@ -232,6 +237,16 @@ class _MustacheWindowState extends State<MustacheWindow>
       ?InfoSection.values.where((s) => s.name == name).firstOrNull,
   };
 
+  /// La ricerca: attiva, il campo, l'ambito, la cartella di partenza, l'attesa e il giro in
+  /// corso.
+  bool _searching = false;
+  final TextEditingController _searchQuery = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
+  SearchScope _searchScope = SearchScope.computer;
+  String _searchFolder = '/';
+  Timer? _searchTimer;
+  int _searchToken = 0;
+
   /// La visualizzazione rapida aperta (Spazio).
   bool _quickLook = false;
 
@@ -268,6 +283,9 @@ class _MustacheWindowState extends State<MustacheWindow>
     _focus.dispose();
     _sidebarShown.dispose();
     _slowClick?.cancel();
+    _searchTimer?.cancel();
+    _searchQuery.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -329,6 +347,11 @@ class _MustacheWindowState extends State<MustacheWindow>
     SystemChrome.setApplicationSwitcherDescription(
       ApplicationSwitcherDescription(label: displayName(_history.current)),
     );
+    // In ricerca si rifà la ricerca.
+    if (_searching) {
+      _runSearch();
+      return;
+    }
     // Nella vista di un'etichetta si rifà la ricerca.
     final tag = _tagView;
     if (tag != null) {
@@ -353,6 +376,11 @@ class _MustacheWindowState extends State<MustacheWindow>
 
   void _navigate(String path) {
     _tagView = null;
+    if (_searching) {
+      _searching = false;
+      _searchToken++;
+      _searchQuery.clear();
+    }
     _tagSearch++;
     _history.go(path);
     _selected.clear();
@@ -570,6 +598,7 @@ class _MustacheWindowState extends State<MustacheWindow>
             TogglePathBarIntent(),
         SingleActivator(LogicalKeyboardKey.space): QuickLookIntent(),
         SingleActivator(LogicalKeyboardKey.keyI, meta: true): InfoIntent(),
+        SingleActivator(LogicalKeyboardKey.keyF, meta: true): SearchIntent(),
         SingleActivator(LogicalKeyboardKey.keyY, meta: true): QuickLookIntent(),
         SingleActivator(LogicalKeyboardKey.escape): CloseIntent(),
       },
@@ -587,7 +616,12 @@ class _MustacheWindowState extends State<MustacheWindow>
           ),
           BackIntent: CallbackAction<BackIntent>(
             onInvoke: (_) {
-              if (_history.back()) _load();
+              // Dalla ricerca, Indietro torna alla cartella (R13.4).
+              if (_searching) {
+                _endSearch();
+              } else if (_history.back()) {
+                _load();
+              }
               return null;
             },
           ),
@@ -636,6 +670,12 @@ class _MustacheWindowState extends State<MustacheWindow>
                 case FileCommand.move:
                   _paste(move: true);
               }
+              return null;
+            },
+          ),
+          SearchIntent: CallbackAction<SearchIntent>(
+            onInvoke: (_) {
+              _startSearch();
               return null;
             },
           ),
@@ -744,7 +784,9 @@ class _MustacheWindowState extends State<MustacheWindow>
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _header(),
-                          if (_view == ViewMode.list) _columnsHeader(),
+                          if (_searching) _scopeBar(),
+                          if (_view == ViewMode.list || _searching)
+                            _columnsHeader(),
                           Expanded(
                             // La cartella aperta come destinazione: linea di 2 pt lungo il bordo.
                             child: FolderDropTarget(
@@ -762,6 +804,8 @@ class _MustacheWindowState extends State<MustacheWindow>
                                 child: LayoutBuilder(
                                   builder: (context, box) {
                                     _contentWidth = box.maxWidth;
+                                    // I risultati della ricerca sono sempre un elenco.
+                                    if (_searching) return _list();
                                     return switch (_view) {
                                       ViewMode.icons => _icons(),
                                       ViewMode.list => _list(),
@@ -944,7 +988,9 @@ class _MustacheWindowState extends State<MustacheWindow>
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              _tagView ?? displayName(_history.current),
+              _searching
+                  ? 'Ricerca in «${_searchScope == SearchScope.computer ? 'Questo computer' : displayName(_searchFolder)}»'
+                  : _tagView ?? displayName(_history.current),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: text(
@@ -954,6 +1000,7 @@ class _MustacheWindowState extends State<MustacheWindow>
               ),
             ),
           ),
+          if (_searching) _searchField(),
         ],
       ),
     );
@@ -1089,6 +1136,8 @@ class _MustacheWindowState extends State<MustacheWindow>
       );
     }
     if (_entries.isEmpty) {
+      // In ricerca, senza risultati: l'elenco vuoto, nessun testo (R13.3).
+      if (_searching) return const SizedBox.expand();
       return Center(
         child: Text('Cartella vuota', style: text(13, color: secondaryText)),
       );
