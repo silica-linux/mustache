@@ -12,11 +12,13 @@ import 'package:silica_ui/silica_ui.dart';
 
 import 'model.dart';
 import 'settings.dart';
+import 'apps.dart';
 import 'icon_view.dart';
 import 'operations.dart';
 import 'rename_field.dart';
 import 'sidebar.dart';
 
+part 'window_context.dart';
 part 'window_operations.dart';
 
 const Color accent = Color(0xFF0075F2);
@@ -156,6 +158,12 @@ class _MustacheWindowState extends State<MustacheWindow>
   Timer? _slowClick;
   Widget? _alert;
 
+  /// Le app (lette alla prima apertura con un'app), i tipi MIME e il menu contestuale aperto.
+  AppRegistry? _apps;
+  final Map<String, String> _types = {};
+  Offset? _menuAt;
+  List<MenuEntry> _menuEntries = const [];
+
   late ViewMode _view = ViewMode.values.firstWhere(
     (v) => v.name == widget.settings?.view,
     orElse: () => ViewMode.icons,
@@ -264,7 +272,7 @@ class _MustacheWindowState extends State<MustacheWindow>
     if (entry.isDirectory) {
       _navigate(entry.path);
     } else {
-      (widget.open ?? _xdgOpen)(entry.path);
+      _openWith([entry]);
     }
   }
 
@@ -554,6 +562,17 @@ class _MustacheWindowState extends State<MustacheWindow>
                       onRelease: _releaseSidebar,
                     ),
                   ),
+                  // Il menu contestuale: un clic fuori lo chiude.
+                  if (_menuAt != null)
+                    Positioned.fill(
+                      child: MenuHost(
+                        key: ValueKey(_menuAt),
+                        entries: _menuEntries,
+                        anchor: _menuAt!,
+                        opaque: true,
+                        onDismissed: _closeContextMenu,
+                      ),
+                    ),
                   // Un avviso copre la finestra: il resto non riceve clic finché è aperto.
                   if (_alert != null)
                     Positioned.fill(
@@ -684,6 +703,7 @@ class _MustacheWindowState extends State<MustacheWindow>
       renaming: _renaming,
       renameBuilder: (entry, maxWidth) =>
           _renameField(entry, maxWidth: maxWidth),
+      onContext: _openContextMenu,
       onBackground: () => setState(() {
         _selected.clear();
         _anchor = null;
@@ -718,7 +738,7 @@ class _MustacheWindowState extends State<MustacheWindow>
           entry.isDirectory ? '${entry.name}/' : entry.name,
           formatDate(entry.modified, now),
           formatSize(entry),
-          kindLabel(entry),
+          _kind(entry),
         ];
         // La selezione alla pressione, subito (non dopo l'attesa del doppio clic).
         return Listener(
@@ -727,6 +747,8 @@ class _MustacheWindowState extends State<MustacheWindow>
             key: ValueKey(entry.path),
             onTap: () {},
             onDoubleTap: () => _openEntry(entry),
+            onSecondaryTapDown: (d) =>
+                _openContextMenu(entry, d.globalPosition),
             behavior: HitTestBehavior.opaque,
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 8),

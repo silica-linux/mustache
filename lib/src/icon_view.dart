@@ -185,6 +185,7 @@ class IconView extends StatelessWidget {
     required this.onTap,
     required this.onOpen,
     required this.onBackground,
+    this.onContext,
     this.active = true,
     this.side = defaultIconSide,
     this.text = defaultLabelSize,
@@ -201,6 +202,9 @@ class IconView extends StatelessWidget {
 
   /// Clic nel vuoto: toglie la selezione.
   final VoidCallback onBackground;
+
+  /// Clic secondario su un elemento (o nel vuoto, null), nella posizione globale.
+  final void Function(Entry? entry, Offset position)? onContext;
   final bool active;
   final double side;
   final double text;
@@ -227,6 +231,7 @@ class IconView extends StatelessWidget {
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onBackground,
+          onSecondaryTapDown: (d) => onContext?.call(null, d.globalPosition),
           child: SingleChildScrollView(
             controller: controller,
             child: SizedBox(
@@ -287,6 +292,7 @@ class IconView extends StatelessWidget {
           // Il vuoto attorno non tocca: il clic sulla cella non è un clic nel vuoto.
           onTap: () {},
           onDoubleTap: () => onOpen(entry),
+          onSecondaryTapDown: (d) => onContext?.call(entry, d.globalPosition),
           child: Stack(
             clipBehavior: Clip.none,
             children: [
