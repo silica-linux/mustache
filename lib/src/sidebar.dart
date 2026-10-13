@@ -35,7 +35,11 @@ const double sidebarHeadingToRow = 24;
 /// Fra il centro dell'ultima riga e quello dell'intestazione dopo.
 const double sidebarRowToHeading = 40;
 
-const double sidebarDefaultWidth = 200;
+/// La larghezza delle finestre nuove (spec 2.1: 192; 200 è solo dove si aggancia).
+const double sidebarDefaultWidth = 192;
+
+/// Dove si aggancia la barra rilasciata fra 191 e 209 (MU-11).
+const double sidebarSnapWidth = 200;
 const double sidebarMinWidth = 135;
 const double contentMinWidth = 316;
 
@@ -62,7 +66,8 @@ const Duration sidebarHide = Duration(milliseconds: 240);
 const Duration sidebarShow = Duration(milliseconds: 270);
 const double sidebarShowDelay = 40 / 270;
 
-/// I colori della barra (MU-10, MU-98, windows.md), per tema e stato della finestra.
+/// I colori della barra per tema e stato della finestra (mustache-spec 2.1, 2.2: valori M3/M4
+/// scelti fra le fonti; il fondo è un materiale e dipende da cosa c'è dietro).
 @immutable
 class SidebarColors {
   const SidebarColors({
@@ -73,6 +78,7 @@ class SidebarColors {
     required this.heading,
     required this.accentIcon,
     required this.plainIcon,
+    required this.plainIconSelected,
   });
 
   final Color fill;
@@ -81,46 +87,52 @@ class SidebarColors {
   final Color selectedText;
   final Color heading;
   final Color accentIcon;
+
+  /// L'icona grigia a riposo e sotto la selezione (due misure diverse, spec 2.1).
   final Color plainIcon;
+  final Color plainIconSelected;
 
   static SidebarColors of({required bool dark, required bool active}) =>
       switch ((dark, active)) {
         (false, true) => const SidebarColors(
-          fill: Color(0xFFE5E5E7),
-          selection: Color(0xFFD4D5D5),
+          fill: Color(0xFFECECED),
+          selection: Color(0xFFD7D7D7),
           text: Color(0xFF000000),
           selectedText: Color(0xFF000000),
           heading: Color(0xFF808182),
-          accentIcon: Color(0xFF006EE9),
-          plainIcon: Color(0xFF6E6E74),
+          accentIcon: Color(0xFF0070EB),
+          plainIcon: Color(0xFF7C7C82),
+          plainIconSelected: Color(0xFF6E6E74),
         ),
         (false, false) => const SidebarColors(
           fill: Color(0xFFF2F2F2),
           selection: Color(0xFFE7E7E7),
-          text: Color(0xFF000000),
+          text: Color(0xFF727272),
           selectedText: Color(0xFF676767),
-          heading: Color(0xFF808182),
-          accentIcon: Color(0xFF006EE9),
-          plainIcon: Color(0xFF6E6E74),
+          heading: Color(0xFFA6A6A6),
+          accentIcon: Color(0xFF7F7F7F),
+          plainIcon: Color(0xFF7F7F7F),
+          plainIconSelected: Color(0xFF7F7F7F),
         ),
         (true, true) => const SidebarColors(
-          fill: Color(0xFF303133),
-          selection: Color(0xFF474748),
+          fill: Color(0xFF2A2A2C),
+          selection: Color(0xFF464647),
           text: Color(0xFFFFFFFF),
           selectedText: Color(0xFFFFFFFF),
-          // Stimato: l'intestazione in scuro non è misurata.
-          heading: Color(0xFF8E8E93),
-          accentIcon: Color(0xFF00ACFF),
-          plainIcon: Color(0xFFC7C7CD),
+          heading: Color(0xFF7C7D7E),
+          accentIcon: Color(0xFF00ABFF),
+          plainIcon: Color(0xFFB6B7BD),
+          plainIconSelected: Color(0xFFC7C7CD),
         ),
         (true, false) => const SidebarColors(
           fill: Color(0xFF29292A),
           selection: Color(0xFF373738),
-          text: Color(0xFFFFFFFF),
+          text: Color(0xFF969696),
           selectedText: Color(0xFF9B9B9C),
-          heading: Color(0xFF8E8E93),
-          accentIcon: Color(0xFF00ACFF),
-          plainIcon: Color(0xFFC7C7CD),
+          heading: Color(0xFF5C5C5D),
+          accentIcon: Color(0xFF929293),
+          plainIcon: Color(0xFF929293),
+          plainIconSelected: Color(0xFF929293),
         ),
       };
 }
@@ -144,7 +156,7 @@ double dragWidth(double pointerX, double windowWidth) {
 /// La larghezza al rilascio: vicino a 200 si aggancia a 200.
 double releaseWidth(double width) =>
     width >= sidebarSnapFrom && width <= sidebarSnapTo
-    ? sidebarDefaultWidth
+    ? sidebarSnapWidth
     : width;
 
 /// Il simbolo di silica-icons per un luogo.
@@ -152,7 +164,7 @@ String symbolFor(PlaceKind kind) => switch (kind) {
   PlaceKind.home => 'house',
   PlaceKind.desktop => 'display',
   PlaceKind.documents => 'doc',
-  PlaceKind.downloads => 'download',
+  PlaceKind.downloads => 'arrow-down-circle',
   PlaceKind.pictures => 'photo',
   PlaceKind.music => 'music-note',
   PlaceKind.videos => 'film',
@@ -377,7 +389,11 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
               height: sidebarIconSize,
               child: _symbol(
                 place.kind,
-                accentIcon(place.kind) ? colors.accentIcon : colors.plainIcon,
+                accentIcon(place.kind)
+                    ? colors.accentIcon
+                    : selected
+                    ? colors.plainIconSelected
+                    : colors.plainIcon,
               ),
             ),
             if (showText)

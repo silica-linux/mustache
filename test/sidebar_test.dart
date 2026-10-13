@@ -74,8 +74,8 @@ void main() {
     expect(dragWidth(900, 1000), 1000 - contentMinWidth);
     expect(dragWidth(300, 1000), 300);
     expect(dragWidth(60, 1000), 0);
-    expect(releaseWidth(195), sidebarDefaultWidth);
-    expect(releaseWidth(209), sidebarDefaultWidth);
+    expect(releaseWidth(195), sidebarSnapWidth);
+    expect(releaseWidth(209), sidebarSnapWidth);
     expect(releaseWidth(190), 190);
     expect(releaseWidth(212), 212);
   });
@@ -91,10 +91,13 @@ void main() {
     await tester.pump();
     await gesture.up();
     await tester.pump();
-    expect(tester.getCenter(divider).dx, closeTo(300, 1));
-    expect(settings.sidebarWidth, closeTo(300, 1));
+    expect(tester.getCenter(divider).dx, closeTo(sidebarDefaultWidth + 100, 1));
+    expect(settings.sidebarWidth, closeTo(sidebarDefaultWidth + 100, 1));
     // Una finestra nuova parte dalla stessa larghezza (il file sul disco).
-    expect(Settings(settings.path).sidebarWidth, closeTo(300, 1));
+    expect(
+      Settings(settings.path).sidebarWidth,
+      closeTo(sidebarDefaultWidth + 100, 1),
+    );
 
     // Rilasciata vicino a 200 si aggancia a 200.
     final again = await tester.startGesture(tester.getCenter(divider));
@@ -103,7 +106,7 @@ void main() {
     await tester.pump();
     await again.up();
     await tester.pump();
-    expect(tester.getCenter(divider).dx, closeTo(200, 1));
+    expect(tester.getCenter(divider).dx, closeTo(sidebarSnapWidth, 1));
   });
 
   testWidgets('⌃⌘S nasconde la barra in ~240 ms e la rimostra', (tester) async {
@@ -177,7 +180,7 @@ void main() {
   });
 
   test('i simboli della barra stanno in symbols/regular', () {
-    expect(symbolFor(PlaceKind.downloads), 'download');
+    expect(symbolFor(PlaceKind.downloads), 'arrow-down-circle');
     expect(accentIcon(PlaceKind.documents), isTrue);
     expect(accentIcon(PlaceKind.trash), isFalse);
   });

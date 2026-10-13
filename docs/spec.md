@@ -40,7 +40,7 @@ provvisorio e lo dice.
   nessun fondo al passaggio. Colori per tema e per finestra attiva/inattiva (MU-10, MU-98).
 - Intestazioni: chevron al passaggio, clic per comprimere ed espandere (~190 ms, MU-11).
 - Larghezza: trascinando il bordo, fra 135 pt e quanto lascia 316 pt al contenuto; vicino a
-  200 si aggancia a 200; contro il bordo sinistro la barra si nasconde. Le finestre nuove
+  200 si aggancia a 200 (le finestre nuove partono da 192); contro il bordo sinistro la barra si nasconde. Le finestre nuove
   prendono l'ultima larghezza (`$XDG_CONFIG_HOME/mustache/settings.json`).
 - Nascondi/mostra: `mustache.sidebar.toggle`, ⌃⌘S (~240 ms, curva a S).
 - Da fare: trascinare per aggiungere, riordinare e togliere (MU-11), volumi ed espulsione
