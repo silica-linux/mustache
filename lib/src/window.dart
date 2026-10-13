@@ -15,6 +15,7 @@ import 'settings.dart';
 import 'apps.dart';
 import 'column_view.dart';
 import 'drag.dart';
+import 'gallery_view.dart';
 import 'icon_view.dart';
 import 'info.dart';
 import 'operations.dart';
@@ -154,7 +155,7 @@ class MoveSelectionIntent extends Intent {
 const String mustacheDesktopId = 'dev.frascella.Mustache.desktop';
 
 /// La vista dei contenuti (spec 3–6): a icone (⌘1), a elenco (⌘2), a colonne (⌘3).
-enum ViewMode { icons, list, columns }
+enum ViewMode { icons, list, columns, gallery }
 
 class MustacheWindow extends StatefulWidget {
   const MustacheWindow({
@@ -480,13 +481,15 @@ class _MustacheWindowState extends State<MustacheWindow>
       return;
     }
     final columns = _view == ViewMode.icons
-        ? iconGrid(_contentWidth).columns
+        ? iconGrid(_contentWidth, side: _iconSide).columns
         : 1;
+    final across = _view == ViewMode.icons || _view == ViewMode.gallery;
     final delta = switch (move) {
-      Move.up => -columns,
-      Move.down => columns,
-      Move.left => _view == ViewMode.icons ? -1 : 0,
-      Move.right => _view == ViewMode.icons ? 1 : 0,
+      // In galleria la striscia è una riga: su e giù non la muovono.
+      Move.up => _view == ViewMode.gallery ? 0 : -columns,
+      Move.down => _view == ViewMode.gallery ? 0 : columns,
+      Move.left => across ? -1 : 0,
+      Move.right => across ? 1 : 0,
     };
     if (delta == 0) return;
     _moveBy(delta, extend: extend);
@@ -661,6 +664,9 @@ class _MustacheWindowState extends State<MustacheWindow>
         ),
         SingleActivator(LogicalKeyboardKey.digit3, meta: true): SetViewIntent(
           ViewMode.columns,
+        ),
+        SingleActivator(LogicalKeyboardKey.digit4, meta: true): SetViewIntent(
+          ViewMode.gallery,
         ),
         SingleActivator(LogicalKeyboardKey.keyP, meta: true, alt: true):
             TogglePathBarIntent(),
@@ -907,8 +913,13 @@ class _MustacheWindowState extends State<MustacheWindow>
                                             ViewMode.icons => _icons(),
                                             ViewMode.list => _list(),
                                             ViewMode.columns => _columnsView(),
+                                            ViewMode.gallery => _galleryView(),
                                           };
-                                    if (!_previewPane) return view;
+                                    // In galleria il pannello c'è sempre, largo 250 (spec 6).
+                                    final pane =
+                                        _previewPane ||
+                                        _view == ViewMode.gallery;
+                                    if (!pane) return view;
                                     // Il pannello di anteprima a destra (spec 1.6).
                                     return Row(
                                       crossAxisAlignment:
@@ -916,6 +927,9 @@ class _MustacheWindowState extends State<MustacheWindow>
                                       children: [
                                         Expanded(child: view),
                                         PreviewPane(
+                                          width: _view == ViewMode.gallery
+                                              ? 250
+                                              : previewPaneWidth,
                                           items: _selection,
                                           kindOf: _kind,
                                           env: widget.iconsEnv,
@@ -1205,6 +1219,14 @@ class _MustacheWindowState extends State<MustacheWindow>
       onClose: () => setState(() => _quickLook = false),
     );
   }
+
+  Widget _galleryView() => GalleryView(
+    entries: _entries,
+    selected: _cursor ?? (_selected.isEmpty ? null : _selected.last),
+    onTap: _tap,
+    onOpen: _openEntry,
+    env: widget.iconsEnv,
+  );
 
   Widget _columnsView() => ColumnView(
     root: _columnRoot,

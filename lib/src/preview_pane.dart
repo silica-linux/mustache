@@ -39,7 +39,11 @@ class PreviewPane extends StatelessWidget {
     required this.items,
     required this.kindOf,
     this.env,
+    this.width = previewPaneWidth,
   });
+
+  /// Largo 264, 250 in galleria.
+  final double width;
 
   /// La selezione (vuota: niente).
   final List<Entry> items;
@@ -50,7 +54,7 @@ class PreviewPane extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       key: const ValueKey('pannello di anteprima'),
-      width: previewPaneWidth,
+      width: width,
       color: const Color(0xFFECECEC),
       child: items.isEmpty
           ? null
@@ -150,8 +154,16 @@ class PreviewPane extends StatelessWidget {
     child: Row(
       children: [
         Text(label, style: _text(12, color: const Color(0xFF6E6E73))),
-        const Spacer(),
-        Text(value, style: _text(12)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: _text(12),
+          ),
+        ),
       ],
     ),
   );

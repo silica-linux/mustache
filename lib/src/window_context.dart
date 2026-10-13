@@ -176,6 +176,16 @@ extension _Context on _MustacheWindowState {
           checked: _view == ViewMode.list,
           onSelected: () => _setView(ViewMode.list),
         ),
+        MenuAction(
+          'Come colonne',
+          checked: _view == ViewMode.columns,
+          onSelected: () => _setView(ViewMode.columns),
+        ),
+        MenuAction(
+          'Come galleria',
+          checked: _view == ViewMode.gallery,
+          onSelected: () => _setView(ViewMode.gallery),
+        ),
       ],
     ),
     MenuAction(
