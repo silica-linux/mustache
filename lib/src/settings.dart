@@ -61,6 +61,22 @@ class Settings {
     _save();
   }
 
+  /// Le sezioni aperte della finestra Informazioni (valgono per tutte, R11.1).
+  List<String>? get infoSections {
+    final value = _data['infoSections'];
+    return value is List
+        ? [
+            for (final v in value)
+              if (v is String) v,
+          ]
+        : null;
+  }
+
+  set infoSections(List<String>? value) {
+    _data['infoSections'] = value;
+    _save();
+  }
+
   void _save() {
     try {
       final file = File(path);

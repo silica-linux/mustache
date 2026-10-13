@@ -60,6 +60,13 @@ extension _Context on _MustacheWindowState {
     });
   }
 
+  /// Apre le finestre Informazioni (al più 5).
+  void _openInfo(List<String> paths) => _update(() {
+    for (final p in paths.take(5)) {
+      if (!_infos.contains(p)) _infos.add(p);
+    }
+  });
+
   void _closeContextMenu() {
     _update(() {
       _menuAt = null;
@@ -98,7 +105,10 @@ extension _Context on _MustacheWindowState {
         onSelected: _moveToTrash,
       ),
       const MenuDivider(),
-      const MenuAction('Ottieni informazioni', enabled: false),
+      MenuAction(
+        'Ottieni informazioni',
+        onSelected: () => _openInfo([for (final e in items) e.path]),
+      ),
       MenuAction(
         items.length > 1 ? 'Rinomina…' : 'Rinomina',
         enabled: single != null,
@@ -148,7 +158,10 @@ extension _Context on _MustacheWindowState {
       onSelected: () => _paste(move: false),
     ),
     const MenuDivider(),
-    const MenuAction('Ottieni informazioni', enabled: false),
+    MenuAction(
+      'Ottieni informazioni',
+      onSelected: () => _openInfo([_history.current]),
+    ),
     const MenuDivider(),
     MenuAction(
       'Vista',

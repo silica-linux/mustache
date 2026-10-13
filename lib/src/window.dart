@@ -16,6 +16,7 @@ import 'apps.dart';
 import 'column_view.dart';
 import 'drag.dart';
 import 'icon_view.dart';
+import 'info.dart';
 import 'operations.dart';
 import 'path_bar.dart';
 import 'quick_look.dart';
@@ -77,6 +78,10 @@ class ToggleHiddenIntent extends Intent {
 
 class ToggleSidebarIntent extends Intent {
   const ToggleSidebarIntent();
+}
+
+class InfoIntent extends Intent {
+  const InfoIntent();
 }
 
 class QuickLookIntent extends Intent {
@@ -217,6 +222,15 @@ class _MustacheWindowState extends State<MustacheWindow>
   final Map<String, List<String>> _tagCache = {};
   String? _tagView;
   int _tagSearch = 0;
+
+  /// Le finestre Informazioni aperte (percorsi) e le loro sezioni aperte (per tutte).
+  final List<String> _infos = [];
+  late final Set<InfoSection> _infoOpen = {
+    for (final name
+        in widget.settings?.infoSections ??
+            const ['general', 'name', 'preview'])
+      ?InfoSection.values.where((s) => s.name == name).firstOrNull,
+  };
 
   /// La visualizzazione rapida aperta (Spazio).
   bool _quickLook = false;
@@ -555,6 +569,7 @@ class _MustacheWindowState extends State<MustacheWindow>
         SingleActivator(LogicalKeyboardKey.keyP, meta: true, alt: true):
             TogglePathBarIntent(),
         SingleActivator(LogicalKeyboardKey.space): QuickLookIntent(),
+        SingleActivator(LogicalKeyboardKey.keyI, meta: true): InfoIntent(),
         SingleActivator(LogicalKeyboardKey.keyY, meta: true): QuickLookIntent(),
         SingleActivator(LogicalKeyboardKey.escape): CloseIntent(),
       },
@@ -621,6 +636,20 @@ class _MustacheWindowState extends State<MustacheWindow>
                 case FileCommand.move:
                   _paste(move: true);
               }
+              return null;
+            },
+          ),
+          InfoIntent: CallbackAction<InfoIntent>(
+            onInvoke: (_) {
+              // La selezione, o la cartella aperta se non c'è.
+              final paths = _selected.isEmpty
+                  ? [_history.current]
+                  : [for (final e in _selection) e.path];
+              setState(() {
+                for (final p in paths.take(5)) {
+                  if (!_infos.contains(p)) _infos.add(p);
+                }
+              });
               return null;
             },
           ),
@@ -790,6 +819,52 @@ class _MustacheWindowState extends State<MustacheWindow>
                   // La visualizzazione rapida: l'ultimo elemento scelto; le frecce la cambiano.
                   if (_quickLook && _selection.isNotEmpty)
                     Positioned.fill(child: _quickLookPanel()),
+                  // Le finestre Informazioni, una accanto all'altra a +285 pt.
+                  for (var i = 0; i < _infos.length; i++)
+                    if (entryAt(_infos[i]) case final entry?)
+                      Positioned(
+                        right: 12.0 + 285 * i,
+                        top: 40,
+                        bottom: 12,
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          child: InfoPanel(
+                            entry: entry,
+                            kind: _kind(entry),
+                            env: widget.iconsEnv,
+                            open: _infoOpen,
+                            openWith: entry.isDirectory
+                                ? null
+                                : _registry.defaultFor(_typeOf(entry))?.name,
+                            onToggle: (section) {
+                              setState(() {
+                                _infoOpen.contains(section)
+                                    ? _infoOpen.remove(section)
+                                    : _infoOpen.add(section);
+                              });
+                              widget.settings?.infoSections = [
+                                for (final s in _infoOpen) s.name,
+                              ];
+                            },
+                            onClose: () =>
+                                setState(() => _infos.remove(_infos[i])),
+                            onRename: (name) {
+                              final old = _infos[i];
+                              final result = renameEntry(old, name);
+                              if (result.error != null) {
+                                _showError(
+                                  'Non si può rinominare.',
+                                  result.error,
+                                );
+                                return;
+                              }
+                              _undo.push(RenameOp(old, result.path!));
+                              setState(() => _infos[i] = result.path!);
+                              _load();
+                            },
+                          ),
+                        ),
+                      ),
                   // La finestra di avanzamento non blocca il resto.
                   if (_progress != null && _alert == null)
                     Align(

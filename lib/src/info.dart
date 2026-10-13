@@ -1,0 +1,535 @@
+// La finestra Informazioni (⌘I, MU-60, mustache-spec 11): larga 265, alta quanto il contenuto;
+// intestazione con l'icona da 44, il nome in semibold, la dimensione e la data; sezioni con il
+// chevron che si aprono e si chiudono (lo stato vale per tutte le finestre Info, R11.1):
+// Generali, Nome ed estensione, Commenti, Apri con, Anteprima, Condivisione e permessi. Etichette
+// allineate a destra fino a x 91, valori da x 93, corpo ~11.
+//
+// In Silica sta dentro la finestra di Mustache (l'embedder non ha finestre figlie).
+
+import 'dart:io';
+
+import 'package:flutter/widgets.dart';
+import 'package:silica_ui/silica_ui.dart';
+
+import 'icon_view.dart' show EntryIcon;
+import 'model.dart';
+import 'xattr.dart';
+
+const double infoWidth = 265;
+const double infoLabelRight = 91;
+const double infoValueLeft = 93;
+
+/// Le sezioni, nell'ordine.
+enum InfoSection { general, name, comments, openWith, preview, permissions }
+
+String infoSectionTitle(InfoSection s) => switch (s) {
+  InfoSection.general => 'Generali',
+  InfoSection.name => 'Nome ed estensione',
+  InfoSection.comments => 'Commenti',
+  InfoSection.openWith => 'Apri con',
+  InfoSection.preview => 'Anteprima',
+  InfoSection.permissions => 'Condivisione e permessi',
+};
+
+/// Quel che `stat` dice di un file e che `FileStat` non ha: creazione, spazio su disco,
+/// proprietario e gruppo.
+class StatDetails {
+  const StatDetails({
+    this.created,
+    this.blocks = 0,
+    this.owner = '',
+    this.group = '',
+    this.mode = 0,
+  });
+
+  final DateTime? created;
+  final int blocks;
+  final String owner;
+  final String group;
+  final int mode;
+
+  int get onDisk => blocks * 512;
+
+  /// Dall'uscita di `stat -c '%W %b %U %G %a'`.
+  static StatDetails parse(String line) {
+    final parts = line.trim().split(' ');
+    if (parts.length < 5) return const StatDetails();
+    final birth = int.tryParse(parts[0]) ?? 0;
+    return StatDetails(
+      created: birth > 0
+          ? DateTime.fromMillisecondsSinceEpoch(birth * 1000)
+          : null,
+      blocks: int.tryParse(parts[1]) ?? 0,
+      owner: parts[2],
+      group: parts[3],
+      mode: int.tryParse(parts[4], radix: 8) ?? 0,
+    );
+  }
+
+  static StatDetails of(String path) {
+    try {
+      final r = Process.runSync('stat', ['-c', '%W %b %U %G %a', path]);
+      return r.exitCode == 0 ? parse('${r.stdout}') : const StatDetails();
+    } on ProcessException {
+      return const StatDetails();
+    }
+  }
+}
+
+/// I privilegi di una classe (proprietario, gruppo, altri) come li mostra il menu.
+enum Privilege { readWrite, readOnly, writeOnly, none }
+
+String privilegeLabel(Privilege p) => switch (p) {
+  Privilege.readWrite => 'Lettura e scrittura',
+  Privilege.readOnly => 'Sola lettura',
+  Privilege.writeOnly => 'Sola scrittura',
+  Privilege.none => 'Nessun accesso',
+};
+
+/// I privilegi della classe `shift` (6 proprietario, 3 gruppo, 0 altri) nel modo.
+Privilege privilegeOf(int mode, int shift) {
+  final r = mode >> (shift + 2) & 1 == 1;
+  final w = mode >> (shift + 1) & 1 == 1;
+  return r && w
+      ? Privilege.readWrite
+      : r
+      ? Privilege.readOnly
+      : w
+      ? Privilege.writeOnly
+      : Privilege.none;
+}
+
+/// Il modo con i privilegi della classe `shift` cambiati (l'esecuzione resta com'è).
+int withPrivilege(int mode, int shift, Privilege p) {
+  final bits = switch (p) {
+    Privilege.readWrite => 6,
+    Privilege.readOnly => 4,
+    Privilege.writeOnly => 2,
+    Privilege.none => 0,
+  };
+  return (mode & ~(6 << shift)) | (bits << shift);
+}
+
+String _date(DateTime? t) {
+  if (t == null) return '--';
+  const months = [
+    'gennaio',
+    'febbraio',
+    'marzo',
+    'aprile',
+    'maggio',
+    'giugno',
+    'luglio',
+    'agosto',
+    'settembre',
+    'ottobre',
+    'novembre',
+    'dicembre',
+  ];
+  String two(int v) => v.toString().padLeft(2, '0');
+  return '${t.day} ${months[t.month - 1]} ${t.year}, ${two(t.hour)}:${two(t.minute)}';
+}
+
+class InfoPanel extends StatefulWidget {
+  const InfoPanel({
+    super.key,
+    required this.entry,
+    required this.kind,
+    required this.open,
+    required this.onToggle,
+    required this.onClose,
+    required this.onRename,
+    this.openWith,
+    this.env,
+  });
+
+  final Entry entry;
+
+  /// La descrizione del tipo (come nella colonna Tipo).
+  final String kind;
+
+  /// Le sezioni aperte e il clic sul chevron.
+  final Set<InfoSection> open;
+  final ValueChanged<InfoSection> onToggle;
+  final VoidCallback onClose;
+
+  /// Il nome scritto nel campo Nome (Invio rinomina subito, R8.8).
+  final ValueChanged<String> onRename;
+
+  /// L'app che apre il file (null per le cartelle).
+  final String? openWith;
+  final Map<String, String>? env;
+
+  @override
+  State<InfoPanel> createState() => _InfoPanelState();
+}
+
+class _InfoPanelState extends State<InfoPanel> {
+  late StatDetails _stat = StatDetails.of(widget.entry.path);
+  late final TextEditingController _name = TextEditingController(
+    text: widget.entry.name,
+  );
+  late final TextEditingController _comment = TextEditingController(
+    text: readAttribute(widget.entry.path, commentAttribute) ?? '',
+  );
+  final FocusNode _commentFocus = FocusNode();
+  final FocusNode _nameFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    // Il commento si salva quando si esce dal campo (R11.2).
+    _commentFocus.addListener(() {
+      if (!_commentFocus.hasFocus) {
+        writeAttribute(
+          widget.entry.path,
+          commentAttribute,
+          _comment.text.trim(),
+        );
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(InfoPanel old) {
+    super.didUpdateWidget(old);
+    if (old.entry.path != widget.entry.path) {
+      _stat = StatDetails.of(widget.entry.path);
+      _name.text = widget.entry.name;
+      _comment.text = readAttribute(widget.entry.path, commentAttribute) ?? '';
+    }
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _comment.dispose();
+    _commentFocus.dispose();
+    _nameFocus.dispose();
+    super.dispose();
+  }
+
+  TextStyle _text({
+    double size = 11,
+    FontWeight? weight,
+    Color color = const Color(0xFF1A1A1A),
+  }) => TextStyle(
+    fontFamily: uiFontFamily,
+    package: 'silica_ui',
+    fontSize: size,
+    fontWeight: weight,
+    color: color,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final entry = widget.entry;
+    return Container(
+      key: ValueKey('informazioni ${entry.path}'),
+      width: infoWidth,
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFFFF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0x40000000), width: 0.5),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x40000000),
+            blurRadius: 30,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _titleBar(entry),
+              _header(entry),
+              for (final section in InfoSection.values)
+                if (section != InfoSection.openWith || !entry.isDirectory)
+                  _section(section),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _titleBar(Entry entry) => SizedBox(
+    height: 28,
+    child: Row(
+      children: [
+        const SizedBox(width: 10),
+        GestureDetector(
+          key: const ValueKey('chiudi le informazioni'),
+          onTap: widget.onClose,
+          child: Container(
+            width: 12,
+            height: 12,
+            decoration: const BoxDecoration(
+              color: Color(0xFFFF5F57),
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            'Info su ${entry.name}',
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: _text(
+              size: 12,
+              weight: FontWeight.w600,
+              color: const Color(0xFF4D4D4D),
+            ),
+          ),
+        ),
+        const SizedBox(width: 22),
+      ],
+    ),
+  );
+
+  Widget _header(Entry entry) => Padding(
+    padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
+    child: Row(
+      children: [
+        SizedBox(
+          width: 44,
+          height: 44,
+          child: EntryIcon(entry: entry, side: 44, env: widget.env),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      entry.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: _text(size: 13, weight: FontWeight.w600),
+                    ),
+                  ),
+                  if (!entry.isDirectory)
+                    Text(
+                      formatSize(entry),
+                      style: _text(color: const Color(0xFF6E6E73)),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Modificato: ${_date(entry.modified)}',
+                style: _text(color: const Color(0xFF6E6E73)),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _section(InfoSection section) {
+    final open = widget.open.contains(section);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(height: 1, color: const Color(0xFFE6E6E6)),
+        GestureDetector(
+          key: ValueKey('sezione ${infoSectionTitle(section)}'),
+          behavior: HitTestBehavior.opaque,
+          onTap: () => widget.onToggle(section),
+          child: SizedBox(
+            height: 20,
+            child: Row(
+              children: [
+                const SizedBox(width: 16),
+                SizedBox(
+                  width: 15,
+                  child: Text(
+                    open ? '⌄' : '›',
+                    style: _text(size: 12, color: const Color(0xFF6E6E73)),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    infoSectionTitle(section),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: _text(weight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (open)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _content(section),
+          ),
+      ],
+    );
+  }
+
+  Widget _row(String label, String value) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 1.5),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: infoLabelRight,
+          child: Text(
+            '$label:',
+            textAlign: TextAlign.right,
+            style: _text(color: const Color(0xFF6E6E73)),
+          ),
+        ),
+        const SizedBox(width: infoValueLeft - infoLabelRight),
+        Expanded(child: Text(value, style: _text())),
+        const SizedBox(width: 10),
+      ],
+    ),
+  );
+
+  Widget _content(InfoSection section) {
+    final entry = widget.entry;
+    switch (section) {
+      case InfoSection.general:
+        return Column(
+          children: [
+            _row('Tipo', widget.kind),
+            if (!entry.isDirectory)
+              _row(
+                'Dimensioni',
+                '${entry.size} byte (${formatSize(Entry(name: '', path: '', isDirectory: false, size: _stat.onDisk, modified: entry.modified))} su disco)',
+              ),
+            _row('Situato in', parentOf(entry.path) ?? '/'),
+            _row('Creato', _date(_stat.created)),
+            _row('Modificato', _date(entry.modified)),
+          ],
+        );
+      case InfoSection.name:
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: _field(
+            _name,
+            _nameFocus,
+            key: 'campo del nome',
+            onSubmitted: (value) {
+              if (value.trim().isNotEmpty) widget.onRename(value.trim());
+            },
+          ),
+        );
+      case InfoSection.comments:
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: _field(
+            _comment,
+            _commentFocus,
+            key: 'campo del commento',
+            lines: 3,
+            onSubmitted: (_) => _commentFocus.unfocus(),
+          ),
+        );
+      case InfoSection.openWith:
+        return _row('App', widget.openWith ?? 'Nessuna');
+      case InfoSection.preview:
+        return Center(
+          child: SizedBox(
+            width: 128,
+            height: 128,
+            child: EntryIcon(entry: entry, side: 128, env: widget.env),
+          ),
+        );
+      case InfoSection.permissions:
+        return Column(
+          children: [
+            for (final (label, shift) in [
+              ('${_stat.owner.isEmpty ? '?' : _stat.owner} (io)', 6),
+              (_stat.group.isEmpty ? 'gruppo' : _stat.group, 3),
+              ('tutti', 0),
+            ])
+              _permission(label, shift),
+          ],
+        );
+    }
+  }
+
+  Widget _permission(String who, int shift) {
+    final current = privilegeOf(_stat.mode, shift);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 1),
+      child: Row(
+        children: [
+          Expanded(child: Text(who, style: _text())),
+          // Un clic passa al privilegio successivo, applicato subito su disco (R11.4).
+          GestureDetector(
+            key: ValueKey('privilegio $shift'),
+            onTap: () {
+              const order = [
+                Privilege.readWrite,
+                Privilege.readOnly,
+                Privilege.none,
+              ];
+              final next = order[(order.indexOf(current) + 1) % order.length];
+              final mode = withPrivilege(_stat.mode, shift, next);
+              try {
+                final r = Process.runSync('chmod', [
+                  mode.toRadixString(8),
+                  widget.entry.path,
+                ]);
+                if (r.exitCode == 0) {
+                  setState(() => _stat = StatDetails.of(widget.entry.path));
+                }
+              } on ProcessException {
+                // Senza chmod resta com'era.
+              }
+            },
+            child: Text(
+              privilegeLabel(current),
+              style: _text(color: const Color(0xFF0064E1)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _field(
+    TextEditingController controller,
+    FocusNode focus, {
+    required String key,
+    int lines = 1,
+    required ValueChanged<String> onSubmitted,
+  }) => Container(
+    key: ValueKey(key),
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+    decoration: BoxDecoration(
+      border: Border.all(color: const Color(0xFFD0D0D0)),
+      borderRadius: BorderRadius.circular(5),
+    ),
+    child: DefaultTextEditingShortcuts(
+      child: EditableText(
+        controller: controller,
+        focusNode: focus,
+        style: _text(size: 12),
+        cursorColor: const Color(0xFF1A1A1A),
+        backgroundCursorColor: const Color(0xFF1A1A1A),
+        selectionColor: const Color(0xFFB3D7FF),
+        selectAllOnFocus: false,
+        maxLines: lines,
+        minLines: lines,
+        onSubmitted: onSubmitted,
+        onTapOutside: (_) => focus.unfocus(),
+      ),
+    ),
+  );
+}
