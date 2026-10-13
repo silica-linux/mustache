@@ -13,10 +13,14 @@ Dentro Silica, con il repository principale accanto (`~/silica/silica`):
 
 ```
 cd ~/silica/silica
-cargo xtask bundle ~/silica/mustache --release
-cargo xtask run --nested --shell --spawn \
-  "target/release/silica-embedder --engine target/flutter-engine/$(cat crates/embedder/ENGINE_VERSION)-release --renderer impeller --size 1000x700 --title Mustache --app-id dev.frascella.Mustache ~/silica/mustache/build/release/flutter_assets"
+cargo xtask install-app ~/silica/mustache   # bundle in release e voce .desktop
+cargo xtask run --nested --shell             # Mustache è nel Dock, in Faro e nel launcher
 ```
+
+`install-app` scrive `~/.local/share/applications/dev.frascella.Mustache.desktop` dal modello in
+`linux/` (app id `dev.frascella.Mustache`, icona `mustache` di silica-icons, visibile solo in
+Silica). Dopo una modifica al codice basta rifare il bundle:
+`cargo xtask bundle ~/silica/mustache --release`.
 
 Con `SILICA_ICONS_DIR` (lo imposta `cargo xtask run` se `silica-icons` è clonato accanto) la
 barra laterale usa i simboli di [`silica-icons`](https://github.com/silica-linux/silica-icons).
