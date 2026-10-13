@@ -11,7 +11,7 @@ visivo uno screenshot dentro Ossido confrontato con il riferimento.
 | MU.4 | Rinomina sul posto, nuova cartella, duplica, Cestino (Trash spec), annulla | MU-32, MU-42 | fatto (0.4.0): rinomina con Invio e clic lento, controlli e avvisi, ⇧⌘N, ⌘D, ⌘⌫ (Ripristina nel Cestino), ⌥⌘⌫ con conferma, ⌘Z/⇧⌘Z; restano ⌃⌘N, comprimi, alias, rinomina in blocco, animazione delle righe al Cestino (210 ms), avvisi vicino all'elemento (R8.5) |
 | MU.5 | Tipi di file (shared-mime-info), app predefinite e "Apri con" (`mimeapps.list`) | MU-50 | fatto (0.5.0): tipo MIME e descrizione nella colonna Tipo, apertura con l'app predefinita (`mimeapps.list`, voci .desktop, `Exec`), menu contestuali di file, cartelle, più elementi e vuoto con "Apri con"; restano Altro…, ⌥ (Apri sempre con), cerchi delle etichette (MU.9), Copia/Incolla, menu in popup veri (serve l'embedder) |
 | MU.6 | Vista a colonne e barra del percorso | MU-22, MU-03 | fatto (0.6.0): colonne dalla voce della barra laterale, selezione attenuata a sinistra, frecce, scorrimento orizzontale; barra del percorso (⌥⌘P) con restringimento R1.20 e clic sui segmenti; restano maniglia e larghezza delle colonne (R5.2), colonna di anteprima (con MU.8), rilascio sui segmenti (MU.7) |
-| MU.7 | Trascinamento e copie in background con avanzamento e conflitti | MU-40, MU-41 | |
+| MU.7 | Trascinamento e copie in background con avanzamento e conflitti | MU-40, MU-41 | in corso: copie e spostamenti in background con torta, finestra di avanzamento, annullamento e conflitti, ⌘C/⌘V/⌥⌘V (0.7.0); poi trascinamento (7b) e rettangolo di selezione (7c) |
 | MU.8 | Anteprima rapida | MU-61 | |
 | MU.9 | Informazioni, etichette | MU-60, MU-62 | |
 | MU.10 | Ricerca | MU-70 | |

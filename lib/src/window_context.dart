@@ -105,7 +105,7 @@ extension _Context on _MustacheWindowState {
         onSelected: single == null ? null : () => _startRename(single.path),
       ),
       MenuAction('Duplica', onSelected: _duplicate),
-      const MenuAction('Copia', enabled: false),
+      MenuAction('Copia', onSelected: _copySelection),
     ];
   }
 
@@ -137,6 +137,13 @@ extension _Context on _MustacheWindowState {
 
   List<MenuEntry> _backgroundMenu() => [
     MenuAction('Nuova cartella', onSelected: _newFolder),
+    MenuAction(
+      FileClipboard.paths.length > 1
+          ? 'Incolla ${FileClipboard.paths.length} elementi'
+          : 'Incolla elemento',
+      enabled: FileClipboard.paths.isNotEmpty,
+      onSelected: () => _paste(move: false),
+    ),
     const MenuDivider(),
     const MenuAction('Ottieni informazioni', enabled: false),
     const MenuDivider(),

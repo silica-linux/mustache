@@ -329,7 +329,7 @@ String _describe(FileSystemException e) {
 }
 
 /// Un'operazione che si può annullare e ripetere.
-sealed class Undoable {
+abstract class Undoable {
   const Undoable();
 
   /// L'etichetta del menu Modifica ("Annulla Rinomina").

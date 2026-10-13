@@ -18,11 +18,14 @@ import 'icon_view.dart';
 import 'operations.dart';
 import 'path_bar.dart';
 import 'rename_field.dart';
+import 'transfer.dart';
+import 'transfer_ui.dart';
 import 'sidebar.dart';
 
 part 'window_columns.dart';
 part 'window_context.dart';
 part 'window_operations.dart';
+part 'window_transfers.dart';
 
 const Color accent = Color(0xFF0075F2);
 const Color textColor = Color(0xFF000000);
@@ -83,7 +86,18 @@ class SetViewIntent extends Intent {
 enum Move { up, down, left, right }
 
 /// Una delle operazioni sui file (MU.4), con la sua scorciatoia.
-enum FileCommand { rename, newFolder, duplicate, trash, delete, undo, redo }
+enum FileCommand {
+  rename,
+  newFolder,
+  duplicate,
+  trash,
+  delete,
+  undo,
+  redo,
+  copy,
+  paste,
+  move,
+}
 
 class FileCommandIntent extends Intent {
   const FileCommandIntent(this.command);
@@ -170,6 +184,11 @@ class _MustacheWindowState extends State<MustacheWindow>
   final Map<String, String> _types = {};
   Offset? _menuAt;
   List<MenuEntry> _menuEntries = const [];
+
+  /// Le copie in corso, quella con la finestra di avanzamento e il conflitto in attesa.
+  final List<Transfer> _transfers = [];
+  Transfer? _progress;
+  ({String name, bool moving, Completer<ConflictChoice> done})? _conflict;
 
   /// La barra del percorso (⌥⌘P), ricordata per le finestre nuove.
   late bool _pathBar = widget.settings?.pathBar ?? false;
@@ -426,6 +445,14 @@ class _MustacheWindowState extends State<MustacheWindow>
         ),
         SingleActivator(LogicalKeyboardKey.keyZ, meta: true, shift: true):
             FileCommandIntent(FileCommand.redo),
+        SingleActivator(LogicalKeyboardKey.keyC, meta: true): FileCommandIntent(
+          FileCommand.copy,
+        ),
+        SingleActivator(LogicalKeyboardKey.keyV, meta: true): FileCommandIntent(
+          FileCommand.paste,
+        ),
+        SingleActivator(LogicalKeyboardKey.keyV, meta: true, alt: true):
+            FileCommandIntent(FileCommand.move),
         SingleActivator(LogicalKeyboardKey.digit1, meta: true): SetViewIntent(
           ViewMode.icons,
         ),
@@ -494,6 +521,12 @@ class _MustacheWindowState extends State<MustacheWindow>
                   _undoLast();
                 case FileCommand.redo:
                   _redoLast();
+                case FileCommand.copy:
+                  _copySelection();
+                case FileCommand.paste:
+                  _paste(move: false);
+                case FileCommand.move:
+                  _paste(move: true);
               }
               return null;
             },
@@ -625,6 +658,32 @@ class _MustacheWindowState extends State<MustacheWindow>
                         anchor: _menuAt!,
                         opaque: true,
                         onDismissed: _closeContextMenu,
+                      ),
+                    ),
+                  // La finestra di avanzamento non blocca il resto.
+                  if (_progress != null && _alert == null)
+                    Align(
+                      alignment: const Alignment(0, 0.85),
+                      child: ProgressWindow(
+                        transfer: _progress!,
+                        icon: _appIcon,
+                      ),
+                    ),
+                  // Il conflitto aspetta una scelta: copre la finestra.
+                  if (_conflict != null)
+                    Positioned.fill(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {},
+                        child: Align(
+                          alignment: const Alignment(0, -0.5),
+                          child: ConflictWindow(
+                            name: _conflict!.name,
+                            moving: _conflict!.moving,
+                            icon: _appIcon,
+                            onChoice: _chooseConflict,
+                          ),
+                        ),
                       ),
                     ),
                   // Un avviso copre la finestra: il resto non riceve clic finché è aperto.
@@ -797,7 +856,13 @@ class _MustacheWindowState extends State<MustacheWindow>
       itemBuilder: (context, index) {
         final entry = _entries[index];
         final selected = _selected.contains(entry.path);
-        final color = selected ? selectionText : textColor;
+        // Un elemento ancora in copia: nome attenuato e torta (spec 9.2).
+        final pending = _pendingTransfer(entry.path);
+        final color = selected
+            ? selectionText
+            : pending != null
+            ? secondaryText
+            : textColor;
         final secondary = selected ? selectionText : secondaryText;
         final cells = [
           entry.isDirectory ? '${entry.name}/' : entry.name,
@@ -833,14 +898,22 @@ class _MustacheWindowState extends State<MustacheWindow>
                                 alignment: Alignment.centerLeft,
                                 child: _renameField(entry),
                               )
-                            : Text(
-                                cells[i],
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: text(
-                                  13,
-                                  color: i == 0 ? color : secondary,
-                                ),
+                            : Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      cells[i],
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: text(
+                                        13,
+                                        color: i == 0 ? color : secondary,
+                                      ),
+                                    ),
+                                  ),
+                                  if (i == 0 && pending != null)
+                                    ProgressPie(pending.fraction),
+                                ],
                               ),
                       ),
                     ),
