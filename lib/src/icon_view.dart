@@ -190,6 +190,8 @@ class IconView extends StatelessWidget {
     this.text = defaultLabelSize,
     this.env,
     this.controller,
+    this.renaming,
+    this.renameBuilder,
   });
 
   final List<Entry> entries;
@@ -206,6 +208,11 @@ class IconView extends StatelessWidget {
   /// L'ambiente per trovare silica-icons (test).
   final Map<String, String>? env;
   final ScrollController? controller;
+
+  /// L'elemento in rinomina: al posto dell'etichetta, il campo costruito da `renameBuilder`
+  /// (largo al più quanto la cella).
+  final String? renaming;
+  final Widget Function(Entry entry, double maxWidth)? renameBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -257,7 +264,13 @@ class IconView extends StatelessWidget {
           ? (active ? c.labelSelected : c.labelSelectedInactive)
           : c.label,
     );
-    final lines = labelLines(entry.name, grid.pitchX - 2 * labelPad - 6, style);
+    final builder = renameBuilder;
+    final field = entry.path == renaming && builder != null
+        ? builder(entry, grid.pitchX - 4)
+        : null;
+    final lines = field != null
+        ? const ['']
+        : labelLines(entry.name, grid.pitchX - 2 * labelPad - 6, style);
     final labelTop = iconTop + side + iconSelectionPad + labelGap;
     final bg = side + 2 * iconSelectionPad;
     return Positioned(
@@ -293,30 +306,39 @@ class IconView extends StatelessWidget {
                   ),
                 ),
               ),
-              for (var i = 0; i < lines.length; i++)
+              if (field != null)
                 Positioned(
                   left: 0,
                   right: 0,
-                  top: labelTop - (iconTop - iconSelectionPad) + i * labelLine,
-                  height: labelLine,
-                  child: Center(
-                    child: DecoratedBox(
-                      key: ValueKey('nome ${entry.path} $i'),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? (active ? c.capsule : c.capsuleInactive)
-                            : null,
-                        borderRadius: BorderRadius.circular(labelRadius),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: labelPad,
+                  top: labelTop - (iconTop - iconSelectionPad) - 2,
+                  child: Center(child: field),
+                )
+              else
+                for (var i = 0; i < lines.length; i++)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top:
+                        labelTop - (iconTop - iconSelectionPad) + i * labelLine,
+                    height: labelLine,
+                    child: Center(
+                      child: DecoratedBox(
+                        key: ValueKey('nome ${entry.path} $i'),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? (active ? c.capsule : c.capsuleInactive)
+                              : null,
+                          borderRadius: BorderRadius.circular(labelRadius),
                         ),
-                        child: Text(lines[i], maxLines: 1, style: style),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: labelPad,
+                          ),
+                          child: Text(lines[i], maxLines: 1, style: style),
+                        ),
                       ),
                     ),
                   ),
-                ),
             ],
           ),
         ),

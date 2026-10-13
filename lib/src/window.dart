@@ -3,6 +3,7 @@
 // MU-20): l'intestazione vera sarà la barra degli strumenti unificata con quella della finestra
 // (docs/spec.md, "Aperto").
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
@@ -12,7 +13,11 @@ import 'package:silica_ui/silica_ui.dart';
 import 'model.dart';
 import 'settings.dart';
 import 'icon_view.dart';
+import 'operations.dart';
+import 'rename_field.dart';
 import 'sidebar.dart';
+
+part 'window_operations.dart';
 
 const Color accent = Color(0xFF0075F2);
 const Color textColor = Color(0xFF000000);
@@ -67,6 +72,14 @@ class SetViewIntent extends Intent {
 
 /// Le direzioni delle frecce: nell'elenco su e giù, nella griglia anche a destra e sinistra.
 enum Move { up, down, left, right }
+
+/// Una delle operazioni sui file (MU.4), con la sua scorciatoia.
+enum FileCommand { rename, newFolder, duplicate, trash, delete, undo, redo }
+
+class FileCommandIntent extends Intent {
+  const FileCommandIntent(this.command);
+  final FileCommand command;
+}
 
 class MoveSelectionIntent extends Intent {
   const MoveSelectionIntent(this.move);
@@ -133,6 +146,16 @@ class _MustacheWindowState extends State<MustacheWindow>
   )..addListener(() => setState(() {}));
   bool _resizing = false;
 
+  late final Trash _trash = Trash(
+    parentOf(widget.trash.path) ?? widget.trash.path,
+  );
+  final UndoStack _undo = UndoStack();
+
+  /// L'elemento in rinomina, l'attesa del clic lento e l'avviso aperto.
+  String? _renaming;
+  Timer? _slowClick;
+  Widget? _alert;
+
   late ViewMode _view = ViewMode.values.firstWhere(
     (v) => v.name == widget.settings?.view,
     orElse: () => ViewMode.icons,
@@ -159,8 +182,18 @@ class _MustacheWindowState extends State<MustacheWindow>
   void dispose() {
     _focus.dispose();
     _sidebarShown.dispose();
+    _slowClick?.cancel();
     super.dispose();
   }
+
+  /// L'icona dell'app negli avvisi (66 pt), da silica-icons.
+  Widget? get _appIcon {
+    final icon = findSilicaIcon('mustache', env: widget.iconsEnv);
+    return icon == null ? null : SilicaIcon(LayeredSource(icon), side: 66);
+  }
+
+  /// `setState` per le operazioni in `window_operations.dart` (un'estensione non può chiamarlo).
+  void _update(VoidCallback change) => setState(change);
 
   void _toggleSidebar() {
     if (_sidebarShown.status == AnimationStatus.reverse ||
@@ -227,6 +260,7 @@ class _MustacheWindowState extends State<MustacheWindow>
   }
 
   void _openEntry(Entry entry) {
+    _slowClick?.cancel();
     if (entry.isDirectory) {
       _navigate(entry.path);
     } else {
@@ -278,6 +312,11 @@ class _MustacheWindowState extends State<MustacheWindow>
 
   void _tap(Entry entry) {
     final keys = HardwareKeyboard.instance;
+    final wasOnlySelected =
+        _selected.length == 1 && _selected.contains(entry.path);
+    final plain =
+        !keys.isMetaPressed && !keys.isControlPressed && !keys.isShiftPressed;
+    _clickForRename(entry, wasOnlySelected: plain && wasOnlySelected);
     setState(() {
       if (keys.isMetaPressed || keys.isControlPressed) {
         _selected.contains(entry.path)
@@ -339,6 +378,23 @@ class _MustacheWindowState extends State<MustacheWindow>
         SingleActivator(LogicalKeyboardKey.arrowRight): MoveSelectionIntent(
           Move.right,
         ),
+        SingleActivator(LogicalKeyboardKey.enter): FileCommandIntent(
+          FileCommand.rename,
+        ),
+        SingleActivator(LogicalKeyboardKey.keyN, meta: true, shift: true):
+            FileCommandIntent(FileCommand.newFolder),
+        SingleActivator(LogicalKeyboardKey.keyD, meta: true): FileCommandIntent(
+          FileCommand.duplicate,
+        ),
+        SingleActivator(LogicalKeyboardKey.backspace, meta: true):
+            FileCommandIntent(FileCommand.trash),
+        SingleActivator(LogicalKeyboardKey.backspace, meta: true, alt: true):
+            FileCommandIntent(FileCommand.delete),
+        SingleActivator(LogicalKeyboardKey.keyZ, meta: true): FileCommandIntent(
+          FileCommand.undo,
+        ),
+        SingleActivator(LogicalKeyboardKey.keyZ, meta: true, shift: true):
+            FileCommandIntent(FileCommand.redo),
         SingleActivator(LogicalKeyboardKey.digit1, meta: true): SetViewIntent(
           ViewMode.icons,
         ),
@@ -380,6 +436,29 @@ class _MustacheWindowState extends State<MustacheWindow>
           ToggleSidebarIntent: CallbackAction<ToggleSidebarIntent>(
             onInvoke: (_) {
               _toggleSidebar();
+              return null;
+            },
+          ),
+          FileCommandIntent: CallbackAction<FileCommandIntent>(
+            onInvoke: (intent) {
+              if (_alert != null || _renaming != null) return null;
+              switch (intent.command) {
+                case FileCommand.rename:
+                  final only = _selection;
+                  if (only.length == 1) _startRename(only.first.path);
+                case FileCommand.newFolder:
+                  _newFolder();
+                case FileCommand.duplicate:
+                  _duplicate();
+                case FileCommand.trash:
+                  _moveToTrash();
+                case FileCommand.delete:
+                  _confirmDelete();
+                case FileCommand.undo:
+                  _undoLast();
+                case FileCommand.redo:
+                  _redoLast();
+              }
               return null;
             },
           ),
@@ -475,6 +554,18 @@ class _MustacheWindowState extends State<MustacheWindow>
                       onRelease: _releaseSidebar,
                     ),
                   ),
+                  // Un avviso copre la finestra: il resto non riceve clic finché è aperto.
+                  if (_alert != null)
+                    Positioned.fill(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {},
+                        child: Align(
+                          alignment: const Alignment(0, -0.5),
+                          child: _alert,
+                        ),
+                      ),
+                    ),
                 ],
               );
             },
@@ -572,6 +663,15 @@ class _MustacheWindowState extends State<MustacheWindow>
     );
   }
 
+  Widget _renameField(Entry entry, {double maxWidth = 400}) => RenameField(
+    key: ValueKey('rinomina ${entry.path}'),
+    name: entry.name,
+    isDirectory: entry.isDirectory,
+    maxWidth: maxWidth,
+    onCommit: (name) => _commitRename(entry, name),
+    onCancel: _endRename,
+  );
+
   Widget _icons() {
     if (_error != null || _entries.isEmpty) return _list();
     return IconView(
@@ -581,6 +681,9 @@ class _MustacheWindowState extends State<MustacheWindow>
       env: widget.iconsEnv,
       onTap: _tap,
       onOpen: _openEntry,
+      renaming: _renaming,
+      renameBuilder: (entry, maxWidth) =>
+          _renameField(entry, maxWidth: maxWidth),
       onBackground: () => setState(() {
         _selected.clear();
         _anchor = null;
@@ -617,33 +720,45 @@ class _MustacheWindowState extends State<MustacheWindow>
           formatSize(entry),
           kindLabel(entry),
         ];
-        return GestureDetector(
-          key: ValueKey(entry.path),
-          onTap: () => _tap(entry),
-          onDoubleTap: () => _openEntry(entry),
-          behavior: HitTestBehavior.opaque,
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 8),
-            decoration: BoxDecoration(
-              color: selected ? selectionFill : null,
-              borderRadius: BorderRadius.circular(5),
-            ),
-            child: Row(
-              children: [
-                for (var i = 0; i < _columns.length; i++)
-                  Expanded(
-                    flex: _columns[i].$3,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Text(
-                        cells[i],
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: text(13, color: i == 0 ? color : secondary),
+        // La selezione alla pressione, subito (non dopo l'attesa del doppio clic).
+        return Listener(
+          onPointerDown: (_) => _tap(entry),
+          child: GestureDetector(
+            key: ValueKey(entry.path),
+            onTap: () {},
+            onDoubleTap: () => _openEntry(entry),
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                color: selected ? selectionFill : null,
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Row(
+                children: [
+                  for (var i = 0; i < _columns.length; i++)
+                    Expanded(
+                      flex: _columns[i].$3,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: i == 0 && entry.path == _renaming
+                            ? Align(
+                                alignment: Alignment.centerLeft,
+                                child: _renameField(entry),
+                              )
+                            : Text(
+                                cells[i],
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: text(
+                                  13,
+                                  color: i == 0 ? color : secondary,
+                                ),
+                              ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         );

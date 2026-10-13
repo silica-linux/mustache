@@ -1,0 +1,232 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mustache/src/model.dart';
+import 'package:mustache/src/rename_field.dart';
+import 'package:mustache/src/settings.dart';
+import 'package:mustache/src/window.dart';
+import 'package:silica_ui/silica_ui.dart';
+
+void main() {
+  late Directory home;
+  late Directory dir;
+
+  setUp(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(GlassRegistry.channel, (call) async => true);
+    home = Directory.systemTemp.createTempSync('mustache-casa');
+    dir = Directory('${home.path}/Documenti')..createSync();
+    File('${dir.path}/appunti.txt').writeAsStringSync('a');
+    File('${dir.path}/bozza.txt').writeAsStringSync('b');
+    File('${dir.path}/conto.txt').writeAsStringSync('c');
+  });
+
+  tearDown(() => home.deleteSync(recursive: true));
+
+  String p(String name) => '${dir.path}/$name';
+
+  Future<void> pump(WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1000, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: MustacheWindow(
+          start: dir.path,
+          places: [Place('casa', home.path, PlaceKind.home)],
+          trash: Place(
+            'Cestino',
+            '${home.path}/.local/share/Trash/files',
+            PlaceKind.trash,
+          ),
+          settings: Settings('${home.path}/.config/s.json')..view = 'list',
+        ),
+      ),
+    );
+  }
+
+  Future<void> select(WidgetTester tester, String name) async {
+    await tester.tap(find.text(name));
+    // Oltre l'attesa del doppio clic, senza arrivare alla rinomina col clic lento.
+    await tester.pump(const Duration(milliseconds: 310));
+  }
+
+  Future<void> keys(
+    WidgetTester tester,
+    LogicalKeyboardKey key, {
+    bool meta = false,
+    bool shift = false,
+    bool alt = false,
+  }) async {
+    if (meta) await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    if (shift) await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    if (alt) await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+    await tester.sendKeyEvent(key);
+    if (alt) await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+    if (shift) await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    if (meta) await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+    await tester.pump();
+  }
+
+  testWidgets('Invio rinomina: solo il nome selezionato, Invio conferma, ⌘Z', (
+    tester,
+  ) async {
+    await pump(tester);
+    await select(tester, 'appunti.txt');
+    await keys(tester, LogicalKeyboardKey.enter);
+    await tester.pump();
+    final field = tester.widget<EditableText>(find.byType(EditableText));
+    expect(
+      field.controller.selection,
+      const TextSelection(baseOffset: 0, extentOffset: 7),
+    );
+    await tester.enterText(find.byType(EditableText), 'promemoria.txt');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+    expect(File(p('promemoria.txt')).existsSync(), isTrue);
+    expect(find.byType(RenameField), findsNothing);
+    expect(find.text('promemoria.txt'), findsOneWidget);
+    await keys(tester, LogicalKeyboardKey.keyZ, meta: true);
+    expect(File(p('appunti.txt')).existsSync(), isTrue);
+    await keys(tester, LogicalKeyboardKey.keyZ, meta: true, shift: true);
+    expect(File(p('promemoria.txt')).existsSync(), isTrue);
+  });
+
+  testWidgets(
+    'su Linux il focus non seleziona tutto: resta il nome senza estensione',
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
+      await pump(tester);
+      await select(tester, 'appunti.txt');
+      await keys(tester, LogicalKeyboardKey.enter);
+      await tester.pump();
+      await tester.pump();
+      final field = tester.widget<EditableText>(find.byType(EditableText));
+      expect(
+        field.controller.selection,
+        const TextSelection(baseOffset: 0, extentOffset: 7),
+      );
+      await keys(tester, LogicalKeyboardKey.escape);
+      debugDefaultTargetPlatformOverride = null;
+    },
+  );
+
+  testWidgets('Esc annulla; un nome già usato apre l\'avviso', (tester) async {
+    await pump(tester);
+    await select(tester, 'appunti.txt');
+    await keys(tester, LogicalKeyboardKey.enter);
+    await tester.enterText(find.byType(EditableText), 'altro.txt');
+    await keys(tester, LogicalKeyboardKey.escape);
+    expect(find.byType(RenameField), findsNothing);
+    expect(File(p('appunti.txt')).existsSync(), isTrue);
+
+    await keys(tester, LogicalKeyboardKey.enter);
+    await tester.enterText(find.byType(EditableText), 'bozza.txt');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+    expect(find.byType(SilicaAlert), findsOneWidget);
+    expect(find.textContaining('già stato assegnato'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('avviso OK')));
+    await tester.pump();
+    expect(find.byType(SilicaAlert), findsNothing);
+    expect(File(p('appunti.txt')).readAsStringSync(), 'a');
+    expect(File(p('bozza.txt')).readAsStringSync(), 'b');
+  });
+
+  testWidgets('cambiare estensione chiede: Mantieni tiene la vecchia', (
+    tester,
+  ) async {
+    await pump(tester);
+    await select(tester, 'appunti.txt');
+    await keys(tester, LogicalKeyboardKey.enter);
+    await tester.enterText(find.byType(EditableText), 'note.md');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('avviso Usa .md')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('avviso Mantieni .txt')));
+    await tester.pump();
+    expect(File(p('note.txt')).existsSync(), isTrue);
+  });
+
+  testWidgets('⇧⌘N crea "cartella senza nome" in rinomina; ⌘Z la toglie', (
+    tester,
+  ) async {
+    await pump(tester);
+    await keys(tester, LogicalKeyboardKey.keyN, meta: true, shift: true);
+    await tester.pump();
+    expect(Directory(p('cartella senza nome')).existsSync(), isTrue);
+    final field = tester.widget<EditableText>(find.byType(EditableText));
+    expect(field.controller.text, 'cartella senza nome');
+    // Tutto selezionato (una cartella non ha estensione).
+    expect(
+      field.controller.selection.extentOffset,
+      'cartella senza nome'.length,
+    );
+    await keys(tester, LogicalKeyboardKey.escape);
+    await keys(tester, LogicalKeyboardKey.keyZ, meta: true);
+    expect(Directory(p('cartella senza nome')).existsSync(), isFalse);
+  });
+
+  testWidgets('⌘D duplica e seleziona le copie', (tester) async {
+    await pump(tester);
+    await select(tester, 'bozza.txt');
+    await keys(tester, LogicalKeyboardKey.keyD, meta: true);
+    expect(File(p('bozza copia.txt')).readAsStringSync(), 'b');
+    await keys(tester, LogicalKeyboardKey.keyD, meta: true);
+    expect(File(p('bozza copia copia.txt')).existsSync(), isTrue);
+    await keys(tester, LogicalKeyboardKey.keyZ, meta: true);
+    expect(File(p('bozza copia copia.txt')).existsSync(), isFalse);
+  });
+
+  testWidgets('⌘⌫ nel Cestino, la selezione passa al dopo; ⌘Z rimette', (
+    tester,
+  ) async {
+    await pump(tester);
+    await select(tester, 'bozza.txt');
+    await keys(tester, LogicalKeyboardKey.backspace, meta: true);
+    expect(File(p('bozza.txt')).existsSync(), isFalse);
+    final trashed = File('${home.path}/.local/share/Trash/files/bozza.txt');
+    expect(trashed.existsSync(), isTrue);
+    // L'elemento dopo (conto.txt) è selezionato: un altro ⌘⌫ lo sposta.
+    await keys(tester, LogicalKeyboardKey.backspace, meta: true);
+    expect(File(p('conto.txt')).existsSync(), isFalse);
+    await keys(tester, LogicalKeyboardKey.keyZ, meta: true);
+    await keys(tester, LogicalKeyboardKey.keyZ, meta: true);
+    expect(File(p('bozza.txt')).readAsStringSync(), 'b');
+    expect(File(p('conto.txt')).readAsStringSync(), 'c');
+  });
+
+  testWidgets('⌥⌘⌫ chiede conferma; Elimina cancella subito', (tester) async {
+    await pump(tester);
+    await select(tester, 'conto.txt');
+    await keys(tester, LogicalKeyboardKey.backspace, meta: true, alt: true);
+    expect(find.textContaining('eliminare «conto.txt»'), findsOneWidget);
+    await keys(tester, LogicalKeyboardKey.escape);
+    expect(File(p('conto.txt')).existsSync(), isTrue);
+    await keys(tester, LogicalKeyboardKey.backspace, meta: true, alt: true);
+    await tester.tap(find.byKey(const ValueKey('avviso Elimina')));
+    await tester.pump();
+    expect(File(p('conto.txt')).existsSync(), isFalse);
+    expect(
+      Directory('${home.path}/.local/share/Trash/files').existsSync(),
+      isFalse,
+    );
+  });
+
+  testWidgets('clic lento sul nome già selezionato: rinomina dopo ~440 ms', (
+    tester,
+  ) async {
+    await pump(tester);
+    await select(tester, 'appunti.txt');
+    await tester.tap(find.text('appunti.txt'));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(RenameField), findsNothing);
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(find.byType(RenameField), findsOneWidget);
+  });
+}

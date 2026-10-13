@@ -78,7 +78,8 @@ provvisorio e lo dice.
 | Anteprima rapida | `mustache.quicklook` | Spazio |
 | Nuova cartella | `mustache.new.folder` | ⌘⇧N |
 | Duplica | `mustache.duplicate` | ⌘D |
-| Sposta nel Cestino | `mustache.trash` | ⌘⌫ |
+| Sposta nel Cestino (dentro il Cestino: Ripristina) | `mustache.trash` | ⌘⌫ |
+| Elimina subito, con conferma | `mustache.delete` | ⌥⌘⌫ |
 | Annulla / Ripeti | `mustache.undo` / `mustache.redo` | ⌘Z / ⌘⇧Z |
 | Cerca | `mustache.search` | ⌘F |
 | Nuova finestra / scheda | `mustache.window.new` / `mustache.tab.new` | ⌘N / ⌘T |
