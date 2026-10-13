@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 
 import 'src/model.dart';
 import 'src/settings.dart';
+import 'src/tabs.dart';
 import 'src/window.dart';
 
 void main(List<String> args) {
@@ -17,18 +18,28 @@ void main(List<String> args) {
   final start = args.isNotEmpty && Directory(args.first).existsSync()
       ? args.first
       : home;
+  final places = userPlaces(
+    home: home,
+    userDirs: userDirs.existsSync() ? userDirs.readAsStringSync() : null,
+  );
+  final trash = trashPlace(home: home, dataHome: env['XDG_DATA_HOME']);
+  final settings = Settings.forUser(env);
   runApp(
     Directionality(
       textDirection: TextDirection.ltr,
-      child: MustacheWindow(
+      // Una finestra per scheda (⌘T).
+      child: TabsHost(
         start: start,
-        places: userPlaces(
-          home: home,
-          userDirs: userDirs.existsSync() ? userDirs.readAsStringSync() : null,
+        build: (tab, tabBar, onLocation, active) => MustacheWindow(
+          start: tab.location,
+          places: places,
+          trash: trash,
+          iconsDir: env['SILICA_ICONS_DIR'],
+          settings: settings,
+          tabBar: tabBar,
+          onLocation: onLocation,
+          focused: active,
         ),
-        trash: trashPlace(home: home, dataHome: env['XDG_DATA_HOME']),
-        iconsDir: env['SILICA_ICONS_DIR'],
-        settings: Settings.forUser(env),
       ),
     ),
   );

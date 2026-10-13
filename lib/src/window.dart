@@ -91,6 +91,10 @@ class TogglePartIntent extends Intent {
   final WindowPart part;
 }
 
+class NewWindowIntent extends Intent {
+  const NewWindowIntent();
+}
+
 class SearchIntent extends Intent {
   const SearchIntent();
 }
@@ -146,6 +150,9 @@ class MoveSelectionIntent extends Intent {
   final bool extend;
 }
 
+/// La voce .desktop di Mustache (per aprire altre finestre).
+const String mustacheDesktopId = 'dev.frascella.Mustache.desktop';
+
 /// La vista dei contenuti (spec 3–6): a icone (⌘1), a elenco (⌘2), a colonne (⌘3).
 enum ViewMode { icons, list, columns }
 
@@ -161,7 +168,20 @@ class MustacheWindow extends StatefulWidget {
     this.settings,
     this.active = true,
     this.iconsEnv,
+    this.tabBar,
+    this.onLocation,
+    this.focused = true,
   });
+
+  /// La scheda è quella attiva: diventandolo riprende la tastiera.
+  final bool focused;
+
+  /// La barra delle schede (dal [TabsHost], null con una sola scheda): sotto l'intestazione,
+  /// sopra i contenuti.
+  final Widget? tabBar;
+
+  /// Dove si trova la finestra (il titolo della sua scheda).
+  final ValueChanged<String>? onLocation;
 
   final String start;
   final List<Place> places;
@@ -311,6 +331,36 @@ class _MustacheWindowState extends State<MustacheWindow>
     return icon == null ? null : SilicaIcon(LayeredSource(icon), side: 66);
   }
 
+  /// ⌘N: un'altra finestra, cioè un altro processo avviato dalla voce .desktop dell'app.
+  Future<void> _newWindow() async {
+    final app = _registry.apps[mustacheDesktopId];
+    if (app == null) {
+      _showError(
+        'Non si può aprire una finestra nuova.',
+        'La voce di Mustache non è installata (cargo xtask install-app).',
+      );
+      return;
+    }
+    final home =
+        widget.places
+            .where((p) => p.kind == PlaceKind.home)
+            .firstOrNull
+            ?.path ??
+        _history.current;
+    final error = await launchApp(app, [home]);
+    if (error != null && mounted) _showError(error);
+  }
+
+  @override
+  void didUpdateWidget(MustacheWindow old) {
+    super.didUpdateWidget(old);
+    if (widget.focused && !old.focused) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focus.requestFocus();
+      });
+    }
+  }
+
   /// `setState` per le operazioni in `window_operations.dart` (un'estensione non può chiamarlo).
   void _update(VoidCallback change) => setState(change);
 
@@ -377,6 +427,7 @@ class _MustacheWindowState extends State<MustacheWindow>
     }
     final result = listDirectory(_history.current, showHidden: _showHidden);
     if (_statusBar) _free = freeBytes(_history.current);
+    widget.onLocation?.call(_history.current);
     setState(() {
       _columnCache.clear();
       _tagCache.clear();
@@ -616,9 +667,9 @@ class _MustacheWindowState extends State<MustacheWindow>
         SingleActivator(LogicalKeyboardKey.space): QuickLookIntent(),
         SingleActivator(LogicalKeyboardKey.keyI, meta: true): InfoIntent(),
         SingleActivator(LogicalKeyboardKey.keyF, meta: true): SearchIntent(),
-        SingleActivator(LogicalKeyboardKey.quote, meta: true): TogglePartIntent(
-          WindowPart.statusBar,
-        ),
+        SingleActivator(LogicalKeyboardKey.keyN, meta: true): NewWindowIntent(),
+        SingleActivator(LogicalKeyboardKey.quoteSingle, meta: true):
+            TogglePartIntent(WindowPart.statusBar),
         SingleActivator(LogicalKeyboardKey.keyP, meta: true, shift: true):
             TogglePartIntent(WindowPart.previewPane),
         SingleActivator(LogicalKeyboardKey.keyY, meta: true): QuickLookIntent(),
@@ -708,6 +759,12 @@ class _MustacheWindowState extends State<MustacheWindow>
                     widget.settings?.previewPane = _previewPane;
                 }
               });
+              return null;
+            },
+          ),
+          NewWindowIntent: CallbackAction<NewWindowIntent>(
+            onInvoke: (_) {
+              _newWindow();
               return null;
             },
           ),
@@ -822,6 +879,7 @@ class _MustacheWindowState extends State<MustacheWindow>
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _header(),
+                          ?widget.tabBar,
                           if (_searching) _scopeBar(),
                           if (_view == ViewMode.list || _searching)
                             _columnsHeader(),

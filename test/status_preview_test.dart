@@ -61,16 +61,42 @@ void main() {
           ),
         ),
       );
-      Future<void> combo(LogicalKeyboardKey key, {bool shift = false}) async {
+      Future<void> combo(
+        LogicalKeyboardKey key, {
+        bool shift = false,
+        PhysicalKeyboardKey? physical,
+      }) async {
         await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
         if (shift) await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
-        await tester.sendKeyEvent(key);
+        await tester.sendKeyEvent(
+          key,
+          physicalKey: physical,
+          platform: physical == null ? 'android' : 'linux',
+        );
         if (shift) await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
         await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
         await tester.pump();
       }
 
-      await combo(LogicalKeyboardKey.quote);
+      // ⌘' è l'apostrofo (`quoteSingle`): `quote` in Flutter è il carattere ". Il simulatore
+      // dei test non sa produrre l'apostrofo: si controlla il legame e si invoca il suo intento.
+      final shortcuts = tester
+          .widgetList<Shortcuts>(find.byType(Shortcuts))
+          .expand((s) => s.shortcuts.entries)
+          .where(
+            (e) =>
+                e.key is SingleActivator &&
+                (e.key as SingleActivator).trigger ==
+                    LogicalKeyboardKey.quoteSingle &&
+                (e.key as SingleActivator).meta,
+          )
+          .toList();
+      expect(shortcuts, hasLength(1));
+      Actions.invoke(
+        tester.element(find.byType(IconView)),
+        shortcuts.single.value,
+      );
+      await tester.pump();
       final bar = find.byKey(const ValueKey('barra di stato'));
       expect(bar, findsOneWidget);
       expect(tester.getSize(bar).height, statusBarHeight);
