@@ -19,7 +19,9 @@ import 'icon_view.dart';
 import 'info.dart';
 import 'operations.dart';
 import 'path_bar.dart';
+import 'preview_pane.dart';
 import 'quick_look.dart';
+import 'status_bar.dart';
 import 'rename_field.dart';
 import 'transfer.dart';
 import 'transfer_ui.dart';
@@ -79,6 +81,14 @@ class ToggleHiddenIntent extends Intent {
 
 class ToggleSidebarIntent extends Intent {
   const ToggleSidebarIntent();
+}
+
+/// Mostra o nasconde una parte della finestra.
+enum WindowPart { statusBar, previewPane }
+
+class TogglePartIntent extends Intent {
+  const TogglePartIntent(this.part);
+  final WindowPart part;
 }
 
 class SearchIntent extends Intent {
@@ -247,6 +257,12 @@ class _MustacheWindowState extends State<MustacheWindow>
   Timer? _searchTimer;
   int _searchToken = 0;
 
+  /// Barra di stato, pannello di anteprima, lato delle icone, spazio libero.
+  late bool _statusBar = widget.settings?.statusBar ?? false;
+  late bool _previewPane = widget.settings?.previewPane ?? false;
+  late double _iconSide = widget.settings?.iconSide ?? defaultIconSide;
+  int? _free;
+
   /// La visualizzazione rapida aperta (Spazio).
   bool _quickLook = false;
 
@@ -360,6 +376,7 @@ class _MustacheWindowState extends State<MustacheWindow>
       return;
     }
     final result = listDirectory(_history.current, showHidden: _showHidden);
+    if (_statusBar) _free = freeBytes(_history.current);
     setState(() {
       _columnCache.clear();
       _tagCache.clear();
@@ -599,6 +616,11 @@ class _MustacheWindowState extends State<MustacheWindow>
         SingleActivator(LogicalKeyboardKey.space): QuickLookIntent(),
         SingleActivator(LogicalKeyboardKey.keyI, meta: true): InfoIntent(),
         SingleActivator(LogicalKeyboardKey.keyF, meta: true): SearchIntent(),
+        SingleActivator(LogicalKeyboardKey.quote, meta: true): TogglePartIntent(
+          WindowPart.statusBar,
+        ),
+        SingleActivator(LogicalKeyboardKey.keyP, meta: true, shift: true):
+            TogglePartIntent(WindowPart.previewPane),
         SingleActivator(LogicalKeyboardKey.keyY, meta: true): QuickLookIntent(),
         SingleActivator(LogicalKeyboardKey.escape): CloseIntent(),
       },
@@ -670,6 +692,22 @@ class _MustacheWindowState extends State<MustacheWindow>
                 case FileCommand.move:
                   _paste(move: true);
               }
+              return null;
+            },
+          ),
+          TogglePartIntent: CallbackAction<TogglePartIntent>(
+            onInvoke: (intent) {
+              setState(() {
+                switch (intent.part) {
+                  case WindowPart.statusBar:
+                    _statusBar = !_statusBar;
+                    if (_statusBar) _free = freeBytes(_history.current);
+                    widget.settings?.statusBar = _statusBar;
+                  case WindowPart.previewPane:
+                    _previewPane = !_previewPane;
+                    widget.settings?.previewPane = _previewPane;
+                }
+              });
               return null;
             },
           ),
@@ -805,12 +843,27 @@ class _MustacheWindowState extends State<MustacheWindow>
                                   builder: (context, box) {
                                     _contentWidth = box.maxWidth;
                                     // I risultati della ricerca sono sempre un elenco.
-                                    if (_searching) return _list();
-                                    return switch (_view) {
-                                      ViewMode.icons => _icons(),
-                                      ViewMode.list => _list(),
-                                      ViewMode.columns => _columnsView(),
-                                    };
+                                    final view = _searching
+                                        ? _list()
+                                        : switch (_view) {
+                                            ViewMode.icons => _icons(),
+                                            ViewMode.list => _list(),
+                                            ViewMode.columns => _columnsView(),
+                                          };
+                                    if (!_previewPane) return view;
+                                    // Il pannello di anteprima a destra (spec 1.6).
+                                    return Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        Expanded(child: view),
+                                        PreviewPane(
+                                          items: _selection,
+                                          kindOf: _kind,
+                                          env: widget.iconsEnv,
+                                        ),
+                                      ],
+                                    );
                                   },
                                 ),
                               ),
@@ -831,6 +884,23 @@ class _MustacheWindowState extends State<MustacheWindow>
                                 } else {
                                   _openEntry(entry);
                                 }
+                              },
+                            ),
+                          // La barra di stato sotto la barra del percorso (spec 1.5).
+                          if (_statusBar)
+                            StatusBar(
+                              text: statusText(
+                                count: _entries.length,
+                                selected: _selected.length,
+                                free: _free,
+                                listing: !_searching && _tagView == null,
+                              ),
+                              slider: _view == ViewMode.icons && !_searching
+                                  ? sliderValueFor(_iconSide)
+                                  : null,
+                              onSlider: (value) {
+                                setState(() => _iconSide = iconSideFor(value));
+                                widget.settings?.iconSide = _iconSide;
                               },
                             ),
                         ],
@@ -1092,6 +1162,7 @@ class _MustacheWindowState extends State<MustacheWindow>
   Widget _icons() {
     if (_error != null || _entries.isEmpty) return _list();
     return IconView(
+      side: _iconSide,
       entries: _entries,
       selected: _selected,
       active: widget.active,

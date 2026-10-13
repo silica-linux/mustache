@@ -1,0 +1,97 @@
+import 'dart:io';
+
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mustache/src/icon_view.dart';
+import 'package:mustache/src/model.dart';
+import 'package:mustache/src/preview_pane.dart';
+import 'package:mustache/src/settings.dart';
+import 'package:mustache/src/status_bar.dart';
+import 'package:mustache/src/window.dart';
+
+void main() {
+  test('cursore delle icone e testo della barra (spec 1.5)', () {
+    for (final (v, side) in [
+      (0.0, 16.0),
+      (8.0, 32.0),
+      (24.0, 64.0),
+      (56.0, 128.0),
+      (64.0, 168.0),
+      (80.0, 248.0),
+      (112.0, 512.0),
+    ]) {
+      expect(iconSideFor(v), closeTo(side, 4.5), reason: 'valore $v');
+    }
+    expect(sliderValueFor(64), closeTo(24, 0.01));
+    expect(
+      statusText(count: 12, selected: 0, free: 12345678901),
+      '12 elementi, 12,35 GB disponibili',
+    );
+    expect(
+      statusText(count: 12, selected: 3, free: 1000000000),
+      '3 di 12 selezionati, 1,00 GB disponibili',
+    );
+    expect(statusText(count: 1, selected: 1, free: null), '1 di 1 selezionato');
+    expect(
+      statusText(count: 5, selected: 0, free: 10, listing: false),
+      '5 elementi',
+    );
+  });
+
+  testWidgets(
+    '⌘\' mostra la barra di stato, ⇧⌘P il pannello; il cursore cambia le icone',
+    (tester) async {
+      final home = Directory.systemTemp.createTempSync('mustache-stato');
+      addTearDown(() => home.deleteSync(recursive: true));
+      File('${home.path}/a.txt').writeAsStringSync('ciao');
+      File('${home.path}/b.txt').writeAsStringSync('x');
+      tester.view.physicalSize = const Size(1200, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final settings = Settings('${home.path}/.s.json')..view = 'icons';
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: MustacheWindow(
+            start: home.path,
+            places: [Place('casa', home.path, PlaceKind.home)],
+            trash: Place('Cestino', '${home.path}/Cestino', PlaceKind.trash),
+            settings: settings,
+          ),
+        ),
+      );
+      Future<void> combo(LogicalKeyboardKey key, {bool shift = false}) async {
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+        if (shift) await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+        await tester.sendKeyEvent(key);
+        if (shift) await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+        await tester.pump();
+      }
+
+      await combo(LogicalKeyboardKey.quote);
+      final bar = find.byKey(const ValueKey('barra di stato'));
+      expect(bar, findsOneWidget);
+      expect(tester.getSize(bar).height, statusBarHeight);
+      expect(find.textContaining('2 elementi'), findsOneWidget);
+      expect(settings.statusBar, isTrue);
+      // Il cursore tutto a destra: icone da 512.
+      final slider = find.byKey(const ValueKey('cursore delle icone'));
+      await tester.tapAt(
+        tester.getRect(slider).centerRight - const Offset(1, 0),
+      );
+      await tester.pump();
+      expect(
+        tester.widget<IconView>(find.byType(IconView)).side,
+        greaterThan(400),
+      );
+      expect(settings.iconSide, greaterThan(400));
+
+      await combo(LogicalKeyboardKey.keyP, shift: true);
+      final pane = find.byKey(const ValueKey('pannello di anteprima'));
+      expect(pane, findsOneWidget);
+      expect(tester.getSize(pane).width, previewPaneWidth);
+    },
+  );
+}

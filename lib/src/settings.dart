@@ -77,6 +77,35 @@ class Settings {
     _save();
   }
 
+  bool? _bool(String key) {
+    final v = _data[key];
+    return v is bool ? v : null;
+  }
+
+  /// La barra di stato (⌘') e il pannello di anteprima (⇧⌘P) visibili.
+  bool? get statusBar => _bool('statusBar');
+  set statusBar(bool? value) {
+    _data['statusBar'] = value;
+    _save();
+  }
+
+  bool? get previewPane => _bool('previewPane');
+  set previewPane(bool? value) {
+    _data['previewPane'] = value;
+    _save();
+  }
+
+  /// Il lato delle icone della vista a icone.
+  double? get iconSide {
+    final v = _data['iconSide'];
+    return v is num && v >= 16 && v <= 512 ? v.toDouble() : null;
+  }
+
+  set iconSide(double? value) {
+    _data['iconSide'] = value;
+    _save();
+  }
+
   void _save() {
     try {
       final file = File(path);
