@@ -9,6 +9,10 @@ import 'package:mustache/src/settings.dart';
 import 'package:mustache/src/sidebar.dart';
 import 'package:mustache/src/window.dart';
 
+/// Un testo dentro la barra laterale (la vista a icone mostra gli stessi nomi).
+Finder inSidebar(String text) =>
+    find.descendant(of: find.byType(Sidebar), matching: find.text(text));
+
 void main() {
   late Directory root;
 
@@ -51,10 +55,10 @@ void main() {
     tester,
   ) async {
     await pump(tester);
-    final heading = centerY(tester, find.text('Preferiti'));
-    final documents = centerY(tester, find.text('Documenti'));
-    final downloads = centerY(tester, find.text('Download'));
-    final places = centerY(tester, find.text('Posizioni'));
+    final heading = centerY(tester, inSidebar('Preferiti'));
+    final documents = centerY(tester, inSidebar('Documenti'));
+    final downloads = centerY(tester, inSidebar('Download'));
+    final places = centerY(tester, inSidebar('Posizioni'));
     expect(documents - heading, closeTo(sidebarHeadingToRow, 0.5));
     expect(downloads - documents, sidebarRow);
     expect(places - downloads, closeTo(sidebarRowToHeading, 0.5));
@@ -65,7 +69,7 @@ void main() {
     );
     expect(selection.left, sidebarSelectionInset);
     expect(selection.height, sidebarRow);
-    final home = tester.widget<Text>(find.text('casa'));
+    final home = tester.widget<Text>(inSidebar('casa'));
     expect(home.style?.fontWeight, FontWeight.w600);
   });
 
@@ -143,29 +147,29 @@ void main() {
     expect(find.byKey(const ValueKey('comprimi Preferiti')), findsNothing);
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
     await mouse.addPointer(location: Offset.zero);
-    await mouse.moveTo(tester.getCenter(find.text('Preferiti')));
+    await mouse.moveTo(tester.getCenter(inSidebar('Preferiti')));
     await tester.pump();
     // Compare subito, senza ritardo.
     final chevron = find.byKey(const ValueKey('comprimi Preferiti'));
     expect(chevron, findsOneWidget);
-    final placesBefore = centerY(tester, find.text('Posizioni'));
+    final placesBefore = centerY(tester, inSidebar('Posizioni'));
     await tester.tap(chevron);
     await tester.pump();
     // Il testo delle righe sparisce subito; il movimento parte dopo ~70 ms.
-    expect(find.text('Documenti'), findsNothing);
+    expect(inSidebar('Documenti'), findsNothing);
     await tester.pump(const Duration(milliseconds: 60));
-    expect(centerY(tester, find.text('Posizioni')), placesBefore);
+    expect(centerY(tester, inSidebar('Posizioni')), placesBefore);
     await tester.pump(const Duration(milliseconds: 200));
     expect(
-      centerY(tester, find.text('Posizioni')),
+      centerY(tester, inSidebar('Posizioni')),
       closeTo(placesBefore - 2 * sidebarRow, 0.5),
     );
     // Riaperta: torna com'era.
     await tester.tap(find.byKey(const ValueKey('comprimi Preferiti')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 320));
-    expect(centerY(tester, find.text('Posizioni')), placesBefore);
-    expect(find.text('Documenti'), findsOneWidget);
+    expect(centerY(tester, inSidebar('Posizioni')), placesBefore);
+    expect(inSidebar('Documenti'), findsOneWidget);
   });
 
   test('impostazioni rovinate o illeggibili valgono come predefinite', () {

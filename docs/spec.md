@@ -50,7 +50,7 @@ provvisorio e lo dice.
 
 | Vista | Comando | Scorciatoia | Stato |
 | --- | --- | --- | --- |
-| A icone | `mustache.view.icons` | ⌘1 | da fare (MU-21) |
+| A icone | `mustache.view.icons` | ⌘1 | griglia che riempie la larghezza, etichette su due righe troncate al centro, selezione con fondo e capsula, miniature delle immagini; la vista predefinita e l'ultima scelta restano nelle impostazioni (MU-21, MU-80) |
 | A elenco | `mustache.view.list` | ⌘2 | scheletro: colonne Nome, Data di modifica, Dimensione, Tipo; ordinamento con clic sull'intestazione (MU-20) |
 | A colonne | `mustache.view.columns` | ⌘3 | da fare (MU-22) |
 | Galleria | `mustache.view.gallery` | ⌘4 | da fare (MU-23) |

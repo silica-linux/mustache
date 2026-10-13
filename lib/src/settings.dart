@@ -39,6 +39,17 @@ class Settings {
     _save();
   }
 
+  /// L'ultima vista scelta (`icons`, `list`), per le finestre nuove.
+  String? get view {
+    final value = _data['view'];
+    return value is String ? value : null;
+  }
+
+  set view(String? value) {
+    _data['view'] = value;
+    _save();
+  }
+
   void _save() {
     try {
       final file = File(path);

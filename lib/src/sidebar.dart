@@ -161,11 +161,11 @@ double releaseWidth(double width) =>
 
 /// Il simbolo di silica-icons per un luogo.
 String symbolFor(PlaceKind kind) => switch (kind) {
-  PlaceKind.home => 'house',
-  PlaceKind.desktop => 'display',
+  PlaceKind.home => 'house-door',
+  PlaceKind.desktop => 'desktop',
   PlaceKind.documents => 'doc',
   PlaceKind.downloads => 'arrow-down-circle',
-  PlaceKind.pictures => 'photo',
+  PlaceKind.pictures => 'photo-fill',
   PlaceKind.music => 'music-note',
   PlaceKind.videos => 'film',
   PlaceKind.trash => 'trash',

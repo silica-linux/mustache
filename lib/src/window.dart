@@ -11,6 +11,7 @@ import 'package:silica_ui/silica_ui.dart';
 
 import 'model.dart';
 import 'settings.dart';
+import 'icon_view.dart';
 import 'sidebar.dart';
 
 const Color accent = Color(0xFF0075F2);
@@ -59,10 +60,21 @@ class ToggleSidebarIntent extends Intent {
   const ToggleSidebarIntent();
 }
 
-class MoveSelectionIntent extends Intent {
-  const MoveSelectionIntent(this.delta);
-  final int delta;
+class SetViewIntent extends Intent {
+  const SetViewIntent(this.view);
+  final ViewMode view;
 }
+
+/// Le direzioni delle frecce: nell'elenco su e giù, nella griglia anche a destra e sinistra.
+enum Move { up, down, left, right }
+
+class MoveSelectionIntent extends Intent {
+  const MoveSelectionIntent(this.move);
+  final Move move;
+}
+
+/// La vista dei contenuti (spec 3–6): a icone (⌘1) o a elenco (⌘2).
+enum ViewMode { icons, list }
 
 class MustacheWindow extends StatefulWidget {
   const MustacheWindow({
@@ -75,6 +87,7 @@ class MustacheWindow extends StatefulWidget {
     this.open,
     this.settings,
     this.active = true,
+    this.iconsEnv,
   });
 
   final String start;
@@ -96,6 +109,9 @@ class MustacheWindow extends StatefulWidget {
   /// La finestra ha il focus: i colori della barra laterale cambiano quando non ce l'ha.
   final bool active;
 
+  /// L'ambiente in cui cercare silica-icons (test); null: quello del processo.
+  final Map<String, String>? iconsEnv;
+
   @override
   State<MustacheWindow> createState() => _MustacheWindowState();
 }
@@ -116,6 +132,14 @@ class _MustacheWindowState extends State<MustacheWindow>
     value: 1,
   )..addListener(() => setState(() {}));
   bool _resizing = false;
+
+  late ViewMode _view = ViewMode.values.firstWhere(
+    (v) => v.name == widget.settings?.view,
+    orElse: () => ViewMode.icons,
+  );
+
+  /// La larghezza dell'area dei contenuti all'ultimo disegno (per le frecce nella griglia).
+  double _contentWidth = 800;
   final FocusNode _focus = FocusNode();
   List<Entry> _entries = const [];
   String? _error;
@@ -219,7 +243,26 @@ class _MustacheWindowState extends State<MustacheWindow>
     if (selected.length == 1) _openEntry(selected.first);
   }
 
-  void _moveSelection(int delta) {
+  void _moveSelection(Move move) {
+    final columns = _view == ViewMode.icons
+        ? iconGrid(_contentWidth).columns
+        : 1;
+    final delta = switch (move) {
+      Move.up => -columns,
+      Move.down => columns,
+      Move.left => _view == ViewMode.icons ? -1 : 0,
+      Move.right => _view == ViewMode.icons ? 1 : 0,
+    };
+    if (delta == 0) return;
+    _moveBy(delta);
+  }
+
+  void _setView(ViewMode view) {
+    setState(() => _view = view);
+    widget.settings?.view = view.name;
+  }
+
+  void _moveBy(int delta) {
     if (_entries.isEmpty) return;
     final current = _entries.indexWhere((e) => e.path == _anchor);
     final next = current < 0
@@ -284,8 +327,24 @@ class _MustacheWindowState extends State<MustacheWindow>
             ToggleHiddenIntent(),
         SingleActivator(LogicalKeyboardKey.keyS, control: true, meta: true):
             ToggleSidebarIntent(),
-        SingleActivator(LogicalKeyboardKey.arrowDown): MoveSelectionIntent(1),
-        SingleActivator(LogicalKeyboardKey.arrowUp): MoveSelectionIntent(-1),
+        SingleActivator(LogicalKeyboardKey.arrowDown): MoveSelectionIntent(
+          Move.down,
+        ),
+        SingleActivator(LogicalKeyboardKey.arrowUp): MoveSelectionIntent(
+          Move.up,
+        ),
+        SingleActivator(LogicalKeyboardKey.arrowLeft): MoveSelectionIntent(
+          Move.left,
+        ),
+        SingleActivator(LogicalKeyboardKey.arrowRight): MoveSelectionIntent(
+          Move.right,
+        ),
+        SingleActivator(LogicalKeyboardKey.digit1, meta: true): SetViewIntent(
+          ViewMode.icons,
+        ),
+        SingleActivator(LogicalKeyboardKey.digit2, meta: true): SetViewIntent(
+          ViewMode.list,
+        ),
       },
       child: Actions(
         actions: {
@@ -324,9 +383,15 @@ class _MustacheWindowState extends State<MustacheWindow>
               return null;
             },
           ),
+          SetViewIntent: CallbackAction<SetViewIntent>(
+            onInvoke: (intent) {
+              _setView(intent.view);
+              return null;
+            },
+          ),
           MoveSelectionIntent: CallbackAction<MoveSelectionIntent>(
             onInvoke: (intent) {
-              _moveSelection(intent.delta);
+              _moveSelection(intent.move);
               return null;
             },
           ),
@@ -383,8 +448,17 @@ class _MustacheWindowState extends State<MustacheWindow>
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _header(),
-                          _columnsHeader(),
-                          Expanded(child: _list()),
+                          if (_view == ViewMode.list) _columnsHeader(),
+                          Expanded(
+                            child: LayoutBuilder(
+                              builder: (context, box) {
+                                _contentWidth = box.maxWidth;
+                                return _view == ViewMode.icons
+                                    ? _icons()
+                                    : _list();
+                              },
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -495,6 +569,22 @@ class _MustacheWindowState extends State<MustacheWindow>
             ),
         ],
       ),
+    );
+  }
+
+  Widget _icons() {
+    if (_error != null || _entries.isEmpty) return _list();
+    return IconView(
+      entries: _entries,
+      selected: _selected,
+      active: widget.active,
+      env: widget.iconsEnv,
+      onTap: _tap,
+      onOpen: _openEntry,
+      onBackground: () => setState(() {
+        _selected.clear();
+        _anchor = null;
+      }),
     );
   }
 

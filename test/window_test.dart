@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mustache/src/model.dart';
+import 'package:mustache/src/settings.dart';
 import 'package:mustache/src/sidebar.dart';
 import 'package:mustache/src/window.dart';
 
@@ -34,6 +35,10 @@ void main() {
           trash: Place('Cestino', '${root.path}/Cestino', PlaceKind.trash),
           now: DateTime(2026, 10, 13, 12),
           open: opened.add,
+          // La vista a elenco (la predefinita è a icone).
+          settings: Settings(
+            '${Directory.systemTemp.createTempSync('mustache-impostazioni').path}/s.json',
+          )..view = 'list',
         ),
       ),
     );
