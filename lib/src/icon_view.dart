@@ -357,7 +357,7 @@ bool hasThumbnail(String name) {
 }
 
 /// L'icona di un elemento: cartella (con il simbolo delle cartelle speciali), miniatura delle
-/// immagini, o l'icona del tipo di file di silica-icons.
+/// immagini, o l'icona del tipo con le regole di silica-icons; con i badge (alias, illeggibile).
 class EntryIcon extends StatelessWidget {
   const EntryIcon({
     super.key,
@@ -370,19 +370,39 @@ class EntryIcon extends StatelessWidget {
   final double side;
   final Map<String, String>? env;
 
+  /// Tipo e badge per percorso e data di modifica: si calcolano una volta, non a ogni disegno
+  /// (cartelle da migliaia di file, MU-24).
+  static final Map<String, (FileIcon?, Set<IconBadge>)> _cache = {};
+
+  (FileIcon?, Set<IconBadge>) _resolve() {
+    final key = '${entry.path}\u0000${entry.modified.microsecondsSinceEpoch}';
+    final hit = _cache[key];
+    if (hit != null) return hit;
+    if (_cache.length > 20000) _cache.clear();
+    return _cache[key] = (
+      entry.isDirectory ? null : resolveFileIcon(entry.path, env: env),
+      badgesOf(entry.path),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final (file, badges) = _resolve();
     if (entry.isDirectory) {
       final folder = resolveFolderIcon(entry.path, env: env);
       if (folder != null) {
-        return SilicaIcon(FolderSource(folder), side: side);
+        return SilicaIcon(
+          FolderSource(folder),
+          side: side,
+          badges: badges,
+          env: env,
+        );
       }
       return SizedBox(width: side, height: side);
     }
     if (hasThumbnail(entry.name)) return _Thumbnail(entry.path, side);
-    final icon = fileIconFor(entry.name, env: env);
-    if (icon == null) return SizedBox(width: side, height: side);
-    return SilicaIcon(LayeredSource(icon), side: side);
+    if (file == null) return SizedBox(width: side, height: side);
+    return SilicaIcon(FileSource(file), side: side, badges: badges, env: env);
   }
 }
 
@@ -425,10 +445,10 @@ class _Thumbnail extends StatelessWidget {
                   ),
                 ),
           errorBuilder: (context, error, stack) {
-            final icon = fileIconFor(path.split('/').last);
-            return icon == null
+            final file = resolveFileIcon(path);
+            return file == null
                 ? const SizedBox.shrink()
-                : SilicaIcon(LayeredSource(icon), side: side);
+                : SilicaIcon(FileSource(file), side: side);
           },
         ),
       ),
