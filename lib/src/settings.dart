@@ -50,6 +50,17 @@ class Settings {
     _save();
   }
 
+  /// La barra del percorso è visibile (⌥⌘P), per le finestre nuove.
+  bool? get pathBar {
+    final value = _data['pathBar'];
+    return value is bool ? value : null;
+  }
+
+  set pathBar(bool? value) {
+    _data['pathBar'] = value;
+    _save();
+  }
+
   void _save() {
     try {
       final file = File(path);

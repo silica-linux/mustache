@@ -301,3 +301,23 @@ Place trashPlace({required String home, String? dataHome}) {
       : dataHome;
   return Place('Cestino', '$base/Trash/files', PlaceKind.trash);
 }
+
+/// L'elemento in `path` (null se non esiste): come una riga di `listDirectory`.
+Entry? entryAt(String path) {
+  try {
+    final type = FileSystemEntity.typeSync(path, followLinks: false);
+    if (type == FileSystemEntityType.notFound) return null;
+    final link = type == FileSystemEntityType.link;
+    final stat = FileStat.statSync(path);
+    return Entry(
+      name: displayName(path),
+      path: path,
+      isDirectory: stat.type == FileSystemEntityType.directory,
+      size: stat.size < 0 ? 0 : stat.size,
+      modified: stat.modified,
+      isLink: link,
+    );
+  } on FileSystemException {
+    return null;
+  }
+}

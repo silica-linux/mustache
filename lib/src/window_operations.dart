@@ -8,9 +8,13 @@ part of 'window.dart';
 const Duration slowClickRename = Duration(milliseconds: 440);
 
 extension _Operations on _MustacheWindowState {
+  /// La selezione nell'ordine della vista; nelle colonne può essere una cartella fuori dal
+  /// contenuto mostrato (la cartella aperta).
   List<Entry> get _selection => [
     for (final e in _entries)
       if (_selected.contains(e.path)) e,
+    for (final path in _selected)
+      if (!_entries.any((e) => e.path == path)) ?entryAt(path),
   ];
 
   void _select(Iterable<String> paths) {

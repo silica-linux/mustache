@@ -52,7 +52,7 @@ provvisorio e lo dice.
 | --- | --- | --- | --- |
 | A icone | `mustache.view.icons` | ⌘1 | griglia che riempie la larghezza, etichette su due righe troncate al centro, selezione con fondo e capsula, miniature delle immagini; la vista predefinita e l'ultima scelta restano nelle impostazioni (MU-21, MU-80) |
 | A elenco | `mustache.view.list` | ⌘2 | scheletro: colonne Nome, Data di modifica, Dimensione, Tipo; ordinamento con clic sull'intestazione (MU-20) |
-| A colonne | `mustache.view.columns` | ⌘3 | da fare (MU-22) |
+| A colonne | `mustache.view.columns` | ⌘3 | una colonna per cartella dalla voce della barra laterale, selezione attenuata a sinistra, → e ←, scorrimento orizzontale (MU-22) |
 | Galleria | `mustache.view.gallery` | ⌘4 | da fare (MU-23) |
 
 - Ordinamento naturale (`file 2` prima di `file 10`), senza distinguere maiuscole e minuscole;

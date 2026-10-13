@@ -13,11 +13,14 @@ import 'package:silica_ui/silica_ui.dart';
 import 'model.dart';
 import 'settings.dart';
 import 'apps.dart';
+import 'column_view.dart';
 import 'icon_view.dart';
 import 'operations.dart';
+import 'path_bar.dart';
 import 'rename_field.dart';
 import 'sidebar.dart';
 
+part 'window_columns.dart';
 part 'window_context.dart';
 part 'window_operations.dart';
 
@@ -67,6 +70,10 @@ class ToggleSidebarIntent extends Intent {
   const ToggleSidebarIntent();
 }
 
+class TogglePathBarIntent extends Intent {
+  const TogglePathBarIntent();
+}
+
 class SetViewIntent extends Intent {
   const SetViewIntent(this.view);
   final ViewMode view;
@@ -88,8 +95,8 @@ class MoveSelectionIntent extends Intent {
   final Move move;
 }
 
-/// La vista dei contenuti (spec 3–6): a icone (⌘1) o a elenco (⌘2).
-enum ViewMode { icons, list }
+/// La vista dei contenuti (spec 3–6): a icone (⌘1), a elenco (⌘2), a colonne (⌘3).
+enum ViewMode { icons, list, columns }
 
 class MustacheWindow extends StatefulWidget {
   const MustacheWindow({
@@ -163,6 +170,12 @@ class _MustacheWindowState extends State<MustacheWindow>
   final Map<String, String> _types = {};
   Offset? _menuAt;
   List<MenuEntry> _menuEntries = const [];
+
+  /// La barra del percorso (⌥⌘P), ricordata per le finestre nuove.
+  late bool _pathBar = widget.settings?.pathBar ?? false;
+
+  /// Il contenuto delle colonne, letto una volta per caricamento.
+  final Map<String, List<Entry>> _columnCache = {};
 
   late ViewMode _view = ViewMode.values.firstWhere(
     (v) => v.name == widget.settings?.view,
@@ -254,9 +267,15 @@ class _MustacheWindowState extends State<MustacheWindow>
     );
     final result = listDirectory(_history.current, showHidden: _showHidden);
     setState(() {
+      _columnCache.clear();
       _entries = sortEntries(result.entries, _sort, descending: _descending);
       _error = result.error;
-      _selected.removeWhere((path) => !_entries.any((e) => e.path == path));
+      // Nelle colonne la scelta può essere la cartella aperta, che non è nel suo contenuto.
+      _selected.removeWhere(
+        (path) =>
+            !_entries.any((e) => e.path == path) &&
+            !(_view == ViewMode.columns && entryAt(path) != null),
+      );
     });
   }
 
@@ -286,6 +305,10 @@ class _MustacheWindowState extends State<MustacheWindow>
   }
 
   void _moveSelection(Move move) {
+    if (_view == ViewMode.columns) {
+      _moveInColumns(move);
+      return;
+    }
     final columns = _view == ViewMode.icons
         ? iconGrid(_contentWidth).columns
         : 1;
@@ -409,6 +432,11 @@ class _MustacheWindowState extends State<MustacheWindow>
         SingleActivator(LogicalKeyboardKey.digit2, meta: true): SetViewIntent(
           ViewMode.list,
         ),
+        SingleActivator(LogicalKeyboardKey.digit3, meta: true): SetViewIntent(
+          ViewMode.columns,
+        ),
+        SingleActivator(LogicalKeyboardKey.keyP, meta: true, alt: true):
+            TogglePathBarIntent(),
       },
       child: Actions(
         actions: {
@@ -467,6 +495,13 @@ class _MustacheWindowState extends State<MustacheWindow>
                 case FileCommand.redo:
                   _redoLast();
               }
+              return null;
+            },
+          ),
+          TogglePathBarIntent: CallbackAction<TogglePathBarIntent>(
+            onInvoke: (_) {
+              setState(() => _pathBar = !_pathBar);
+              widget.settings?.pathBar = _pathBar;
               return null;
             },
           ),
@@ -540,12 +575,31 @@ class _MustacheWindowState extends State<MustacheWindow>
                             child: LayoutBuilder(
                               builder: (context, box) {
                                 _contentWidth = box.maxWidth;
-                                return _view == ViewMode.icons
-                                    ? _icons()
-                                    : _list();
+                                return switch (_view) {
+                                  ViewMode.icons => _icons(),
+                                  ViewMode.list => _list(),
+                                  ViewMode.columns => _columnsView(),
+                                };
                               },
                             ),
                           ),
+                          if (_pathBar)
+                            PathBar(
+                              // L'elemento scelto è l'ultimo segmento (R1.17).
+                              path: _selected.length == 1
+                                  ? _selected.first
+                                  : _history.current,
+                              env: widget.iconsEnv,
+                              onOpen: (path) {
+                                final entry = entryAt(path);
+                                if (entry == null) return;
+                                if (entry.isDirectory) {
+                                  _navigate(path);
+                                } else {
+                                  _openEntry(entry);
+                                }
+                              },
+                            ),
                         ],
                       ),
                     ),
@@ -689,6 +743,17 @@ class _MustacheWindowState extends State<MustacheWindow>
     maxWidth: maxWidth,
     onCommit: (name) => _commitRename(entry, name),
     onCancel: _endRename,
+  );
+
+  Widget _columnsView() => ColumnView(
+    root: _columnRoot,
+    current: _history.current,
+    leaf: _selected.length == 1 ? _selected.first : _history.current,
+    list: _columnList,
+    onSelect: _selectInColumn,
+    onOpen: _openEntry,
+    active: widget.active,
+    env: widget.iconsEnv,
   );
 
   Widget _icons() {
