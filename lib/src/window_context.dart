@@ -106,6 +106,9 @@ extension _Context on _MustacheWindowState {
       ),
       MenuAction('Duplica', onSelected: _duplicate),
       MenuAction('Copia', onSelected: _copySelection),
+      const MenuDivider(),
+      _tagMenuRow(),
+      const MenuAction('Tag…', enabled: false),
     ];
   }
 

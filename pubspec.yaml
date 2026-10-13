@@ -1,19 +1,20 @@
 name: mustache
 description: Mustache, il gestore dei file di Silica.
 publish_to: none
-version: 0.10.0
+version: 0.11.0
 
 environment:
   sdk: ^3.9.0
 
 dependencies:
+  ffi: ^2.2.0
   flutter:
     sdk: flutter
   flutter_svg: ^2.3.0
   silica_ui:
     git:
       url: https://github.com/silica-linux/silica-ui.git
-      ref: v0.11.1
+      ref: v0.12.0
 
 dev_dependencies:
   flutter_test:

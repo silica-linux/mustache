@@ -22,12 +22,15 @@ import 'quick_look.dart';
 import 'rename_field.dart';
 import 'transfer.dart';
 import 'transfer_ui.dart';
+import 'xattr.dart';
 import 'sidebar.dart';
+import 'tags.dart';
 
 part 'window_columns.dart';
 part 'window_context.dart';
 part 'window_drag.dart';
 part 'window_operations.dart';
+part 'window_tags.dart';
 part 'window_transfers.dart';
 
 const Color accent = Color(0xFF0075F2);
@@ -209,6 +212,12 @@ class _MustacheWindowState extends State<MustacheWindow>
   Transfer? _progress;
   ({String name, bool moving, Completer<ConflictChoice> done})? _conflict;
 
+  /// Le etichette lette in questo caricamento; l'etichetta mostrata (vista dei risultati) e la
+  /// ricerca in corso.
+  final Map<String, List<String>> _tagCache = {};
+  String? _tagView;
+  int _tagSearch = 0;
+
   /// La visualizzazione rapida aperta (Spazio).
   bool _quickLook = false;
 
@@ -306,9 +315,17 @@ class _MustacheWindowState extends State<MustacheWindow>
     SystemChrome.setApplicationSwitcherDescription(
       ApplicationSwitcherDescription(label: displayName(_history.current)),
     );
+    // Nella vista di un'etichetta si rifà la ricerca.
+    final tag = _tagView;
+    if (tag != null) {
+      _tagCache.clear();
+      _showTag(tag);
+      return;
+    }
     final result = listDirectory(_history.current, showHidden: _showHidden);
     setState(() {
       _columnCache.clear();
+      _tagCache.clear();
       _entries = sortEntries(result.entries, _sort, descending: _descending);
       _error = result.error;
       // Nelle colonne la scelta può essere la cartella aperta, che non è nel suo contenuto.
@@ -321,6 +338,8 @@ class _MustacheWindowState extends State<MustacheWindow>
   }
 
   void _navigate(String path) {
+    _tagView = null;
+    _tagSearch++;
     _history.go(path);
     _selected.clear();
     _anchor = null;
@@ -669,9 +688,14 @@ class _MustacheWindowState extends State<MustacheWindow>
                             if (place.kind == PlaceKind.home) place,
                           widget.trash,
                         ]),
+                        SidebarSection('Tag', _tagPlaces),
                       ],
-                      current: _history.current,
-                      onSelect: (place) => _navigate(place.path),
+                      current: _tagView == null
+                          ? _history.current
+                          : '$tagPathPrefix$_tagView',
+                      onSelect: (place) => place.kind == PlaceKind.tag
+                          ? _showTag(place.label)
+                          : _navigate(place.path),
                       onDrop: _drop,
                       colors: SidebarColors.of(
                         dark: dark,
@@ -845,7 +869,7 @@ class _MustacheWindowState extends State<MustacheWindow>
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              displayName(_history.current),
+              _tagView ?? displayName(_history.current),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: text(
@@ -957,6 +981,7 @@ class _MustacheWindowState extends State<MustacheWindow>
           _renameField(entry, maxWidth: maxWidth),
       onContext: _openContextMenu,
       onRubberBand: _rubberBand,
+      tagsOf: _tagsOf,
       wrapItem: (entry, child) => _draggable(
         entry,
         _folderTarget(
@@ -1049,6 +1074,17 @@ class _MustacheWindowState extends State<MustacheWindow>
                                   )
                                 : Row(
                                     children: [
+                                      // I pallini delle etichette prima del nome.
+                                      if (i == 0 &&
+                                          _tagsOf(entry).isNotEmpty) ...[
+                                        TagDots(
+                                          tags: _tagsOf(entry),
+                                          background: selected
+                                              ? selectionFill
+                                              : contentFill,
+                                        ),
+                                        const SizedBox(width: 5),
+                                      ],
                                       Expanded(
                                         child: Text(
                                           cells[i],

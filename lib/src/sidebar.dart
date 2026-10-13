@@ -18,6 +18,7 @@ import 'package:silica_ui/silica_ui.dart';
 
 import 'drag.dart';
 import 'model.dart';
+import 'tags.dart';
 
 const double sidebarRow = 32;
 const double sidebarTextLeft = 47;
@@ -170,11 +171,12 @@ String symbolFor(PlaceKind kind) => switch (kind) {
   PlaceKind.music => 'music-note',
   PlaceKind.videos => 'film',
   PlaceKind.trash => 'trash',
+  PlaceKind.tag => '',
 };
 
 /// La cartella home e il Cestino hanno l'icona grigia, gli altri luoghi quella d'accento.
 bool accentIcon(PlaceKind kind) =>
-    kind != PlaceKind.home && kind != PlaceKind.trash;
+    kind != PlaceKind.home && kind != PlaceKind.trash && kind != PlaceKind.tag;
 
 class Sidebar extends StatefulWidget {
   const Sidebar({
@@ -367,7 +369,7 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
 
   Widget _row(Place place, SidebarColors colors, {required bool showText}) {
     final onDrop = widget.onDrop;
-    if (onDrop == null) {
+    if (onDrop == null || place.kind == PlaceKind.tag) {
       return _rowContent(place, colors, showText: showText, drop: false);
     }
     return FolderDropTarget(
@@ -412,14 +414,29 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
               top: (sidebarRow - sidebarIconSize) / 2,
               width: sidebarIconSize,
               height: sidebarIconSize,
-              child: _symbol(
-                place.kind,
-                accentIcon(place.kind)
-                    ? colors.accentIcon
-                    : selected
-                    ? colors.plainIconSelected
-                    : colors.plainIcon,
-              ),
+              child: place.kind == PlaceKind.tag
+                  // Le etichette: un cerchio pieno di 13 pt, senza contorno.
+                  ? Center(
+                      child: TagDot(
+                        color: switch (tagColor(place.label)) {
+                          final c? => sidebarTagColor(
+                            c,
+                            dark: colors.fill.computeLuminance() < 0.3,
+                          ),
+                          null => null,
+                        },
+                        side: 13,
+                        ring: false,
+                      ),
+                    )
+                  : _symbol(
+                      place.kind,
+                      accentIcon(place.kind)
+                          ? colors.accentIcon
+                          : selected
+                          ? colors.plainIconSelected
+                          : colors.plainIcon,
+                    ),
             ),
             if (showText)
               Positioned(

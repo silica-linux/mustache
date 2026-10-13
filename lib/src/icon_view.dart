@@ -15,6 +15,7 @@ import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
 
 import 'model.dart';
+import 'tags.dart';
 
 /// Il lato predefinito delle icone e il corpo del testo (spec 4.1).
 const double defaultIconSide = 64;
@@ -203,7 +204,11 @@ class IconView extends StatefulWidget {
     this.renaming,
     this.renameBuilder,
     this.onRubberBand,
+    this.tagsOf,
   });
+
+  /// Le etichette di un elemento: i pallini prima del nome, sulla prima riga.
+  final List<String> Function(Entry entry)? tagsOf;
 
   /// Il rettangolo di selezione: gli elementi toccati, dal vivo; `done` al rilascio.
   final void Function(Set<String> paths, {required bool done})? onRubberBand;
@@ -423,6 +428,7 @@ class _IconViewState extends State<IconView> {
           ? (active ? c.labelSelected : c.labelSelectedInactive)
           : c.label,
     );
+    final tags = widget.tagsOf?.call(entry) ?? const <String>[];
     final builder = renameBuilder;
     final field = entry.path == renaming && builder != null
         ? builder(entry, grid.pitchX - 4)
@@ -498,7 +504,16 @@ class _IconViewState extends State<IconView> {
                             padding: const EdgeInsets.symmetric(
                               horizontal: labelPad,
                             ),
-                            child: Text(lines[i], maxLines: 1, style: style),
+                            child: i == 0 && tags.isNotEmpty
+                                ? Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      TagDots(tags: tags),
+                                      const SizedBox(width: 5),
+                                      Text(lines[i], maxLines: 1, style: style),
+                                    ],
+                                  )
+                                : Text(lines[i], maxLines: 1, style: style),
                           ),
                         ),
                       ),

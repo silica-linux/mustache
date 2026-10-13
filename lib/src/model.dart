@@ -267,7 +267,13 @@ enum PlaceKind {
   music,
   videos,
   trash,
+
+  /// Un'etichetta (percorso `tag:<nome>`): mostra gli elementi che la portano.
+  tag,
 }
+
+/// Il prefisso dei percorsi delle etichette nella barra laterale.
+const String tagPathPrefix = 'tag:';
 
 /// Le cartelle dell'utente da `~/.config/user-dirs.dirs` (specifica xdg-user-dirs), con il
 /// nome della cartella come etichetta; solo quelle che esistono.
