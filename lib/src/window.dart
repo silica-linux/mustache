@@ -14,6 +14,7 @@ import 'model.dart';
 import 'settings.dart';
 import 'apps.dart';
 import 'column_view.dart';
+import 'drag.dart';
 import 'icon_view.dart';
 import 'operations.dart';
 import 'path_bar.dart';
@@ -24,6 +25,7 @@ import 'sidebar.dart';
 
 part 'window_columns.dart';
 part 'window_context.dart';
+part 'window_drag.dart';
 part 'window_operations.dart';
 part 'window_transfers.dart';
 
@@ -403,7 +405,9 @@ class _MustacheWindowState extends State<MustacheWindow>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => _OverlayHost(child: _window(context));
+
+  Widget _window(BuildContext context) {
     return Shortcuts(
       shortcuts: const {
         SingleActivator(LogicalKeyboardKey.arrowDown, meta: true): OpenIntent(),
@@ -585,6 +589,7 @@ class _MustacheWindowState extends State<MustacheWindow>
                       ],
                       current: _history.current,
                       onSelect: (place) => _navigate(place.path),
+                      onDrop: _drop,
                       colors: SidebarColors.of(
                         dark: dark,
                         active: widget.active,
@@ -605,15 +610,30 @@ class _MustacheWindowState extends State<MustacheWindow>
                           _header(),
                           if (_view == ViewMode.list) _columnsHeader(),
                           Expanded(
-                            child: LayoutBuilder(
-                              builder: (context, box) {
-                                _contentWidth = box.maxWidth;
-                                return switch (_view) {
-                                  ViewMode.icons => _icons(),
-                                  ViewMode.list => _list(),
-                                  ViewMode.columns => _columnsView(),
-                                };
-                              },
+                            // La cartella aperta come destinazione: linea di 2 pt lungo il bordo.
+                            child: FolderDropTarget(
+                              path: _history.current,
+                              onDrop: _drop,
+                              builder: (context, active) => Container(
+                                foregroundDecoration: active
+                                    ? BoxDecoration(
+                                        border: Border.all(
+                                          color: dropLine,
+                                          width: 2,
+                                        ),
+                                      )
+                                    : null,
+                                child: LayoutBuilder(
+                                  builder: (context, box) {
+                                    _contentWidth = box.maxWidth;
+                                    return switch (_view) {
+                                      ViewMode.icons => _icons(),
+                                      ViewMode.list => _list(),
+                                      ViewMode.columns => _columnsView(),
+                                    };
+                                  },
+                                ),
+                              ),
                             ),
                           ),
                           if (_pathBar)
@@ -828,6 +848,21 @@ class _MustacheWindowState extends State<MustacheWindow>
       renameBuilder: (entry, maxWidth) =>
           _renameField(entry, maxWidth: maxWidth),
       onContext: _openContextMenu,
+      wrapItem: (entry, child) => _draggable(
+        entry,
+        _folderTarget(
+          entry,
+          (context, active) => active
+              ? Container(
+                  foregroundDecoration: BoxDecoration(
+                    color: const Color(0x400064E1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: child,
+                )
+              : child,
+        ),
+      ),
       onBackground: () => setState(() {
         _selected.clear();
         _anchor = null;
@@ -870,54 +905,61 @@ class _MustacheWindowState extends State<MustacheWindow>
           formatSize(entry),
           _kind(entry),
         ];
-        // La selezione alla pressione, subito (non dopo l'attesa del doppio clic).
-        return Listener(
-          onPointerDown: (_) => _tap(entry),
-          child: GestureDetector(
-            key: ValueKey(entry.path),
-            onTap: () {},
-            onDoubleTap: () => _openEntry(entry),
-            onSecondaryTapDown: (d) =>
-                _openContextMenu(entry, d.globalPosition),
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8),
-              decoration: BoxDecoration(
-                color: selected ? selectionFill : null,
-                borderRadius: BorderRadius.circular(5),
-              ),
-              child: Row(
-                children: [
-                  for (var i = 0; i < _columns.length; i++)
-                    Expanded(
-                      flex: _columns[i].$3,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: i == 0 && entry.path == _renaming
-                            ? Align(
-                                alignment: Alignment.centerLeft,
-                                child: _renameField(entry),
-                              )
-                            : Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      cells[i],
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: text(
-                                        13,
-                                        color: i == 0 ? color : secondary,
+        // La selezione alla pressione, subito (non dopo l'attesa del doppio clic). Le cartelle
+        // sono destinazioni: la riga si colora d'accento sotto il trascinamento.
+        return _draggable(
+          entry,
+          _folderTarget(
+            entry,
+            (context, dropActive) => Listener(
+              onPointerDown: (_) => _tap(entry),
+              child: GestureDetector(
+                key: ValueKey(entry.path),
+                onTap: () {},
+                onDoubleTap: () => _openEntry(entry),
+                onSecondaryTapDown: (d) =>
+                    _openContextMenu(entry, d.globalPosition),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: selected || dropActive ? selectionFill : null,
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Row(
+                    children: [
+                      for (var i = 0; i < _columns.length; i++)
+                        Expanded(
+                          flex: _columns[i].$3,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: i == 0 && entry.path == _renaming
+                                ? Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: _renameField(entry),
+                                  )
+                                : Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          cells[i],
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: text(
+                                            13,
+                                            color: i == 0 ? color : secondary,
+                                          ),
+                                        ),
                                       ),
-                                    ),
+                                      if (i == 0 && pending != null)
+                                        ProgressPie(pending.fraction),
+                                    ],
                                   ),
-                                  if (i == 0 && pending != null)
-                                    ProgressPie(pending.fraction),
-                                ],
-                              ),
-                      ),
-                    ),
-                ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),

@@ -186,6 +186,7 @@ class IconView extends StatelessWidget {
     required this.onOpen,
     required this.onBackground,
     this.onContext,
+    this.wrapItem,
     this.active = true,
     this.side = defaultIconSide,
     this.text = defaultLabelSize,
@@ -202,6 +203,9 @@ class IconView extends StatelessWidget {
 
   /// Clic nel vuoto: toglie la selezione.
   final VoidCallback onBackground;
+
+  /// Avvolge ogni cella (trascinamento, destinazione dei rilasci).
+  final Widget Function(Entry entry, Widget child)? wrapItem;
 
   /// Clic secondario su un elemento (o nel vuoto, null), nella posizione globale.
   final void Function(Entry? entry, Offset position)? onContext;
@@ -284,68 +288,73 @@ class IconView extends StatelessWidget {
       width: grid.pitchX,
       height: bg + labelGap + labelLine * lines.length,
       // La selezione alla pressione, subito (non dopo l'attesa del doppio clic).
-      child: Listener(
-        onPointerDown: (_) => onTap(entry),
-        child: GestureDetector(
-          key: ValueKey(entry.path),
-          behavior: HitTestBehavior.translucent,
-          // Il vuoto attorno non tocca: il clic sulla cella non è un clic nel vuoto.
-          onTap: () {},
-          onDoubleTap: () => onOpen(entry),
-          onSecondaryTapDown: (d) => onContext?.call(entry, d.globalPosition),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned(
-                left: (grid.pitchX - bg) / 2,
-                top: 0,
-                width: bg,
-                height: bg,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: isSelected ? c.iconSelection : null,
-                    borderRadius: BorderRadius.circular(iconSelectionRadius),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(iconSelectionPad),
-                    child: EntryIcon(entry: entry, side: side, env: env),
+      child: (wrapItem ?? (_, Widget child) => child)(
+        entry,
+        Listener(
+          onPointerDown: (_) => onTap(entry),
+          child: GestureDetector(
+            key: ValueKey(entry.path),
+            behavior: HitTestBehavior.translucent,
+            // Il vuoto attorno non tocca: il clic sulla cella non è un clic nel vuoto.
+            onTap: () {},
+            onDoubleTap: () => onOpen(entry),
+            onSecondaryTapDown: (d) => onContext?.call(entry, d.globalPosition),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned(
+                  left: (grid.pitchX - bg) / 2,
+                  top: 0,
+                  width: bg,
+                  height: bg,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: isSelected ? c.iconSelection : null,
+                      borderRadius: BorderRadius.circular(iconSelectionRadius),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(iconSelectionPad),
+                      child: EntryIcon(entry: entry, side: side, env: env),
+                    ),
                   ),
                 ),
-              ),
-              if (field != null)
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  top: labelTop - (iconTop - iconSelectionPad) - 2,
-                  child: Center(child: field),
-                )
-              else
-                for (var i = 0; i < lines.length; i++)
+                if (field != null)
                   Positioned(
                     left: 0,
                     right: 0,
-                    top:
-                        labelTop - (iconTop - iconSelectionPad) + i * labelLine,
-                    height: labelLine,
-                    child: Center(
-                      child: DecoratedBox(
-                        key: ValueKey('nome ${entry.path} $i'),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? (active ? c.capsule : c.capsuleInactive)
-                              : null,
-                          borderRadius: BorderRadius.circular(labelRadius),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: labelPad,
+                    top: labelTop - (iconTop - iconSelectionPad) - 2,
+                    child: Center(child: field),
+                  )
+                else
+                  for (var i = 0; i < lines.length; i++)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top:
+                          labelTop -
+                          (iconTop - iconSelectionPad) +
+                          i * labelLine,
+                      height: labelLine,
+                      child: Center(
+                        child: DecoratedBox(
+                          key: ValueKey('nome ${entry.path} $i'),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? (active ? c.capsule : c.capsuleInactive)
+                                : null,
+                            borderRadius: BorderRadius.circular(labelRadius),
                           ),
-                          child: Text(lines[i], maxLines: 1, style: style),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: labelPad,
+                            ),
+                            child: Text(lines[i], maxLines: 1, style: style),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

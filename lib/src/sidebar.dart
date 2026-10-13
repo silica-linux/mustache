@@ -16,6 +16,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:silica_ui/silica_ui.dart';
 
+import 'drag.dart';
 import 'model.dart';
 
 const double sidebarRow = 32;
@@ -183,7 +184,11 @@ class Sidebar extends StatefulWidget {
     required this.onSelect,
     required this.colors,
     this.iconsDir,
+    this.onDrop,
   });
+
+  /// Rilascio di elementi trascinati su un luogo (R2.8): la riga si colora d'accento.
+  final void Function(DragPayload payload, String destination)? onDrop;
 
   final List<SidebarSection> sections;
 
@@ -361,6 +366,24 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
   }
 
   Widget _row(Place place, SidebarColors colors, {required bool showText}) {
+    final onDrop = widget.onDrop;
+    if (onDrop == null) {
+      return _rowContent(place, colors, showText: showText, drop: false);
+    }
+    return FolderDropTarget(
+      path: place.path,
+      onDrop: onDrop,
+      builder: (context, active) =>
+          _rowContent(place, colors, showText: showText, drop: active),
+    );
+  }
+
+  Widget _rowContent(
+    Place place,
+    SidebarColors colors, {
+    required bool showText,
+    required bool drop,
+  }) {
     final selected = place.path == widget.current;
     return GestureDetector(
       key: ValueKey('luogo ${place.path}'),
@@ -370,14 +393,16 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
         height: sidebarRow,
         child: Stack(
           children: [
-            if (selected)
+            if (selected || drop)
               Positioned.fill(
                 left: sidebarSelectionInset,
                 right: sidebarSelectionInset,
                 child: DecoratedBox(
-                  key: const ValueKey('selezione della barra'),
+                  key: ValueKey(
+                    drop ? 'rilascio sulla barra' : 'selezione della barra',
+                  ),
                   decoration: BoxDecoration(
-                    color: colors.selection,
+                    color: drop ? dragAccent : colors.selection,
                     borderRadius: BorderRadius.circular(sidebarSelectionRadius),
                   ),
                 ),
@@ -410,7 +435,11 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
                     overflow: TextOverflow.ellipsis,
                     style: _text(
                       13.75,
-                      selected ? colors.selectedText : colors.text,
+                      drop
+                          ? const Color(0xFFFFFFFF)
+                          : selected
+                          ? colors.selectedText
+                          : colors.text,
                       weight: selected ? FontWeight.w600 : null,
                     ),
                   ),
