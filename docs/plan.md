@@ -6,7 +6,7 @@ visivo uno screenshot dentro Ossido confrontato con il riferimento.
 | Task | Contenuto | Riferimento | Stato |
 | --- | --- | --- | --- |
 | MU.1 | Scheletro: barra laterale (luoghi utente, Cestino), vista a elenco, ordinamento, selezione, navigazione, scorciatoie | MU-10, MU-20, MU-30, MU-31 | fatto (0.1.0) |
-| MU.2 | Barra laterale misurata: selezione, passaggio, sezioni comprimibili, larghezza | MU-10, MU-11 | aspetta le misure |
+| MU.2 | Barra laterale misurata: selezione, passaggio, sezioni comprimibili, larghezza | MU-10, MU-11 | fatto (0.2.0); restano trascinare per aggiungere e riordinare (MU-11, con MU.7), volumi (MU-12), etichette (MU.9), focus della finestra e tema scuro dall'embedder |
 | MU.3 | Vista a icone: griglia, etichette, dimensioni, anteprime delle immagini | MU-21, MU-80 | |
 | MU.4 | Rinomina sul posto, nuova cartella, duplica, Cestino (Trash spec), annulla | MU-32, MU-42 | |
 | MU.5 | Tipi di file (shared-mime-info), app predefinite e "Apri con" (`mimeapps.list`) | MU-50 | |

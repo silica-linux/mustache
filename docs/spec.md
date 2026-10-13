@@ -30,13 +30,21 @@ provvisorio e lo dice.
 
 ## Barra laterale
 
-- Sezioni: **Preferiti** (cartella Inizio e cartelle dell'utente, poi quelle aggiunte
-  trascinandole), **Posizioni** (dischi, volumi montati, rete, Cestino), **Etichette**.
-- Righe a passo 32 pt, testo a 47 pt, icone dei simboli di `silica-icons` nel colore d'accento
-  (grigio per i luoghi di sistema), intestazioni di sezione in piccolo e grigio. Larga 192 pt,
-  ridimensionabile (MU-11).
-- Selezione della riga corrente, passaggio del puntatore, comprimere le sezioni, trascinare per
-  aggiungere e togliere, espellere i volumi (MU-10, MU-11, MU-12).
+- Sezioni: **Preferiti** (le cartelle dell'utente, poi quelle aggiunte trascinandole),
+  **Posizioni** (cartella Inizio, dischi, volumi montati, rete, Cestino), **Etichette**.
+- Attaccata ai bordi della finestra, dalla cima al fondo, senza linea verso il contenuto. Righe a
+  passo 32 pt (prima riga con il centro a 68), testo a 47 pt, icone dei simboli di `silica-icons`
+  nel colore d'accento (grigie per la cartella Inizio e il Cestino); intestazioni a 24 pt dalla
+  prima riga e 40 dall'ultima della sezione prima (MU-10).
+- Selezione: rettangolo di raggio 8 alto quanto la riga, da 10 pt dal bordo, testo in semibold;
+  nessun fondo al passaggio. Colori per tema e per finestra attiva/inattiva (MU-10, MU-98).
+- Intestazioni: chevron al passaggio, clic per comprimere ed espandere (~190 ms, MU-11).
+- Larghezza: trascinando il bordo, fra 135 pt e quanto lascia 316 pt al contenuto; vicino a
+  200 si aggancia a 200; contro il bordo sinistro la barra si nasconde. Le finestre nuove
+  prendono l'ultima larghezza (`$XDG_CONFIG_HOME/mustache/settings.json`).
+- Nascondi/mostra: `mustache.sidebar.toggle`, ⌃⌘S (~240 ms, curva a S).
+- Da fare: trascinare per aggiungere, riordinare e togliere (MU-11), volumi ed espulsione
+  (MU-12), etichette (MU-62).
 
 ## Viste
 

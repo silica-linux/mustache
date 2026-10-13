@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 
 import 'src/model.dart';
+import 'src/settings.dart';
 import 'src/window.dart';
 
 void main(List<String> args) {
@@ -27,6 +28,7 @@ void main(List<String> args) {
         ),
         trash: trashPlace(home: home, dataHome: env['XDG_DATA_HOME']),
         iconsDir: env['SILICA_ICONS_DIR'],
+        settings: Settings.forUser(env),
       ),
     ),
   );

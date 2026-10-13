@@ -1,30 +1,18 @@
-// La finestra di Mustache: barra laterale a sinistra, a destra l'intestazione con la
-// navigazione e la vista a elenco.
-//
-// Misure della barra laterale (MU-10 per quelle che mancano): larga 192 pt, dalla cima al fondo
-// della finestra, righe a passo 32, testo a 47 pt dal bordo, icone fra 20 e 38 pt,
-// intestazioni di sezione a 17 pt in semibold grigio; fondo chiaro `#e5e5e7`, contenuto
-// bianco, nessuna linea fra i due. Intestazione e vista a elenco sono provvisorie (MU-02,
-// MU-20): l'intestazione vera sarà la barra degli strumenti unificata con quella della
-// finestra (docs/spec.md, "Aperto").
+// La finestra di Mustache: barra laterale a sinistra (sidebar.dart), a destra l'intestazione con
+// la navigazione e la vista a elenco. Intestazione e vista a elenco sono provvisorie (MU-02,
+// MU-20): l'intestazione vera sarà la barra degli strumenti unificata con quella della finestra
+// (docs/spec.md, "Aperto").
 
 import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:silica_ui/silica_ui.dart';
 
 import 'model.dart';
+import 'settings.dart';
+import 'sidebar.dart';
 
-const double sidebarWidth = 192;
-const double sidebarRow = 32;
-const double sidebarTextLeft = 47;
-const double sidebarIconLeft = 20;
-const double sidebarIconSize = 18;
-const double sidebarHeadingLeft = 17;
-const Color sidebarFill = Color(0xFFE5E5E7);
-const Color sidebarHeading = Color(0xFF808182);
 const Color accent = Color(0xFF0075F2);
 const Color textColor = Color(0xFF000000);
 const Color secondaryText = Color(0xFF808182);
@@ -67,6 +55,10 @@ class ToggleHiddenIntent extends Intent {
   const ToggleHiddenIntent();
 }
 
+class ToggleSidebarIntent extends Intent {
+  const ToggleSidebarIntent();
+}
+
 class MoveSelectionIntent extends Intent {
   const MoveSelectionIntent(this.delta);
   final int delta;
@@ -81,6 +73,8 @@ class MustacheWindow extends StatefulWidget {
     this.iconsDir,
     this.now,
     this.open,
+    this.settings,
+    this.active = true,
   });
 
   final String start;
@@ -96,12 +90,32 @@ class MustacheWindow extends StatefulWidget {
   /// Apre un file con l'app predefinita (test: registra la chiamata).
   final void Function(String path)? open;
 
+  /// Le impostazioni che restano fra un avvio e l'altro (la larghezza della barra laterale).
+  final Settings? settings;
+
+  /// La finestra ha il focus: i colori della barra laterale cambiano quando non ce l'ha.
+  final bool active;
+
   @override
   State<MustacheWindow> createState() => _MustacheWindowState();
 }
 
-class _MustacheWindowState extends State<MustacheWindow> {
+class _MustacheWindowState extends State<MustacheWindow>
+    with SingleTickerProviderStateMixin {
   late final History _history = History(widget.start);
+
+  /// La larghezza della barra laterale quando si vede; le finestre nuove prendono l'ultima.
+  late double _sidebarWidth =
+      widget.settings?.sidebarWidth ?? sidebarDefaultWidth;
+
+  /// 1: barra visibile, 0: nascosta (⌃⌘S o trascinata contro il bordo).
+  late final AnimationController _sidebarShown = AnimationController(
+    vsync: this,
+    duration: sidebarShow,
+    reverseDuration: sidebarHide,
+    value: 1,
+  )..addListener(() => setState(() {}));
+  bool _resizing = false;
   final FocusNode _focus = FocusNode();
   List<Entry> _entries = const [];
   String? _error;
@@ -120,7 +134,51 @@ class _MustacheWindowState extends State<MustacheWindow> {
   @override
   void dispose() {
     _focus.dispose();
+    _sidebarShown.dispose();
     super.dispose();
+  }
+
+  void _toggleSidebar() {
+    if (_sidebarShown.status == AnimationStatus.reverse ||
+        _sidebarShown.value == 0) {
+      _sidebarShown.forward();
+    } else {
+      _sidebarShown.reverse();
+    }
+  }
+
+  /// Quanto si vede la barra (0–1): curva a S; il mostrare parte con ~40 ms di ritardo.
+  double get _sidebarProgress {
+    final value = _sidebarShown.value;
+    if (_sidebarShown.status == AnimationStatus.forward) {
+      final t = ((value - sidebarShowDelay) / (1 - sidebarShowDelay)).clamp(
+        0.0,
+        1.0,
+      );
+      return Curves.easeInOut.transform(t);
+    }
+    return Curves.easeInOut.transform(value);
+  }
+
+  void _dragSidebar(double x, double windowWidth) {
+    final width = dragWidth(x, windowWidth);
+    setState(() {
+      _resizing = true;
+      if (width == 0) {
+        _sidebarShown.value = 0;
+      } else {
+        _sidebarShown.value = 1;
+        _sidebarWidth = width;
+      }
+    });
+  }
+
+  void _releaseSidebar() {
+    setState(() {
+      _resizing = false;
+      _sidebarWidth = releaseWidth(_sidebarWidth);
+    });
+    widget.settings?.sidebarWidth = _sidebarWidth;
   }
 
   void _load() {
@@ -224,6 +282,8 @@ class _MustacheWindowState extends State<MustacheWindow> {
             ForwardIntent(),
         SingleActivator(LogicalKeyboardKey.period, meta: true, shift: true):
             ToggleHiddenIntent(),
+        SingleActivator(LogicalKeyboardKey.keyS, control: true, meta: true):
+            ToggleSidebarIntent(),
         SingleActivator(LogicalKeyboardKey.arrowDown): MoveSelectionIntent(1),
         SingleActivator(LogicalKeyboardKey.arrowUp): MoveSelectionIntent(-1),
       },
@@ -258,6 +318,12 @@ class _MustacheWindowState extends State<MustacheWindow> {
               return null;
             },
           ),
+          ToggleSidebarIntent: CallbackAction<ToggleSidebarIntent>(
+            onInvoke: (_) {
+              _toggleSidebar();
+              return null;
+            },
+          ),
           MoveSelectionIntent: CallbackAction<MoveSelectionIntent>(
             onInvoke: (intent) {
               _moveSelection(intent.delta);
@@ -268,129 +334,79 @@ class _MustacheWindowState extends State<MustacheWindow> {
         child: Focus(
           focusNode: _focus,
           autofocus: true,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(width: sidebarWidth, child: _sidebar()),
-              Expanded(
-                child: ColoredBox(
-                  color: contentFill,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _header(),
-                      _columnsHeader(),
-                      Expanded(child: _list()),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _sidebar() {
-    Widget heading(String label) => SizedBox(
-      height: sidebarRow,
-      child: Padding(
-        padding: const EdgeInsets.only(left: sidebarHeadingLeft, top: 14),
-        child: Text(
-          label,
-          style: text(11.5, color: sidebarHeading, weight: FontWeight.w600),
-        ),
-      ),
-    );
-    Widget row(Place place) {
-      final selected = place.path == _history.current;
-      return GestureDetector(
-        key: ValueKey('luogo ${place.path}'),
-        onTap: () => _navigate(place.path),
-        behavior: HitTestBehavior.opaque,
-        child: SizedBox(
-          height: sidebarRow,
-          child: Stack(
-            children: [
-              if (selected)
-                // Selezione provvisoria (MU-10): rettangolo grigio arrotondato.
-                Positioned.fill(
-                  left: 10,
-                  right: 10,
-                  top: 2,
-                  bottom: 2,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: const Color(0x1A000000),
-                      borderRadius: BorderRadius.circular(6),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final windowWidth = constraints.maxWidth;
+              // Nascondendosi la barra scorre a sinistra (resta larga uguale) e il contenuto
+              // si allarga.
+              final shown = _resizing ? _sidebarShown.value : _sidebarProgress;
+              final visible = _sidebarWidth * shown;
+              final dark =
+                  MediaQuery.maybePlatformBrightnessOf(context) ==
+                  Brightness.dark;
+              return Stack(
+                children: [
+                  Positioned(
+                    left: visible - _sidebarWidth,
+                    top: 0,
+                    bottom: 0,
+                    width: _sidebarWidth,
+                    child: Sidebar(
+                      sections: [
+                        SidebarSection('Preferiti', [
+                          for (final place in widget.places)
+                            if (place.kind != PlaceKind.home) place,
+                        ]),
+                        SidebarSection('Posizioni', [
+                          for (final place in widget.places)
+                            if (place.kind == PlaceKind.home) place,
+                          widget.trash,
+                        ]),
+                      ],
+                      current: _history.current,
+                      onSelect: (place) => _navigate(place.path),
+                      colors: SidebarColors.of(
+                        dark: dark,
+                        active: widget.active,
+                      ),
+                      iconsDir: widget.iconsDir,
                     ),
                   ),
-                ),
-              Positioned(
-                left: sidebarIconLeft,
-                top: (sidebarRow - sidebarIconSize) / 2,
-                width: sidebarIconSize,
-                height: sidebarIconSize,
-                child: _symbol(place.kind),
-              ),
-              Positioned(
-                left: sidebarTextLeft,
-                right: 8,
-                top: 0,
-                bottom: 0,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    place.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: text(13.75),
+                  Positioned(
+                    left: visible,
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: ColoredBox(
+                      color: contentFill,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _header(),
+                          _columnsHeader(),
+                          Expanded(child: _list()),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ],
+                  // Il bordo trascinabile, anche a barra nascosta (la si riapre tirandola).
+                  Positioned(
+                    left: visible - 3,
+                    top: 0,
+                    bottom: 0,
+                    width: 6,
+                    child: SidebarDivider(
+                      key: const ValueKey('bordo della barra'),
+                      onDrag: (x) => _dragSidebar(x, windowWidth),
+                      onRelease: _releaseSidebar,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
-      );
-    }
-
-    return ColoredBox(
-      color: sidebarFill,
-      child: ListView(
-        padding: const EdgeInsets.only(top: 44),
-        children: [
-          heading('Preferiti'),
-          for (final place in widget.places) row(place),
-          const SizedBox(height: 8),
-          heading('Posizioni'),
-          row(widget.trash),
-        ],
       ),
-    );
-  }
-
-  /// Il simbolo di silica-icons per un luogo, nel colore d'accento; niente se le icone non
-  /// ci sono.
-  Widget _symbol(PlaceKind kind) {
-    final dir = widget.iconsDir;
-    if (dir == null) return const SizedBox.shrink();
-    final name = switch (kind) {
-      PlaceKind.home => 'house',
-      PlaceKind.desktop => 'display',
-      PlaceKind.documents => 'doc',
-      PlaceKind.downloads => 'download',
-      PlaceKind.pictures => 'photo',
-      PlaceKind.music => 'music-note',
-      PlaceKind.videos => 'film',
-      PlaceKind.trash => 'trash',
-    };
-    final file = File('$dir/symbols/$name.svg');
-    if (!file.existsSync()) return const SizedBox.shrink();
-    final color = kind == PlaceKind.trash ? const Color(0xFF7C7C82) : accent;
-    return SvgPicture.file(
-      file,
-      colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
     );
   }
 
