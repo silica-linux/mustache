@@ -205,7 +205,7 @@ extension _ListView on _MustacheWindowState {
     bool chosen(int i) =>
         i >= 0 && i < rows.length && _selected.contains(rows[i].entry.path);
     final selected = chosen(index);
-    final active = widget.active;
+    final active = _active;
     final pending = _pendingTransfer(entry.path);
     final nameColor = selected
         ? (active ? colors.selectionName : colors.inactiveName)

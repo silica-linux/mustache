@@ -8,6 +8,7 @@ import 'package:mustache/src/settings.dart';
 import 'package:mustache/src/sidebar.dart';
 import 'package:mustache/src/toolbar.dart';
 import 'package:mustache/src/window.dart';
+import 'package:silica_ui/silica_ui.dart';
 
 void main() {
   late Directory root;
@@ -105,6 +106,24 @@ void main() {
     await tester.pump();
     expect(y('Alfa'), greaterThan(y('nota.txt')));
   });
+
+  testWidgets(
+    'la finestra inattiva per Ossido (flutter/lifecycle) spegne il titolo',
+    (tester) async {
+      await pump(tester);
+      Color? title() => tester
+          .widget<Text>(find.byKey(const ValueKey('titolo')))
+          .style
+          ?.color;
+      expect(title(), ToolbarColors.light.title);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+      expect(title(), ToolbarColors.light.titleInactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(title(), ToolbarColors.light.title);
+    },
+  );
 
   testWidgets('la barra degli strumenti unificata: capsule, viste, Indietro', (
     tester,

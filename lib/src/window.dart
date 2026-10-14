@@ -252,6 +252,22 @@ class _MustacheWindowState extends State<MustacheWindow>
     with SingleTickerProviderStateMixin {
   late final History _history = History(widget.start);
 
+  /// La finestra è quella attiva per Ossido: l'embedder lo dice con `flutter/lifecycle`
+  /// (`resumed` attiva, `inactive` no; senza notizie, attiva).
+  bool _windowActive = _isActive(WidgetsBinding.instance.lifecycleState);
+  late final AppLifecycleListener _lifecycle = AppLifecycleListener(
+    onStateChange: (state) {
+      final active = _isActive(state);
+      if (active != _windowActive) setState(() => _windowActive = active);
+    },
+  );
+
+  static bool _isActive(AppLifecycleState? state) =>
+      state == null || state == AppLifecycleState.resumed;
+
+  /// Attiva per Ossido e, con le schede, la scheda in primo piano.
+  bool get _active => widget.active && _windowActive;
+
   /// La larghezza della barra laterale quando si vede; le finestre nuove prendono l'ultima.
   late double _sidebarWidth =
       widget.settings?.sidebarWidth ?? sidebarDefaultWidth;
@@ -373,11 +389,13 @@ class _MustacheWindowState extends State<MustacheWindow>
   @override
   void initState() {
     super.initState();
+    _lifecycle;
     _load();
   }
 
   @override
   void dispose() {
+    _lifecycle.dispose();
     _focus.dispose();
     _sidebarShown.dispose();
     _slowClick?.cancel();
@@ -974,10 +992,7 @@ class _MustacheWindowState extends State<MustacheWindow>
                           ? _showTag(place.label)
                           : _navigate(place.path),
                       onDrop: _drop,
-                      colors: SidebarColors.of(
-                        dark: dark,
-                        active: widget.active,
-                      ),
+                      colors: SidebarColors.of(dark: dark, active: _active),
                       iconsDir: widget.iconsDir,
                     ),
                   ),
@@ -1081,7 +1096,7 @@ class _MustacheWindowState extends State<MustacheWindow>
                           // La barra di stato sotto la barra del percorso (spec 1.5).
                           if (_statusBar)
                             StatusBar(
-                              active: widget.active,
+                              active: _active,
                               text: statusText(
                                 count: _entries.length,
                                 selected: _selected.length,
@@ -1237,7 +1252,7 @@ class _MustacheWindowState extends State<MustacheWindow>
         : _searching
         ? 'Ricerca in «${_searchScope == SearchScope.computer ? 'Questo computer' : displayName(_searchFolder)}»'
         : _tagView ?? displayName(_history.current),
-    active: widget.active,
+    active: _active,
     canGoBack: _history.canGoBack || _searching,
     canGoForward: _history.canGoForward,
     onBack: () {
@@ -1304,7 +1319,7 @@ class _MustacheWindowState extends State<MustacheWindow>
     list: _columnList,
     onSelect: _selectInColumn,
     onOpen: _openEntry,
-    active: widget.active,
+    active: _active,
     env: widget.iconsEnv,
     tagsOf: _tagsOf,
   );
@@ -1315,7 +1330,7 @@ class _MustacheWindowState extends State<MustacheWindow>
       side: _iconSide,
       entries: _entries,
       selected: _selected,
-      active: widget.active,
+      active: _active,
       env: widget.iconsEnv,
       onTap: _tap,
       onOpen: _openEntry,
