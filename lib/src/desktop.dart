@@ -40,6 +40,8 @@ import 'model.dart';
 import 'operations.dart';
 import 'rename_field.dart';
 import 'sounds.dart';
+import 'tags.dart';
+import 'xattr.dart' as xattr;
 
 /// The desktop's icon size, label size and grid (MU-90).
 const double desktopIconSide = 96;
@@ -334,6 +336,14 @@ String? parseDesktopAction(String value) {
   return value.substring(0, space);
 }
 
+/// The folder named by `--customize=<path>` among the process arguments (null: none).
+String? customizeArgument(List<String> args) {
+  for (final a in args) {
+    if (a.startsWith('--customize=') && a.length > 12) return a.substring(12);
+  }
+  return null;
+}
+
 /// Quotes a path for `sh -c`.
 String shellQuote(String s) => "'${s.replaceAll("'", r"'\''")}'";
 
@@ -389,6 +399,8 @@ class DesktopView extends StatefulWidget {
     this.env,
     this.kindOf,
     this.watch = true,
+    this.readTags = xattr.readTags,
+    this.writeTags = xattr.writeTags,
   });
 
   final String folder;
@@ -401,6 +413,10 @@ class DesktopView extends StatefulWidget {
 
   /// Follows the folder's changes (off in tests).
   final bool watch;
+
+  /// Reads and writes the tags of an item (`user.xdg.tags`); tests pass fakes.
+  final List<String> Function(String path) readTags;
+  final bool Function(String path, List<String> tags) writeTags;
 
   @override
   State<DesktopView> createState() => DesktopViewState();
@@ -577,13 +593,65 @@ class DesktopViewState extends State<DesktopView>
     );
   }
 
+  /// The colour tags all of `items` have.
+  Set<TagColor> _sharedColors(List<Entry> items) {
+    if (items.isEmpty) return const {};
+    final tags = [for (final e in items) widget.readTags(e.path)];
+    return {
+      for (final c in TagColor.values)
+        if (tags.every((t) => t.any((n) => tagColor(n) == c))) c,
+    };
+  }
+
+  /// A click on a dot: if all the selected items have the colour it is removed, else added (as
+  /// in the file manager's window).
+  void _toggleTag(TagColor color) {
+    final items = _selection;
+    if (items.isEmpty) return;
+    bool has(List<String> tags) => tags.any((t) => tagColor(t) == color);
+    final all = {for (final e in items) e.path: widget.readTags(e.path)};
+    final remove = all.values.every(has);
+    for (final MapEntry(key: path, value: tags) in all.entries) {
+      final next = [...tags];
+      if (remove) {
+        next.removeWhere((t) => tagColor(t) == color);
+      } else if (!has(next)) {
+        next.add(tagName(color));
+      }
+      // A colour tag tints a folder.
+      if (widget.writeTags(path, next)) folderStyles.invalidate([path]);
+    }
+  }
+
+  /// Customize Folder…: a window of the file manager with Get Info on that section.
+  void _customize() {
+    final items = _selection;
+    if (items.length != 1 || !items.single.isDirectory) return;
+    final app = AppRegistry.load(
+      env: widget.env,
+      mime: systemMime,
+    ).apps['dev.frascella.Mustache.desktop'];
+    final args = app == null ? const <String>[] : execArguments(app, const []);
+    _launch(
+      [
+        ...(args.isEmpty ? const ['mustache'] : args),
+        '--customize=${items.single.path}',
+      ].map(shellQuote).join(' '),
+    );
+  }
+
   void _announce() {
+    final items = _selection;
     _broadcast(
       'desktop.state',
       jsonEncode({
         'stacks': widget.choices.stacks,
         'sort': widget.choices.sort,
         'selected': _selected.length,
+        // The colour tags all the selected items have (the dots of the menu show them checked),
+        // and whether the selection is one folder (Customize Folder…).
+        'tags': [for (final c in _sharedColors(items)) c.name],
+        'folder': items.length == 1 && items.single.isDirectory,
       }),
     );
   }
@@ -648,8 +716,15 @@ class DesktopViewState extends State<DesktopView>
           duplicate(e.path);
         }
         _load();
+      case 'customize':
+        _customize();
       default:
-        if (id.startsWith('sort:')) {
+        if (id.startsWith('tag:')) {
+          final color = TagColor.values
+              .where((c) => c.name == id.substring(4))
+              .firstOrNull;
+          if (color != null) _toggleTag(color);
+        } else if (id.startsWith('sort:')) {
           final sort = id.substring(5);
           if (!desktopSorts.contains(sort)) return;
           widget.choices

@@ -232,7 +232,12 @@ class MustacheWindow extends StatefulWidget {
     this.focused = true,
     this.dialog,
     this.onDialogFinish,
+    this.customize,
   });
+
+  /// A folder whose Get Info opens on the Customize Folder section at start (`--customize=<path>`,
+  /// sent by the desktop's context menu; `start` is the folder that holds it).
+  final String? customize;
 
   /// The window is an Open or Save dialog for the portal (null: the normal window).
   final DialogOptions? dialog;
@@ -476,6 +481,10 @@ class _MustacheWindowState extends State<MustacheWindow>
     super.initState();
     _lifecycle;
     _externalDrags = SilicaDrag.events.listen(_dragEvent);
+    if (widget.customize case final path?) {
+      _infos.add(path);
+      _infoOpen.add(InfoSection.customize);
+    }
     _load();
   }
 

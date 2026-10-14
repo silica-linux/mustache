@@ -183,7 +183,10 @@ void main() {
     late Directory home;
     late Directory folder;
 
-    Future<bool> pumpWindow(WidgetTester tester) async {
+    Future<bool> pumpWindow(
+      WidgetTester tester, {
+      bool customize = false,
+    }) async {
       home = homeTemp('mustache-folder-menu');
       folder = Directory('${home.path}/Doc/Progetti')
         ..createSync(recursive: true);
@@ -201,6 +204,7 @@ void main() {
             trash: Place('Trash', '${home.path}/Cestino', PlaceKind.trash),
             settings: Settings('${home.path}/s.json')..view = 'list',
             iconsEnv: {...env, 'HOME': home.path},
+            customize: customize ? folder.path : null,
           ),
         ),
       );
@@ -285,6 +289,20 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
       expect(drawnFolder(tester)?.symbol, 'house');
       folderStyles.save(folder.path, const FolderStyle());
+    });
+
+    testWidgets('started from the desktop, Get Info opens on the section', (
+      tester,
+    ) async {
+      if (!await pumpWindow(tester, customize: true)) {
+        markTestSkipped('no extended attributes on this file system');
+        return;
+      }
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 60));
+      }
+      expect(find.byKey(ValueKey('info ${folder.path}')), findsOneWidget);
+      expect(find.byType(FolderCustomizeSection), findsOneWidget);
     });
 
     testWidgets('a file has Tags…, not Customize Folder…', (tester) async {

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/gestures.dart';
@@ -127,7 +128,11 @@ void main() {
     late Directory folder;
     late List<MethodCall> shell;
 
+    /// The tags the fake `user.xdg.tags` holds, by path.
+    late Map<String, List<String>> tags;
+
     setUp(() {
+      tags = {};
       home = Directory.systemTemp.createTempSync('desktop');
       folder = Directory('${home.path}/Desktop')..createSync();
       for (final n in ['one.txt', 'two.txt']) {
@@ -168,6 +173,11 @@ void main() {
               env: {'HOME': home.path},
               kindOf: (e) => 'Text',
               watch: false,
+              readTags: (p) => tags[p] ?? const [],
+              writeTags: (p, t) {
+                tags[p] = t;
+                return true;
+              },
             ),
           ),
         ),
@@ -244,6 +254,102 @@ void main() {
         File('${home.path}/.local/share/Trash/files/two.txt').existsSync(),
         isTrue,
       );
+    });
+
+    Map<String, Object?> lastState() {
+      final call = shell.lastWhere(
+        (c) =>
+            c.method == 'broadcast' &&
+            (c.arguments as Map)['topic'] == 'desktop.state',
+      );
+      return jsonDecode((call.arguments as Map)['value'] as String)
+          as Map<String, Object?>;
+    }
+
+    testWidgets('the state carries the colour tags every selected item has', (
+      tester,
+    ) async {
+      tags['${folder.path}/one.txt'] = ['Red', 'Blue', 'Work'];
+      tags['${folder.path}/two.txt'] = ['Rosso'];
+      final state = await pump(tester);
+      await tester.tapAt(state.positions['one.txt']! + const Offset(0, 40));
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(lastState()['tags'], ['red', 'blue']);
+      expect(lastState()['folder'], false);
+      // A tag in another language keeps its colour; only the shared ones are reported.
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.tapAt(state.positions['two.txt']! + const Offset(0, 40));
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(state.selected, {'one.txt', 'two.txt'});
+      expect(lastState()['tags'], ['red']);
+      await tester.tapAt(const Offset(200, 600));
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(lastState()['tags'], isEmpty);
+    });
+
+    testWidgets('the tag actions add the colour, or remove it from all', (
+      tester,
+    ) async {
+      final one = '${folder.path}/one.txt';
+      final two = '${folder.path}/two.txt';
+      tags[one] = ['Work', 'Rosso'];
+      final state = await pump(tester);
+      await tester.tapAt(state.positions['one.txt']! + const Offset(0, 40));
+      await tester.pump(const Duration(milliseconds: 600));
+      state.runAction('tag:blue');
+      expect(tags[one], ['Work', 'Rosso', l10n.tagBlue]);
+      expect(lastState()['tags'], ['red', 'blue']);
+      // The colour all the items have is removed (in any language).
+      state.runAction('tag:red');
+      expect(tags[one], ['Work', l10n.tagBlue]);
+      // With several items, one lacking it: it is added to all.
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.tapAt(state.positions['two.txt']! + const Offset(0, 40));
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pump(const Duration(milliseconds: 600));
+      state.runAction('tag:blue');
+      expect(tags[one], ['Work', l10n.tagBlue]);
+      expect(tags[two], [l10n.tagBlue]);
+      state.runAction('tag:blue');
+      expect(tags[one], ['Work']);
+      expect(tags[two], isEmpty);
+      // An unknown colour does nothing.
+      state.runAction('tag:pink');
+      expect(tags[two], isEmpty);
+    });
+
+    testWidgets('Customize Folder… opens a window with Get Info on it', (
+      tester,
+    ) async {
+      Directory('${folder.path}/Progetti').createSync();
+      final state = await pump(tester);
+      List<String> launches() => [
+        for (final c in shell)
+          if (c.method == 'launch') (c.arguments as Map)['command'] as String,
+      ];
+      // A file: nothing to customize.
+      await tester.tapAt(state.positions['one.txt']! + const Offset(0, 40));
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(lastState()['folder'], false);
+      state.runAction('customize');
+      expect(launches(), isEmpty);
+      // One folder: the file manager starts with its Customize Folder section.
+      await tester.tapAt(state.positions['Progetti']! + const Offset(0, 40));
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(lastState()['folder'], true);
+      state.runAction('customize');
+      expect(launches(), hasLength(1));
+      expect(
+        launches().single,
+        contains("'--customize=${folder.path}/Progetti'"),
+      );
+    });
+
+    test('--customize=<folder> among the arguments', () {
+      expect(customizeArgument(['--customize=/a/b c']), '/a/b c');
+      expect(customizeArgument(['x', '--customize=']), isNull);
+      expect(customizeArgument(['/a']), isNull);
     });
 
     testWidgets('arrow keys move the selection between icons', (tester) async {

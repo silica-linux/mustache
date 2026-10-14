@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+Desktop: the context menu of the selected icons has the colour dots and Customize Folder… of the
+window's menu. The desktop applies the tag (`desktop.action` `tag:<colour>`), reports the colours
+the selection shares in `desktop.state`, and starts a window with Get Info on the Customize
+Folder section (`--customize=<folder>`).
+
 Folder colour and symbol: a folder is tinted by its first colour tag (`user.xdg.tags`, the
 convention other file managers share) or by a custom colour, and can carry a silica-icons symbol;
 the custom choice lives on the folder in `user.silica.folder` (JSON), or in the GIO metadata

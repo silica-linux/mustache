@@ -26,9 +26,13 @@ void main(List<String> args) {
     for (final a in args)
       if (!a.startsWith('--')) a,
   ];
+  // Get Info on the Customize Folder section, from the desktop's menu (--customize=<folder>).
+  final customize = customizeArgument(args);
   final start =
       dialog?.folder ??
-      (folders.isNotEmpty && Directory(folders.first).existsSync()
+      (customize != null
+          ? File(customize).parent.path
+          : folders.isNotEmpty && Directory(folders.first).existsSync()
           ? folders.first
           : home);
   final places = userPlaces(
@@ -106,6 +110,7 @@ void main(List<String> args) {
               tabBar: tabBar,
               onLocation: onLocation,
               focused: active,
+              customize: customize,
             ),
           ),
         ),
