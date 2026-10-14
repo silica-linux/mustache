@@ -1,9 +1,9 @@
-// Le schede (MU-01, mustache-spec 1.3): ⌘T apre una scheda nella cartella della scheda attiva,
-// ⌘W la chiude, ⌃⇥ e ⌃⇧⇥ passano alla successiva e alla precedente. La barra compare con almeno
-// due schede, sotto la barra degli strumenti e solo sopra i contenuti: binario a capsula alto 28
-// (bordo 1, raggio 14), scheda attiva a pillola alta 24 con 2 pt di rientro, separatori 1 × 16
-// fra le inattive, "+" in un cerchio da 30; la × compare a sinistra al passaggio. Larghezze
-// uguali (le differenze misurate non seguono una regola), almeno 120 pt.
+// Tabs (MU-01, mustache-spec 1.3): ⌘T opens a tab in the folder of the active tab, ⌘W closes it, ⌃⇥
+// and ⌃⇧⇥ move to the next and the previous. The bar appears with at least two tabs, below the
+// toolbar and only above the content: a capsule rail 28 tall (border 1, radius 14), the active tab
+// as a pill 24 tall inset by 2 pt, 1 × 16 separators between inactive tabs, "+" in a 30 pt circle;
+// the × appears on the left on hover. Equal widths (the measured differences follow no rule), at
+// least 120 pt.
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -16,7 +16,7 @@ const double tabPillHeight = 24;
 const double tabMinWidth = 120;
 const double tabPlusSide = 30;
 
-/// Una scheda: dove è partita e dove si trova ora.
+/// A tab: where it started and where it is now.
 class TabInfo {
   TabInfo(this.id, this.location);
   final int id;
@@ -36,14 +36,14 @@ class NextTabIntent extends Intent {
   final int step;
 }
 
-/// Tiene le schede di una finestra: una vista per scheda, la barra quando ce n'è più d'una.
+/// Holds the tabs of a window: one view per tab, the bar when there is more than one.
 class TabsHost extends StatefulWidget {
   const TabsHost({super.key, required this.start, required this.build});
 
   final String start;
 
-  /// La finestra di una scheda: riceve la barra delle schede (null con una sola scheda), la
-  /// funzione per dire dove si trova e se è la scheda attiva (prende la tastiera).
+  /// The window of a tab: it receives the tab bar (null with a single tab), the function to report
+  /// where it is, and whether it is the active tab (it takes the keyboard).
   final Widget Function(
     TabInfo tab,
     Widget? tabBar,
@@ -70,7 +70,7 @@ class TabsHostState extends State<TabsHost> {
 
   void closeTab(int index) {
     if (tabs.length == 1) {
-      // L'ultima scheda chiude la finestra.
+      // The last tab closes the window.
       SystemNavigator.pop().ignore();
       return;
     }
@@ -124,11 +124,11 @@ class TabsHostState extends State<TabsHost> {
           children: [
             for (final tab in tabs)
               KeyedSubtree(
-                key: ValueKey('scheda ${tab.id}'),
-                // Solo la scheda attiva prende il focus della tastiera.
+                key: ValueKey('tab ${tab.id}'),
+                // Only the active tab takes the keyboard focus.
                 child: TickerMode(
                   enabled: tab == tabs[active],
-                  // Le schede dietro non prendono la tastiera.
+                  // Tabs behind do not take the keyboard.
                   child: ExcludeFocus(
                     excluding: tab != tabs[active],
                     child: widget.build(tab, tab == tabs[active] ? bar : null, (
@@ -150,7 +150,7 @@ class TabsHostState extends State<TabsHost> {
   }
 }
 
-/// I colori della barra delle schede (MU-01), chiaro e scuro.
+/// Tab bar colors (MU-01), light and dark.
 @immutable
 class TabColors {
   const TabColors({
@@ -233,16 +233,16 @@ class _TabBarState extends State<_TabBar> {
     final tabs = host.tabs;
     final colors = TabColors.of(context);
     return SizedBox(
-      key: const ValueKey('barra delle schede'),
+      key: const ValueKey('tab bar'),
       height: tabRailHeight + 8,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(0, 4, 7, 4),
         child: Row(
           children: [
-            // A sinistra della prima scheda la barra sposta la finestra (MU-08); fra
-            // l'ultima scheda e "+" no.
+            // Left of the first tab the bar moves the window (MU-08); between the last tab and "+"
+            // it does not.
             const WindowDragArea(
-              key: ValueKey('presa delle schede'),
+              key: ValueKey('tab grip'),
               child: SizedBox(width: 8, height: tabRailHeight),
             ),
             Expanded(
@@ -256,7 +256,7 @@ class _TabBarState extends State<_TabBar> {
                 padding: const EdgeInsets.all(1),
                 child: LayoutBuilder(
                   builder: (context, box) {
-                    // Larghezze uguali; sotto 120 pt il binario scorre.
+                    // Equal widths; below 120 pt the rail scrolls.
                     final width = box.maxWidth / tabs.length;
                     final each = width < tabMinWidth ? tabMinWidth : width;
                     return SingleChildScrollView(
@@ -274,7 +274,7 @@ class _TabBarState extends State<_TabBar> {
             ),
             const SizedBox(width: 3),
             GestureDetector(
-              key: const ValueKey('nuova scheda'),
+              key: const ValueKey('new tab'),
               onTap: host.newTab,
               child: Container(
                 width: tabPlusSide,
@@ -305,7 +305,7 @@ class _TabBarState extends State<_TabBar> {
     final active = i == host.active;
     final hovered = _hovered == i;
     final next = i + 1;
-    // Il separatore sparisce accanto all'attiva e a quella sotto il puntatore.
+    // The separator disappears next to the active tab and the one under the pointer.
     final separator =
         !active &&
         next < host.tabs.length &&
@@ -318,7 +318,7 @@ class _TabBarState extends State<_TabBar> {
         if (_hovered == i) _hovered = null;
       }),
       child: GestureDetector(
-        key: ValueKey('scheda ${host.tabs[i].id}'),
+        key: ValueKey('tab ${host.tabs[i].id}'),
         behavior: HitTestBehavior.opaque,
         onTap: () => host.select(i),
         child: Stack(
@@ -346,7 +346,7 @@ class _TabBarState extends State<_TabBar> {
                 ),
               ),
             ),
-            // La × a sinistra al passaggio.
+            // The × on the left on hover.
             if (hovered)
               Positioned(
                 left: 4,
@@ -354,7 +354,7 @@ class _TabBarState extends State<_TabBar> {
                 width: 18,
                 height: 18,
                 child: GestureDetector(
-                  key: ValueKey('chiudi la scheda ${host.tabs[i].id}'),
+                  key: ValueKey('close tab ${host.tabs[i].id}'),
                   onTap: () => host.closeTab(i),
                   child: Center(
                     child: Text(

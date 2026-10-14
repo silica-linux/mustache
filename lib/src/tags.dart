@@ -1,14 +1,14 @@
-// Le etichette (MU-62, mustache-spec 2.8, 10.1, "Domande › Etichette"): i 7 colori con un nome
-// ciascuno, salvate nell'attributo `user.xdg.tags` del file. Due tavolozze: satura nella barra
-// laterale (cerchio pieno di 13 pt, senza contorno), chiara nel menu (14 pt, 20 al passaggio con
-// + / ✓ / ×) e nell'elenco (10 pt, con un anello di 1 pt della stessa tinta più scura; più
-// etichette si sovrappongono a passo 5 con un anello del colore del fondo).
+// Tags (MU-62, mustache-spec 2.8, 10.1, "Questions › Tags"): the 7 colors with a name each, stored
+// in the file attribute `user.xdg.tags`. Two palettes: saturated in the sidebar (13 pt filled
+// circle, no outline), light in the menu (14 pt, 20 on hover with + / ✓ / ×) and in the list (10
+// pt, with a 1 pt ring of the same darker hue; several tags overlap at a 5 pt pitch with a ring in
+// the background color).
 
 import 'package:flutter/widgets.dart';
 
 enum TagColor { red, orange, yellow, green, blue, purple, gray }
 
-/// Le etichette predefinite: nome e colore.
+/// The default tags: name and color.
 const Map<String, TagColor> defaultTags = {
   'Rosso': TagColor.red,
   'Arancio': TagColor.orange,
@@ -19,14 +19,14 @@ const Map<String, TagColor> defaultTags = {
   'Grigio': TagColor.gray,
 };
 
-/// Il nome dell'etichetta di un colore.
+/// The tag name of a color.
 String tagName(TagColor color) =>
     defaultTags.entries.firstWhere((e) => e.value == color).key;
 
-/// Il colore di un'etichetta (null: un'etichetta senza colore).
+/// The color of a tag (null: a tag without a color).
 TagColor? tagColor(String name) => defaultTags[name];
 
-/// La tavolozza della barra laterale (sRGB, rosso/arancio/giallo misurati; gli altri stimati).
+/// The sidebar palette (sRGB, red/orange/yellow measured; the others estimated).
 Color sidebarTagColor(TagColor c, {required bool dark}) => switch (c) {
   TagColor.red => dark ? const Color(0xFFFF5E5F) : const Color(0xFFFB001A),
   TagColor.orange => dark ? const Color(0xFFFFBF0C) : const Color(0xFFF87B00),
@@ -37,7 +37,7 @@ Color sidebarTagColor(TagColor c, {required bool dark}) => switch (c) {
   TagColor.gray => const Color(0xFF8E8E93),
 };
 
-/// La tavolozza del menu e dell'elenco (sRGB, mustache-spec 10.1).
+/// The palette of the menu and the list (sRGB, mustache-spec 10.1).
 Color menuTagColor(TagColor c) => switch (c) {
   TagColor.red => const Color(0xFFFF6663),
   TagColor.orange => const Color(0xFFFFA356),
@@ -48,13 +48,13 @@ Color menuTagColor(TagColor c) => switch (c) {
   TagColor.gray => const Color(0xFFA5A5A9),
 };
 
-/// L'anello di 1 pt: la stessa tinta ~10 % più scura.
+/// The 1 pt ring: the same hue ~10% darker.
 Color tagRing(Color c) {
   final hsl = HSLColor.fromColor(c);
   return hsl.withLightness((hsl.lightness - 0.08).clamp(0.0, 1.0)).toColor();
 }
 
-/// Un pallino: pieno, con l'anello più scuro se `ring`; senza colore è un anello grigio.
+/// A dot: filled, with the darker ring if `ring`; without a color it is a gray ring.
 class TagDot extends StatelessWidget {
   const TagDot({
     super.key,
@@ -64,12 +64,12 @@ class TagDot extends StatelessWidget {
     this.outline,
   });
 
-  /// null: etichetta senza colore (anello grigio `#6e6e74`).
+  /// null: tag without a color (gray ring `#6e6e74`).
   final Color? color;
   final double side;
   final bool ring;
 
-  /// Un anello esterno nel colore del fondo (pallini sovrapposti nell'elenco).
+  /// An outer ring in the background color (overlapping dots in the list).
   final Color? outline;
 
   @override
@@ -94,8 +94,8 @@ class TagDot extends StatelessWidget {
   }
 }
 
-/// I pallini di un elemento nell'elenco o sotto un'icona: 10 pt, sovrapposti a passo 5, il
-/// primo davanti.
+/// The dots of an item in the list or under an icon: 10 pt, overlapping at a 5 pt pitch, the first
+/// in front.
 class TagDots extends StatelessWidget {
   const TagDots({super.key, required this.tags, this.background});
 
@@ -114,8 +114,8 @@ class TagDots extends StatelessWidget {
       height: 10,
       child: Stack(
         children: [
-          // Dal fondo: l'ultimo dietro, il primo davanti; quelli davanti hanno l'anello del
-          // colore del fondo, che li stacca da quello dietro.
+          // From the back: the last behind, the first in front; those in front have a ring in the
+          // background color, which separates them from the one behind.
           for (var i = colors.length - 1; i >= 0; i--)
             Positioned(
               left: 5.0 * i,
@@ -133,8 +133,8 @@ class TagDots extends StatelessWidget {
   }
 }
 
-/// La fila dei cerchi del menu contestuale: 14 pt a passo 24, il primo a 18 pt dal bordo; al
-/// passaggio un cerchio cresce a 20 pt con + (o × se l'etichetta c'è già, ✓ a riposo).
+/// The row of circles of the context menu: 14 pt at a 24 pitch, the first 18 pt from the edge; on
+/// hover a circle grows to 20 pt with + (or × if the tag is already there, ✓ at rest).
 class TagCircleRow extends StatefulWidget {
   const TagCircleRow({
     super.key,
@@ -142,7 +142,7 @@ class TagCircleRow extends StatefulWidget {
     required this.onToggle,
   });
 
-  /// I colori già assegnati a tutti gli elementi scelti.
+  /// The colors already assigned to all the chosen items.
   final Set<TagColor> assigned;
   final ValueChanged<TagColor> onToggle;
 
@@ -165,7 +165,7 @@ class _TagCircleRowState extends State<TagCircleRow> {
               if (_hovered == c) _hovered = null;
             }),
             child: GestureDetector(
-              key: ValueKey('etichetta ${tagName(c)}'),
+              key: ValueKey('tag ${tagName(c)}'),
               behavior: HitTestBehavior.opaque,
               onTap: () => widget.onToggle(c),
               child: SizedBox(

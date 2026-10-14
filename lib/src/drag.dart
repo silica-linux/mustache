@@ -1,8 +1,8 @@
-// Il trascinamento dentro la finestra (MU-40, mustache-spec 9.1): l'immagine in volo (icona 16 e
-// nome in una pillola d'accento per ogni elemento, alfa ~0,90, badge rosso del numero, "+" verde
-// quando copia), le destinazioni che si evidenziano e la cartella "a molla" che si apre dopo
-// ~715 ms di sosta. Senza modificatori sposta se la destinazione è sullo stesso disco, altrimenti
-// copia; con ⌥ copia (R9.1).
+// Dragging inside the window (MU-40, mustache-spec 9.1): the image in flight (16 pt icon and name
+// in an accent pill for each item, alpha ~0.90, red count badge, green "+" when copying), the drop
+// targets that highlight and the "spring-loaded" folder that opens after ~715 ms of hovering.
+// Without modifiers it moves if the destination is on the same disk, otherwise copies; with ⌥ it
+// copies (R9.1).
 
 import 'dart:async';
 import 'dart:io';
@@ -22,10 +22,10 @@ const Color dropLine = Color(0xFFB3D7FF);
 const double dragAlpha = 0.90;
 const double dragPill = 16;
 
-/// La sosta su una cartella prima che si apra (R9.1, cartella a molla).
+/// The hover time on a folder before it opens (R9.1, spring-loaded folder).
 const Duration springOpen = Duration(milliseconds: 715);
 
-/// Quel che si trascina: gli elementi e la cartella da cui vengono.
+/// What is being dragged: the items and the folder they come from.
 @immutable
 class DragPayload {
   const DragPayload(this.paths, this.from);
@@ -33,7 +33,7 @@ class DragPayload {
   final String from;
 }
 
-/// Il punto di montaggio di un percorso: il mount più lungo che lo contiene.
+/// The mount point of a path: the longest mount that contains it.
 String mountOf(String path, List<MountPoint> mounts) {
   var best = '/';
   for (final m in mounts) {
@@ -48,7 +48,7 @@ String mountOf(String path, List<MountPoint> mounts) {
 
 List<MountPoint>? _mounts;
 
-/// I mount del sistema, letti una volta.
+/// The system mounts, read once.
 List<MountPoint> get systemMounts {
   if (_mounts != null) return _mounts!;
   try {
@@ -60,7 +60,7 @@ List<MountPoint> get systemMounts {
   }
 }
 
-/// Copia (non sposta) se c'è ⌥ o se origine e destinazione sono su dischi diversi.
+/// Copies (does not move) with ⌥ or when source and destination are on different disks.
 bool dropCopies(
   List<String> paths,
   String destination, {
@@ -74,15 +74,15 @@ bool dropCopies(
   return paths.any((p) => mountOf(p, m) != target);
 }
 
-/// La destinazione accetta questi elementi? Non su se stessi né dentro se stessi, né nella
-/// cartella da cui vengono (lì non cambierebbe niente).
+/// Does the destination accept these items? Not onto themselves nor inside themselves, nor into the
+/// folder they come from (nothing would change there).
 bool canDrop(DragPayload payload, String destination) =>
     destination != payload.from &&
     !payload.paths.any(
       (p) => destination == p || destination.startsWith('$p/'),
     );
 
-/// L'immagine in volo: una pillola per elemento (al più 5), il badge del numero e il "+".
+/// The image in flight: one pill per item (at most 5), the count badge and the "+".
 class DragImage extends StatelessWidget {
   const DragImage({super.key, required this.paths, this.env});
 
@@ -179,15 +179,15 @@ class DragImage extends StatelessWidget {
   );
 }
 
-/// Il segno di una cartella destinazione nell'albero dei render: un rilascio da un'altra app
-/// (che non passa da `DragTarget`) la trova con [folderAt].
+/// The mark of a destination folder in the render tree: a drop from another app (which does not go
+/// through `DragTarget`) finds it with [folderAt].
 @immutable
 class FolderDropMeta {
   const FolderDropMeta(this.path);
   final String path;
 }
 
-/// La cartella destinazione più interna sotto `position` (coordinate della vista).
+/// The innermost destination folder under `position` (view coordinates).
 String? folderAt(Offset position, int viewId) {
   final result = HitTestResult();
   WidgetsBinding.instance.hitTestInView(result, position, viewId);
@@ -200,8 +200,8 @@ String? folderAt(Offset position, int viewId) {
   return null;
 }
 
-/// Una destinazione per gli elementi trascinati: `builder` riceve se è sotto il puntatore con
-/// un carico accettabile; dopo una sosta di `springOpen` chiama `onSpring` (cartella a molla).
+/// A drop target for dragged items: `builder` receives whether it is under the pointer with an
+/// acceptable payload; after hovering for `springOpen` it calls `onSpring` (spring-loaded folder).
 class FolderDropTarget extends StatefulWidget {
   const FolderDropTarget({
     super.key,

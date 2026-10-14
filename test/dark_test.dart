@@ -4,7 +4,7 @@ import 'package:mustache/src/model.dart';
 import 'package:mustache/src/preview_pane.dart';
 import 'package:mustache/src/status_bar.dart';
 
-/// I pezzi della finestra seguono l'aspetto del sistema (MU-04, MU-05).
+/// The window parts follow the system appearance (MU-04, MU-05).
 Widget dark(Widget child) => MediaQuery(
   data: const MediaQueryData(platformBrightness: Brightness.dark),
   child: Directionality(
@@ -14,7 +14,7 @@ Widget dark(Widget child) => MediaQuery(
 );
 
 void main() {
-  testWidgets('barra di stato scura: fondo, linea, testo attivo e inattivo', (
+  testWidgets('dark status bar: background, line, active and inactive text', (
     tester,
   ) async {
     for (final active in [true, false]) {
@@ -27,7 +27,7 @@ void main() {
         ),
       );
       final box = tester.widget<Container>(
-        find.byKey(const ValueKey('barra di stato')),
+        find.byKey(const ValueKey('status bar')),
       );
       final decoration = box.decoration! as BoxDecoration;
       expect(decoration.color, const Color(0xFF2F2F2F));
@@ -39,7 +39,7 @@ void main() {
     }
   });
 
-  testWidgets('pannello di anteprima scuro: fondo, nome e azioni', (
+  testWidgets('dark preview pane: background, name and actions', (
     tester,
   ) async {
     final entry = Entry(
@@ -64,7 +64,7 @@ void main() {
       ),
     );
     final pane = tester.widget<Container>(
-      find.byKey(const ValueKey('pannello di anteprima')),
+      find.byKey(const ValueKey('preview pane')),
     );
     expect(pane.color, PaneColors.dark.fill);
     expect(
@@ -72,7 +72,7 @@ void main() {
       PaneColors.dark.name,
     );
     final bar = tester.widget<Container>(
-      find.byKey(const ValueKey('azioni del pannello')),
+      find.byKey(const ValueKey('pane actions')),
     );
     expect(bar.color, const Color(0xFF272728));
   });

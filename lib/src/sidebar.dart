@@ -1,13 +1,13 @@
-// La barra laterale (MU-10, MU-11): attaccata ai bordi della finestra, dalla cima al fondo, senza
-// linea verso il contenuto. Righe a passo 32 pt; fra il centro di un'intestazione e la prima riga
-// 24 pt, fra l'ultima riga e l'intestazione dopo 40. Selezione: rettangolo di raggio 8 alto quanto
-// la riga, da 10 pt dal bordo; testo in semibold, l'icona tiene il suo colore. Nessun fondo al
-// passaggio del puntatore. Le intestazioni mostrano al passaggio un chevron 10 × 6 che comprime la
-// sezione (~190 ms, uscita morbida, da +70 ms; espansione da +120 ms): le righe perdono subito il
-// testo e scorrono in su sotto l'intestazione che le ritaglia.
+// The sidebar (MU-10, MU-11): attached to the window edges, from top to bottom, without a line
+// towards the content. Rows at a 32 pt pitch; 24 pt between the center of a heading and the first
+// row, 40 between the last row and the next heading. Selection: a radius 8 rectangle as tall as the
+// row, 10 pt from the edge; text in semibold, the icon keeps its color. No background on hover. On
+// hover the headings show a 10 × 6 chevron that collapses the section (~190 ms, ease out, from +70
+// ms; expansion from +120 ms): the rows drop their text right away and slide up under the heading,
+// which clips them.
 //
-// Larghezza (MU-11): minimo 135 pt, il contenuto non scende sotto 316; rilasciata fra 191 e 209
-// torna a 200; trascinata a meno di ~65 pt dal bordo la barra si nasconde.
+// Width (MU-11): minimum 135 pt, the content does not go below 316; released between 191 and 209 it
+// snaps back to 200; dragged closer than ~65 pt to the edge the sidebar hides.
 
 import 'dart:io';
 import 'dart:math' as math;
@@ -28,48 +28,48 @@ const double sidebarHeadingLeft = 17;
 const double sidebarSelectionInset = 10;
 const double sidebarSelectionRadius = 8;
 
-/// La prima riga ha il centro a 68 pt dalla cima della finestra (sotto i pulsanti).
+/// The first row has its center 68 pt from the top of the window (below the buttons).
 const double sidebarFirstRowCenter = 68;
 
-/// Fra il centro di un'intestazione e quello della prima riga (MU-10, windows.md).
+/// Between the center of a heading and that of the first row (MU-10, windows.md).
 const double sidebarHeadingToRow = 24;
 
-/// Fra il centro dell'ultima riga e quello dell'intestazione dopo.
+/// Between the center of the last row and that of the next heading.
 const double sidebarRowToHeading = 40;
 
-/// La larghezza delle finestre nuove (spec 2.1: 192; 200 è solo dove si aggancia).
+/// The width of new windows (spec 2.1: 192; 200 is only where it snaps).
 const double sidebarDefaultWidth = 192;
 
-/// Dove si aggancia la barra rilasciata fra 191 e 209 (MU-11).
+/// Where the sidebar snaps when released between 191 and 209 (MU-11).
 const double sidebarSnapWidth = 200;
 const double sidebarMinWidth = 135;
 const double contentMinWidth = 316;
 
-/// Rilasciata in questo intervallo la barra torna alla larghezza predefinita.
+/// Released in this range the sidebar goes back to the default width.
 const double sidebarSnapFrom = 191;
 const double sidebarSnapTo = 209;
 
-/// Trascinata con il puntatore a meno di questa distanza dal bordo sinistro, la barra si nasconde.
+/// Dragged with the pointer closer than this to the left edge, the sidebar hides.
 const double sidebarHideBelow = 65;
 
-/// Il chevron dell'intestazione: 10 × 6, a 31 pt dal bordo destro della barra.
+/// The heading chevron: 10 × 6, 31 pt from the right edge of the sidebar.
 const Size sidebarChevron = Size(10, 6);
 const double sidebarChevronRight = 31;
 
-/// Compressione ed espansione di una sezione (MU-11): ~190 ms dopo un ritardo.
+/// Collapsing and expanding a section (MU-11): ~190 ms after a delay.
 const Duration sectionCollapse = Duration(milliseconds: 255);
 const Duration sectionExpand = Duration(milliseconds: 308);
 const double sectionCollapseDelay = 70 / 255;
 const double sectionExpandDelay = 120 / 308;
 
-/// Nascondere e mostrare la barra (⌃⌘S): ~240 / ~230 ms, curva a S; il mostrare parte ~40 ms
-/// dopo il tasto.
+/// Hiding and showing the sidebar (⌃⌘S): ~240 / ~230 ms, S curve; showing starts ~40 ms after the
+/// key.
 const Duration sidebarHide = Duration(milliseconds: 240);
 const Duration sidebarShow = Duration(milliseconds: 270);
 const double sidebarShowDelay = 40 / 270;
 
-/// I colori della barra per tema e stato della finestra (mustache-spec 2.1, 2.2: valori M3/M4
-/// scelti fra le fonti; il fondo è un materiale e dipende da cosa c'è dietro).
+/// Sidebar colors by theme and window state (mustache-spec 2.1, 2.2: M3/M4 values chosen among the
+/// sources; the background is a material and depends on what is behind it).
 @immutable
 class SidebarColors {
   const SidebarColors({
@@ -90,7 +90,7 @@ class SidebarColors {
   final Color heading;
   final Color accentIcon;
 
-  /// L'icona grigia a riposo e sotto la selezione (due misure diverse, spec 2.1).
+  /// The gray icon at rest and under the selection (two different measurements, spec 2.1).
   final Color plainIcon;
   final Color plainIconSelected;
 
@@ -139,7 +139,7 @@ class SidebarColors {
       };
 }
 
-/// Una sezione della barra: un titolo (vuoto: nessuna intestazione) e i suoi luoghi.
+/// A sidebar section: a title (empty: no heading) and its places.
 @immutable
 class SidebarSection {
   const SidebarSection(this.title, this.places);
@@ -147,21 +147,21 @@ class SidebarSection {
   final List<Place> places;
 }
 
-/// La larghezza della barra dopo un trascinamento: fra il minimo e il massimo che lascia 316 pt
-/// al contenuto; 0 (nascosta) con il puntatore troppo vicino al bordo.
+/// The sidebar width after a drag: between the minimum and the maximum that leaves 316 pt to the
+/// content; 0 (hidden) with the pointer too close to the edge.
 double dragWidth(double pointerX, double windowWidth) {
   if (pointerX < sidebarHideBelow) return 0;
   final max = math.max(sidebarMinWidth, windowWidth - contentMinWidth);
   return pointerX.clamp(sidebarMinWidth, max);
 }
 
-/// La larghezza al rilascio: vicino a 200 si aggancia a 200.
+/// The width on release: close to 200 it snaps to 200.
 double releaseWidth(double width) =>
     width >= sidebarSnapFrom && width <= sidebarSnapTo
     ? sidebarSnapWidth
     : width;
 
-/// Il simbolo di silica-icons per un luogo.
+/// The silica-icons symbol for a place.
 String symbolFor(PlaceKind kind) => switch (kind) {
   PlaceKind.home => 'house-door',
   PlaceKind.desktop => 'desktop',
@@ -174,7 +174,7 @@ String symbolFor(PlaceKind kind) => switch (kind) {
   PlaceKind.tag => '',
 };
 
-/// La cartella home e il Cestino hanno l'icona grigia, gli altri luoghi quella d'accento.
+/// The home folder and the Trash have the gray icon, the other places the accent one.
 bool accentIcon(PlaceKind kind) =>
     kind != PlaceKind.home && kind != PlaceKind.trash && kind != PlaceKind.tag;
 
@@ -189,12 +189,12 @@ class Sidebar extends StatefulWidget {
     this.onDrop,
   });
 
-  /// Rilascio di elementi trascinati su un luogo (R2.8): la riga si colora d'accento.
+  /// Dropping dragged items on a place (R2.8): the row turns accent colored.
   final void Function(DragPayload payload, String destination)? onDrop;
 
   final List<SidebarSection> sections;
 
-  /// La cartella mostrata: la sua riga è selezionata.
+  /// The folder shown: its row is selected.
   final String current;
   final ValueChanged<Place> onSelect;
   final SidebarColors colors;
@@ -241,13 +241,13 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
         (controller.status == AnimationStatus.reverse || controller.value == 0);
   }
 
-  /// Quanto della sezione si vede (0–1), con il ritardo misurato prima del movimento.
+  /// How much of the section shows (0–1), with the measured delay before the movement.
   double _openness(String title) {
     final controller = _sections[title];
     if (controller == null) return 1;
     final collapsing = _collapsing(title);
     final delay = collapsing ? sectionCollapseDelay : sectionExpandDelay;
-    // Il tempo trascorso dall'inizio, in frazione della durata.
+    // The time elapsed since the start, as a fraction of the duration.
     final elapsed = collapsing ? 1 - controller.value : controller.value;
     final moved = Curves.easeOut.transform(
       ((elapsed - delay) / (1 - delay)).clamp(0.0, 1.0),
@@ -264,8 +264,8 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
       if (section.places.isEmpty) continue;
       final title = section.title;
       if (title.isNotEmpty) {
-        // L'intestazione occupa 32 pt con il testo centrato a 24 dalla cima: 40 dal centro
-        // dell'ultima riga di prima, 24 dal centro della prima riga dopo.
+        // The heading takes 32 pt with the text centered 24 from the top: 40 from the center of the
+        // last row before, 24 from the center of the first row after.
         children.add(
           first
               ? SizedBox(
@@ -313,7 +313,7 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
         if (_hovered == title) _hovered = null;
       }),
       child: SizedBox(
-        key: ValueKey('intestazione $title'),
+        key: ValueKey('header $title'),
         height: sidebarRow,
         child: Stack(
           children: [
@@ -332,7 +332,7 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
                 ),
               ),
             ),
-            // Il chevron compare al passaggio, senza ritardo né dissolvenza (MU-11).
+            // The chevron appears on hover, without delay or fade (MU-11).
             if (hovered)
               Positioned(
                 right: sidebarChevronRight - 4,
@@ -340,7 +340,7 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
                 width: sidebarChevron.width + 8,
                 height: 20,
                 child: GestureDetector(
-                  key: ValueKey('comprimi $title'),
+                  key: ValueKey('collapse $title'),
                   behavior: HitTestBehavior.opaque,
                   onTap: () => _toggle(title),
                   child: Center(
@@ -388,7 +388,7 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
   }) {
     final selected = place.path == widget.current;
     return GestureDetector(
-      key: ValueKey('luogo ${place.path}'),
+      key: ValueKey('place ${place.path}'),
       onTap: () => widget.onSelect(place),
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
@@ -400,9 +400,7 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
                 left: sidebarSelectionInset,
                 right: sidebarSelectionInset,
                 child: DecoratedBox(
-                  key: ValueKey(
-                    drop ? 'rilascio sulla barra' : 'selezione della barra',
-                  ),
+                  key: ValueKey(drop ? 'sidebar drop' : 'sidebar selection'),
                   decoration: BoxDecoration(
                     color: drop ? dragAccent : colors.selection,
                     borderRadius: BorderRadius.circular(sidebarSelectionRadius),
@@ -415,7 +413,7 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
               width: sidebarIconSize,
               height: sidebarIconSize,
               child: place.kind == PlaceKind.tag
-                  // Le etichette: un cerchio pieno di 13 pt, senza contorno.
+                  // Tags: a 13 pt filled circle, without an outline.
                   ? Center(
                       child: TagDot(
                         color: switch (tagColor(place.label)) {
@@ -468,7 +466,7 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
     );
   }
 
-  /// Il simbolo di silica-icons (`symbols/regular`); niente se le icone non ci sono.
+  /// The silica-icons symbol (`symbols/regular`); nothing if the icons are not there.
   Widget _symbol(PlaceKind kind, Color color) {
     final dir = widget.iconsDir;
     if (dir == null) return const SizedBox.shrink();
@@ -489,7 +487,7 @@ TextStyle _text(double size, Color color, {FontWeight? weight}) => TextStyle(
   color: color,
 );
 
-/// ∨ (sezione aperta) o › (compressa): cambia subito, senza rotazione (MU-11).
+/// ∨ (section open) or › (collapsed): changes right away, without rotation (MU-11).
 class _ChevronPainter extends CustomPainter {
   const _ChevronPainter(this.color, {required this.down});
   final Color color;
@@ -522,8 +520,8 @@ class _ChevronPainter extends CustomPainter {
       old.color != color || old.down != down;
 }
 
-/// Il bordo destro della barra: trascinandolo cambia la larghezza (freccia doppia, anche al
-/// minimo).
+/// The right edge of the sidebar: dragging it changes the width (double arrow, also at the
+/// minimum).
 class SidebarDivider extends StatelessWidget {
   const SidebarDivider({
     super.key,
@@ -531,7 +529,7 @@ class SidebarDivider extends StatelessWidget {
     required this.onRelease,
   });
 
-  /// La x del puntatore nella finestra.
+  /// The pointer x in the window.
   final ValueChanged<double> onDrag;
   final VoidCallback onRelease;
 

@@ -1,13 +1,13 @@
-// I dialoghi Apri e Salva (MU-95, mustache-spec 14) per il portale di Silica
-// (`silica-portal`, org.freedesktop.impl.portal.FileChooser): Mustache parte con
-// `--dialog=open|save` e gli altri argomenti, e scrive la scelta sullo stdout, un URI
-// `file://` per riga; annullare esce con codice 1 senza scrivere niente.
+// The Open and Save dialogs (MU-95, mustache-spec 14) for the Silica portal (`silica-portal`,
+// org.freedesktop.impl.portal.FileChooser): Mustache starts with `--dialog=open|save` and the other
+// arguments, and writes the choice to stdout, one `file://` URI per line; cancelling exits with
+// code 1 without writing anything.
 
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
-/// Che cosa chiede il dialogo.
+/// What the dialog asks for.
 @immutable
 class DialogOptions {
   const DialogOptions({
@@ -20,26 +20,26 @@ class DialogOptions {
     this.folder,
   });
 
-  /// Salva (true) o Apri.
+  /// Save (true) or Open.
   final bool save;
   final String title;
 
-  /// L'etichetta del pulsante (null: Apri / Salva).
+  /// The button label (null: Open / Save).
   final String? accept;
   final bool multiple;
 
-  /// Si scelgono cartelle (Apri).
+  /// Folders are chosen (Open).
   final bool directory;
 
-  /// Il nome proposto (Salva).
+  /// The proposed name (Save).
   final String name;
 
-  /// La cartella di partenza.
+  /// The starting folder.
   final String? folder;
 
   String get acceptLabel => accept ?? (save ? 'Salva' : 'Apri');
 
-  /// Dagli argomenti del processo; null se non è un dialogo.
+  /// From the process arguments; null if it is not a dialog.
   static DialogOptions? parse(List<String> args) {
     String? value(String key) {
       for (final a in args) {
@@ -63,10 +63,10 @@ class DialogOptions {
   }
 }
 
-/// L'URI `file://` di un percorso (ogni segmento codificato).
+/// The `file://` URI of a path (every segment encoded).
 String fileUri(String path) => Uri.file(path).toString();
 
-/// Scrive la scelta e chiude: codice 0 con gli URI, 1 se annullato (nessun URI).
+/// Writes the choice and exits: code 0 with the URIs, 1 if cancelled (no URI).
 void finishDialog(
   List<String> paths, {
   void Function(int code)? exitFor,

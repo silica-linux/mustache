@@ -10,7 +10,7 @@ import 'package:mustache/src/window.dart';
 import 'package:silica_ui/silica_ui.dart';
 
 void main() {
-  test('argomenti del dialogo e URI', () {
+  test('dialog arguments and URIs', () {
     final d = DialogOptions.parse([
       '--dialog=save',
       '--title=Esporta',
@@ -34,7 +34,7 @@ void main() {
     expect(fileUri('/home/io/a b.txt'), 'file:///home/io/a%20b.txt');
   });
 
-  group('nella finestra', () {
+  group('in the window', () {
     late Directory home;
     late List<List<String>> finished;
 
@@ -71,7 +71,7 @@ void main() {
       );
     }
 
-    testWidgets('Apri: doppio clic su un file lo sceglie; Esc annulla', (
+    testWidgets('Open: double click on a file chooses it; Esc cancels', (
       tester,
     ) async {
       await pump(
@@ -91,21 +91,21 @@ void main() {
       expect(finished.last, isEmpty);
     });
 
-    testWidgets('Salva: il nome nella cartella aperta; sostituire chiede', (
+    testWidgets('Save: the name in the open folder; replacing asks', (
       tester,
     ) async {
       await pump(tester, const DialogOptions(save: true, name: 'nuovo.txt'));
-      await tester.tap(find.byKey(const ValueKey('dialogo Salva')));
+      await tester.tap(find.byKey(const ValueKey('dialog Salva')));
       await tester.pump();
       expect(finished, [
         ['${home.path}/nuovo.txt'],
       ]);
       await tester.enterText(
-        find.byKey(const ValueKey('campo del nome del dialogo')),
+        find.byKey(const ValueKey('dialog name field')),
         'nota.txt',
       );
       await tester.pump();
-      await tester.tap(find.byKey(const ValueKey('dialogo Salva')));
+      await tester.tap(find.byKey(const ValueKey('dialog Salva')));
       await tester.pump();
       expect(find.byType(SilicaAlert), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('avviso Sostituisci')));
@@ -113,9 +113,11 @@ void main() {
       expect(finished.last, ['${home.path}/nota.txt']);
     });
 
-    testWidgets('cartelle: senza scelta vale quella aperta', (tester) async {
+    testWidgets('folders: without a choice the open one counts', (
+      tester,
+    ) async {
       await pump(tester, const DialogOptions(save: false, directory: true));
-      await tester.tap(find.byKey(const ValueKey('dialogo Apri')));
+      await tester.tap(find.byKey(const ValueKey('dialog Apri')));
       await tester.pump();
       expect(finished, [
         [home.path],

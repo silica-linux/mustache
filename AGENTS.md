@@ -1,28 +1,30 @@
 # AGENTS.md
 
-Mustache è un'app di Silica: valgono le regole di `silica/AGENTS.md` (clean-room, asset, mai
-crashare, tutto è un comando, parità misurata). In più, per questo repository **pubblico**:
+Mustache is a Silica app: the rules of `silica/AGENTS.md` apply (clean-room, assets, never
+crash, everything is a command, measured parity). On top of them, for this **public**
+repository:
 
 ## Clean-room
 
-- Le osservazioni del sistema di riferimento stanno nel repository privato
-  `silica-reference` (`RICHIESTE-mustache.md` per le richieste, `mustache.md` per le misure),
-  mai qui. Qui si citano solo i codici delle richieste (`MU-20`) e le metriche misurate.
-- Specifica, commenti e testi dell'interfaccia sono scritti con parole nostre. Niente nomi di
-  prodotti Apple, niente testi copiati dall'interfaccia di riferimento.
-- I numeri misurati (dimensioni, colori, tempi) si possono usare nel codice, con il codice della
-  richiesta da cui vengono.
+- Observations of the reference system live in the private repository `silica-reference`
+  (`RICHIESTE-mustache.md` for the requests, `mustache.md` for the measurements), never here.
+  Here only the request codes (`MU-20`) and the measured metrics are cited.
+- Specification, comments and interface texts are written in our own words. No Apple product
+  names, no texts copied from the reference interface.
+- Measured numbers (sizes, colors, timings) can be used in code, with the code of the request
+  they come from.
 
-## Lavoro
+## Work
 
-- Inizio sessione: `docs/plan.md` (prossimo task), poi `docs/spec.md`.
-- Prima di ogni commit: `dart format`, `flutter analyze --fatal-infos`, `flutter test`,
-  `tool/check_assets.sh`. Un task per commit (`MU.3: vista a icone`).
-- Per il lavoro visivo: screenshot dentro Ossido (`ui.screenshot`), confronto con il
-  riferimento in `silica-reference`, e la metrica in `docs/parity.md` solo se misurata.
-- Ogni azione dell'utente è un comando `mustache.*` (id, etichetta, scorciatoia), elencato in
-  `docs/spec.md`.
-- `silica_ui` si usa da un tag (`ref` in `pubspec.yaml`); un widget che serve anche ad altre app
-  va in `silica-ui`, non qui.
-- Mai crashare: un file che non si legge, una cartella sparita, un nome strano sono casi
-  normali, con un messaggio, non un'eccezione.
+- Start of a session: `docs/plan.md` (next task), then `docs/spec.md`.
+- Before every commit: `dart format`, `flutter analyze --fatal-infos`, `flutter test`,
+  `tool/check_assets.sh`. One task per commit (`MU.3: icon view`).
+- Everything in the repository is in English (code, comments, tests, docs, commits); the
+  interface texts are the exception until they move to the localization files.
+- For visual work: screenshots inside Ossido (`ui.screenshot`), comparison with the reference
+  in `silica-reference`, and the metric in `docs/parity.md` only if measured.
+- Every user action is a `mustache.*` command (id, label, shortcut), listed in `docs/spec.md`.
+- `silica_ui` is used from a tag (`ref` in `pubspec.yaml`); a widget that other apps need too
+  goes into `silica-ui`, not here.
+- Never crash: an unreadable file, a vanished folder, an odd name are normal cases, with a
+  message, not an exception.

@@ -4,8 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mustache/src/xattr.dart';
 
 void main() {
-  test('etichette e commenti negli attributi estesi', () {
-    // /tmp può essere tmpfs (xattr user non sempre supportati): si prova nella home.
+  test('tags and comments in extended attributes', () {
+    // /tmp may be tmpfs (user xattrs not always supported): the test runs in home.
     final dir = Directory(
       '${Platform.environment['HOME']}/.cache',
     ).createTempSync('mustache-xattr');
@@ -21,7 +21,7 @@ void main() {
     expect(readAttribute(file.path, commentAttribute), 'un commento');
     expect(writeTags(file.path, []), isTrue);
     expect(readTags(file.path), isEmpty);
-    // Un file che non esiste: niente, senza eccezioni.
+    // A file that does not exist: nothing, without exceptions.
     expect(readTags('${dir.path}/sparito'), isEmpty);
     expect(writeTags('${dir.path}/sparito', ['Rosso']), isFalse);
   });

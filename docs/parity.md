@@ -1,32 +1,32 @@
-# Parità misurata
+# Measured parity
 
-Come in `silica/ROADMAP.md`: solo metriche misurate (screenshot di Mustache dentro Ossido contro
-il riferimento, con lo stesso contenuto: la cartella di prova di MU-00), mai stime. Ogni riga
-cita la richiesta da cui viene il riferimento.
+As in `silica/ROADMAP.md`: only measured metrics (screenshots of Mustache inside Ossido against
+the reference, with the same content: the MU-00 test folder), never estimates. Every row cites
+the request the reference comes from.
 
-| Area | Metrica | Valore | Richiesta | Misurato il |
+| Area | Metric | Value | Request | Measured on |
 | --- | --- | --- | --- | --- |
-| Elenco | etichette dell'intestazione (Nome, Data): riquadro dell'inchiostro | uguale al pixel | MU-20 · mu20-list-light | 2026-10-14 |
-| Elenco | separatori delle colonne (x del contenuto) | uguali al pixel: 373, 554, 651, 772 | MU-20 | 2026-10-14 |
-| Icone | cartella a 64: riquadro e centro | 59 × 48 contro 58 × 46, stesso centro verticale (y 107,5) | MU-21 · mu21-sel3-light | 2026-10-14 |
-| Icone | a capo delle etichette: "barre / colorate.mov", "grande / 4000x3000.png", "configurazione.js / on", "molto lu…colonna" | uguale | MU-21 · mu21-sel3-light | 2026-10-14 |
-| Galleria | icona grande di una cartella (x, y) | 307–734 × 221–564 contro 308–733 × 221–561 | MU-23 · mu23-gallery-folder-light | 2026-10-14 |
-| Galleria | pannello: icona 50, nome, Informazioni, Creato, Tag (riquadri dell'inchiostro) | entro 1–3 pt | MU-23 · mu23-gallery-folder-light | 2026-10-14 |
-| Elenco | freccia d'ordinamento | x uguale, y +1 px in cima (64–67 contro 63–67) | MU-20 | 2026-10-14 |
-| Elenco | linea sotto l'intestazione, inizio e passo delle righe alternate | uguali al pixel (79–81; strisce 105–125, passo 40) | MU-20 | 2026-10-14 |
-| Elenco | triangolo, icona, nome della prima riga | x uguali; y del testo +1 px in cima | MU-20 | 2026-10-14 |
-| Elenco | fine delle righe alternate | uguale (x 772 del contenuto) | MU-20 | 2026-10-14 |
-| Elenco | angolo delle righe alternate (prima x con copertura, righe 0–4) | 15,13,12,11,11 contro 14,13,12,11,10 | MU-20 | 2026-10-14 |
-| Elenco | differenza media dei pixel, colonne Data e Dimensioni, 30 righe | 3,88 livelli su 255 (testi dei collegamenti diversi) | MU-20 | 2026-10-14 |
+| List | header labels (Name, Date): ink box | pixel-identical | MU-20 · mu20-list-light | 2026-10-14 |
+| List | column separators (content x) | pixel-identical: 373, 554, 651, 772 | MU-20 | 2026-10-14 |
+| Icons | folder at 64: box and center | 59 × 48 against 58 × 46, same vertical center (y 107.5) | MU-21 · mu21-sel3-light | 2026-10-14 |
+| Icons | label wrapping: "barre / colorate.mov", "grande / 4000x3000.png", "configurazione.js / on", "molto lu…colonna" | identical | MU-21 · mu21-sel3-light | 2026-10-14 |
+| Gallery | large icon of a folder (x, y) | 307–734 × 221–564 against 308–733 × 221–561 | MU-23 · mu23-gallery-folder-light | 2026-10-14 |
+| Gallery | pane: 50 pt icon, name, Information, Created, Tags (ink boxes) | within 1–3 pt | MU-23 · mu23-gallery-folder-light | 2026-10-14 |
+| List | sort arrow | same x, y +1 px at the top (64–67 against 63–67) | MU-20 | 2026-10-14 |
+| List | line below the header, start and pitch of the alternating rows | pixel-identical (79–81; stripes 105–125, pitch 40) | MU-20 | 2026-10-14 |
+| List | triangle, icon, name of the first row | same x; text y +1 px at the top | MU-20 | 2026-10-14 |
+| List | end of the alternating rows | identical (content x 772) | MU-20 | 2026-10-14 |
+| List | corner of the alternating rows (first x with coverage, rows 0–4) | 15,13,12,11,11 against 14,13,12,11,10 | MU-20 | 2026-10-14 |
+| List | mean pixel difference, Date and Size columns, 30 rows | 3.88 levels out of 255 (link texts differ) | MU-20 | 2026-10-14 |
 
-Condizioni: cartella di prova di MU-00 ricreata su Linux con gli stessi nomi, dimensioni e date,
-finestra 1000 × 700 con barra laterale 200, Ossido senza finestra (`--headless`), confronto con
-lo script di misura sulle stesse coordinate della finestra. Il tipo e le icone sono nostri.
+Conditions: the MU-00 test folder recreated on Linux with the same names, sizes and dates,
+1000 × 700 window with a 200 sidebar, Ossido without a window (`--headless`), comparison with
+the measuring script on the same window coordinates. Kinds and icons are our own.
 
-Differenza nota: il riferimento ha le barre di scorrimento sempre visibili (mouse collegato),
-che tolgono 17 pt al contenuto: 6 colonne di icone invece delle nostre 7 a 1000 × 700.
+Known difference: the reference has always-visible scroll bars (mouse connected), which take
+17 pt from the content: 6 icon columns instead of our 7 at 1000 × 700.
 
-Da misurare:
+To measure:
 
-- Barra laterale: posizioni di icone e testo, selezione, fondo chiaro e scuro (MU-10).
-- Vista a icone: griglia, etichette, selezione (MU-21).
+- Sidebar: positions of icons and text, selection, light and dark background (MU-10).
+- Icon view: grid, labels, selection (MU-21).

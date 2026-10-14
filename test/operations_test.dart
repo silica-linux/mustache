@@ -16,7 +16,7 @@ void main() {
 
   String p(String name) => '${root.path}/$name';
 
-  test('nomi: estensione, cartella nuova, copie', () {
+  test('names: extension, new folder, copies', () {
     expect(splitExtension('appunti.txt'), ('appunti', '.txt'));
     expect(splitExtension('.bashrc'), ('.bashrc', ''));
     expect(splitExtension('archivio.tar.gz'), ('archivio.tar', '.gz'));
@@ -40,7 +40,7 @@ void main() {
     expect(duplicate(p('sparito')).error, isNotNull);
   });
 
-  test('rinomina: controlli, estensione, maiuscole', () {
+  test('rename: checks, extension, case', () {
     File(p('appunti.txt')).writeAsStringSync('a');
     File(p('altro.txt')).writeAsStringSync('b');
     expect(renameEntry(p('appunti.txt'), 'altro.txt').error, contains('già'));
@@ -54,7 +54,7 @@ void main() {
     expect(File(p('Appunti.txt')).existsSync(), isTrue);
   });
 
-  test('Cestino: .trashinfo, nomi uguali, ripristino', () {
+  test('Trash: .trashinfo, same names, put back', () {
     Directory(p('Documenti')).createSync();
     File(p('Documenti/conto spese.txt')).writeAsStringSync('1');
     final first = trash.put(
@@ -70,7 +70,7 @@ void main() {
     expect(info, contains('DeletionDate=2026-10-13T09:05:07'));
     expect(trash.originOf(first.path!), p('Documenti/conto spese.txt'));
 
-    // Un secondo file con lo stesso nome non sovrascrive il primo.
+    // A second file with the same name does not overwrite the first.
     File(p('Documenti/conto spese.txt')).writeAsStringSync('2');
     final second = trash.put(p('Documenti/conto spese.txt'));
     expect(second.path, '${trash.files}/conto spese.2.txt');
@@ -81,13 +81,13 @@ void main() {
       File('${trash.info}/conto spese.txt.trashinfo').existsSync(),
       isFalse,
     );
-    // L'origine è di nuovo occupata: il secondo non si ripristina sopra il primo.
+    // The origin is taken again: the second is not restored over the first.
     expect(trash.restore(second.path!).error, contains('già'));
     expect(trash.contains(second.path!), isTrue);
     expect(trash.contains(p('Documenti')), isFalse);
   });
 
-  test('annulla e ripeti: rinomina, cartella nuova, Cestino', () {
+  test('undo and redo: rename, new folder, Trash', () {
     final undo = UndoStack();
     File(p('a.txt')).writeAsStringSync('a');
     final renamed = renameEntry(p('a.txt'), 'b.txt');
@@ -118,13 +118,13 @@ void main() {
     expect(undo.redo(trash), isNull);
     expect(File(p('b.txt')).existsSync(), isFalse);
 
-    // Un'operazione nuova cancella i ripeti.
+    // A new operation clears the redos.
     undo.undo(trash);
     undo.push(RenameOp(p('x'), p('y')));
     expect(undo.redoLabel, isNull);
   });
 
-  test('eliminazione definitiva e casi mancanti', () {
+  test('permanent deletion and missing cases', () {
     Directory(p('Pieno/dentro')).createSync(recursive: true);
     expect(deletePermanently(p('Pieno')).error, isNull);
     expect(Directory(p('Pieno')).existsSync(), isFalse);

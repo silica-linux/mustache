@@ -38,7 +38,7 @@ void main() {
           trash: Place('Cestino', '${root.path}/Cestino', PlaceKind.trash),
           now: DateTime(2026, 10, 13, 12),
           open: opened.add,
-          // La vista a elenco (la predefinita è a icone).
+          // The list view (the default is icons).
           settings: Settings(
             '${Directory.systemTemp.createTempSync('mustache-impostazioni').path}/s.json',
           )..view = 'list',
@@ -48,15 +48,13 @@ void main() {
     return opened;
   }
 
-  testWidgets('elenca la cartella, apre le cartelle e torna indietro', (
-    tester,
-  ) async {
+  testWidgets('lists the folder, opens folders and goes back', (tester) async {
     final opened = await pump(tester);
     expect(find.text('Alfa'), findsOneWidget);
     expect(find.text('nota.txt'), findsOneWidget);
     expect(find.text('.nascosto'), findsNothing);
 
-    // La barra laterale: larga 192, il testo delle righe a 47 pt.
+    // The sidebar: 192 wide, the row text at 47 pt.
     expect(tester.getTopLeft(find.text('Prova').first).dx, sidebarTextLeft);
 
     await tester.tap(find.text('Alfa'));
@@ -71,7 +69,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('nota.txt'), findsOneWidget);
 
-    // Un file si apre con l'app predefinita.
+    // A file opens with the default app.
     await tester.tap(find.text('nota.txt'));
     await tester.pump(const Duration(milliseconds: 50));
     await tester.tap(find.text('nota.txt'));
@@ -79,7 +77,7 @@ void main() {
     expect(opened, ['${root.path}/nota.txt']);
   });
 
-  testWidgets('frecce, ⌘↓ per aprire, ⌘⇧. per i file nascosti', (tester) async {
+  testWidgets('arrows, ⌘↓ to open, ⌘⇧. for hidden files', (tester) async {
     await pump(tester);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pump();
@@ -99,23 +97,21 @@ void main() {
     expect(find.text('.nascosto'), findsOneWidget);
   });
 
-  testWidgets('clic sull\'intestazione inverte l\'ordinamento', (tester) async {
+  testWidgets('a click on the header reverses the sort', (tester) async {
     await pump(tester);
     double y(String name) => tester.getTopLeft(find.text(name)).dy;
     expect(y('Alfa'), lessThan(y('nota.txt')));
-    await tester.tap(find.byKey(const ValueKey('intestazione name')));
+    await tester.tap(find.byKey(const ValueKey('header name')));
     await tester.pump();
     expect(y('Alfa'), greaterThan(y('nota.txt')));
   });
 
   testWidgets(
-    'la finestra inattiva per Ossido (flutter/lifecycle) spegne il titolo',
+    'the window inactive for Ossido (flutter/lifecycle) dims the title',
     (tester) async {
       await pump(tester);
-      Color? title() => tester
-          .widget<Text>(find.byKey(const ValueKey('titolo')))
-          .style
-          ?.color;
+      Color? title() =>
+          tester.widget<Text>(find.byKey(const ValueKey('title'))).style?.color;
       expect(title(), ToolbarColors.light.title);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
       await tester.pump();
@@ -126,9 +122,7 @@ void main() {
     },
   );
 
-  testWidgets('pressione lunga su Indietro: il menu della cronologia', (
-    tester,
-  ) async {
+  testWidgets('long press on Back: the history menu', (tester) async {
     await pump(tester);
     await tester.tap(find.text('Alfa'));
     await tester.pump(const Duration(milliseconds: 50));
@@ -137,12 +131,12 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
     await tester.pump();
     expect(find.text('dentro.txt'), findsOneWidget);
-    final back = tester.getCenter(find.byKey(const ValueKey('indietro')));
+    final back = tester.getCenter(find.byKey(const ValueKey('back')));
     final hold = await tester.startGesture(back, kind: PointerDeviceKind.mouse);
     await tester.pump(const Duration(milliseconds: 320));
     await hold.up();
     await tester.pump();
-    // Il luogo di prima, nel menu sotto il segmento; il clic lo apre.
+    // The previous place, in the menu below the segment; the click opens it.
     final name = root.path.split('/').last;
     final item = find.descendant(
       of: find.byType(MenuPanel),
@@ -158,19 +152,14 @@ void main() {
     expect(find.text('nota.txt'), findsOneWidget);
   });
 
-  testWidgets('la barra degli strumenti unificata: capsule, viste, Indietro', (
-    tester,
-  ) async {
+  testWidgets('the unified toolbar: capsules, views, Back', (tester) async {
     await pump(tester);
-    // Indietro/Avanti a 7 pt dalla barra laterale, alta 38 con 7 pt sopra; titolo 12 pt dopo.
-    final nav = tester.getRect(find.byKey(const ValueKey('indietro e avanti')));
+    // Back/Forward 7 pt from the sidebar, 38 tall with 7 pt above; the title 12 pt after.
+    final nav = tester.getRect(find.byKey(const ValueKey('back and forward')));
     expect(nav, const Rect.fromLTWH(199, 7, 75, 38));
-    expect(tester.getTopLeft(find.byKey(const ValueKey('titolo'))).dx, 286);
-    expect(
-      tester.getSize(find.byKey(const ValueKey('gruppo delle viste'))).width,
-      162,
-    );
-    expect(tester.getTopRight(find.byKey(const ValueKey('cerca'))).dx, 993);
+    expect(tester.getTopLeft(find.byKey(const ValueKey('title'))).dx, 286);
+    expect(tester.getSize(find.byKey(const ValueKey('view group'))).width, 162);
+    expect(tester.getTopRight(find.byKey(const ValueKey('search'))).dx, 993);
 
     await tester.tap(find.text('Alfa'));
     await tester.pump(const Duration(milliseconds: 50));
@@ -179,19 +168,16 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
     await tester.pump();
     expect(find.text('dentro.txt'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('indietro')));
+    await tester.tap(find.byKey(const ValueKey('back')));
     await tester.pump();
     expect(find.text('nota.txt'), findsOneWidget);
 
-    // Il gruppo delle viste: la griglia toglie l'intestazione delle colonne.
-    await tester.tap(find.byKey(const ValueKey('vista icons')));
+    // The view group: the grid removes the column header.
+    await tester.tap(find.byKey(const ValueKey('view icons')));
     await tester.pump(const Duration(milliseconds: 500));
-    expect(
-      find.byKey(const ValueKey('intestazione delle colonne')),
-      findsNothing,
-    );
+    expect(find.byKey(const ValueKey('column header')), findsNothing);
 
-    // A barra laterale nascosta la barra lascia il posto ai pulsanti della finestra.
+    // With the sidebar hidden the toolbar leaves room for the window buttons.
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
     await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
     await tester.sendKeyEvent(LogicalKeyboardKey.keyS);
@@ -199,7 +185,7 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     await tester.pumpAndSettle();
     expect(
-      tester.getTopLeft(find.byKey(const ValueKey('indietro e avanti'))).dx,
+      tester.getTopLeft(find.byKey(const ValueKey('back and forward'))).dx,
       windowButtonsEnd + 7,
     );
   });

@@ -10,15 +10,15 @@ import 'package:mustache/src/window.dart';
 import 'package:silica_ui/silica_ui.dart';
 
 void main() {
-  test('la griglia segue la tabella di spec 4.1', () {
-    // 783 pt di contenuto: 6 colonne a 64 (passo ~126,8), prima icona a 24, passo y 116.
+  test('the grid follows the table of spec 4.1', () {
+    // 783 pt of content: 6 columns at 64 (pitch ~126.8), first icon at 24, y pitch 116.
     final g64 = iconGrid(783);
     expect(g64.columns, 6);
     expect(g64.pitchX, closeTo(126.8, 0.1));
     expect(g64.pitchY, 116);
     expect(g64.top, 24);
     expect(g64.centerX(0), closeTo(74, 1.5));
-    // Gli altri lati: passo y e cima della prima icona.
+    // The other sizes: y pitch and top of the first icon.
     for (final (side, pitchY, top) in [
       (16.0, 59.0, 21.0),
       (32.0, 78.0, 22.0),
@@ -26,18 +26,18 @@ void main() {
       (128.0, 192.0, 28.0),
     ]) {
       final g = iconGrid(783, side: side);
-      expect(g.pitchY, pitchY, reason: 'lato $side');
-      expect(g.top, top, reason: 'lato $side');
+      expect(g.pitchY, pitchY, reason: 'size $side');
+      expect(g.top, top, reason: 'size $side');
     }
     expect(iconGrid(783, side: 128).columns, 4);
-    // Il testo: 10 → 8 colonne e passo y 110; 16 → 5 colonne e 122.
+    // Text: 10 → 8 columns and y pitch 110; 16 → 5 columns and 122.
     expect(iconGrid(822, text: 10).columns, 8);
     expect(iconGrid(822, text: 10).pitchY, 110);
     expect(iconGrid(783, text: 16).columns, 5);
     expect(iconGrid(783, text: 16).pitchY, 122);
   });
 
-  testWidgets('etichetta: al più due righe, la seconda troncata al centro', (
+  testWidgets('label: at most two lines, the second truncated in the middle', (
     tester,
   ) async {
     const style = TextStyle(fontSize: 12);
@@ -50,14 +50,14 @@ void main() {
     expect(lines, hasLength(2));
     expect(lines.last, contains('…'));
     expect(lines.last, endsWith('.pdf'));
-    // Una parola sola più larga della riga va a capo dentro la parola (nei test ogni
-    // carattere è largo quanto il corpo: 9 per riga).
+    // A single word wider than the line wraps inside the word (in tests every character is as wide
+    // as the text size: 9 per line).
     final word = labelLines('abcdefghijklmno', 110, style);
     expect(word, hasLength(2));
     expect(word.join(), 'abcdefghijklmno');
   });
 
-  testWidgets('etichette come mu21-sel3: a capo agli spazi, larghe ~104', (
+  testWidgets('labels as in mu21-sel3: wrapping at spaces, ~104 wide', (
     tester,
   ) async {
     const style = TextStyle(
@@ -80,7 +80,7 @@ void main() {
     expect(beta.last, endsWith('…colonna'));
   });
 
-  group('nella finestra', () {
+  group('in the window', () {
     late Directory root;
     late Directory config;
 
@@ -94,7 +94,7 @@ void main() {
       ]) {
         Directory('${root.path}/$name').createSync();
       }
-      // Abbastanza file per due righe.
+      // Enough files for two rows.
       for (var i = 0; i < 12; i++) {
         final name = 'file$i.txt';
         File('${root.path}/$name').writeAsStringSync('x');
@@ -119,7 +119,7 @@ void main() {
             places: [Place('casa', root.path, PlaceKind.home)],
             trash: Place('Cestino', '${root.path}/Cestino', PlaceKind.trash),
             settings: settings,
-            // Nessuna icona di silica-icons: le celle restano vuote, la griglia no.
+            // No silica-icons icon: the cells stay empty, the grid does not.
             iconsEnv: {'SILICA_ICONS_DIR': config.path},
           ),
         ),
@@ -130,16 +130,14 @@ void main() {
     Finder label(String name) =>
         find.descendant(of: find.byType(IconView), matching: find.text(name));
 
-    testWidgets('selezione, capsula del nome, frecce nella griglia', (
-      tester,
-    ) async {
+    testWidgets('selection, name capsule, arrows in the grid', (tester) async {
       await pump(tester);
-      // Ordine naturale, cartelle e file insieme.
+      // Natural order, folders and files together.
       expect(label('Alfa'), findsOneWidget);
       await tester.tap(label('Alfa'));
       await tester.pump();
       DecoratedBox capsule(String name) => tester.widget<DecoratedBox>(
-        find.byKey(ValueKey('nome ${root.path}/$name 0')),
+        find.byKey(ValueKey('name ${root.path}/$name 0')),
       );
       expect(
         (capsule('Alfa').decoration as BoxDecoration).color,
@@ -149,7 +147,7 @@ void main() {
         tester.widget<Text>(label('Alfa')).style?.color,
         const Color(0xFFFFFFFF),
       );
-      // → passa alla cella accanto, ↓ alla riga sotto (stessa colonna).
+      // → moves to the cell beside, ↓ to the row below (same column).
       final ordered = [
         for (final e in sortEntries(
           listDirectory(root.path, showHidden: false).entries,
@@ -174,7 +172,7 @@ void main() {
         (capsule(ordered[below]).decoration as BoxDecoration).color,
         const Color(0xFF0064E1),
       );
-      // Clic nel vuoto: nessuna selezione.
+      // Click on the background: no selection.
       await tester.tapAt(
         tester.getBottomRight(find.byType(IconView)) - const Offset(20, 20),
       );
@@ -183,11 +181,11 @@ void main() {
         (capsule(ordered[below]).decoration as BoxDecoration).color,
         isNull,
       );
-      // Lascia scadere l'attesa del doppio clic.
+      // Lets the double-click wait expire.
       await tester.pump(const Duration(milliseconds: 400));
     });
 
-    testWidgets('⌘2 passa all\'elenco, ⌘1 alle icone, e la scelta resta', (
+    testWidgets('⌘2 switches to the list, ⌘1 to icons, and the choice stays', (
       tester,
     ) async {
       final settings = await pump(tester);
@@ -207,22 +205,21 @@ void main() {
       expect(find.byType(IconView), findsOneWidget);
     });
 
-    testWidgets(
-      'l\'etichetta lunga si vede intera, coda compresa (mu21-sel3)',
-      (tester) async {
-        await pump(tester);
-        final second = find.textContaining('colonna');
-        expect(second, findsOneWidget);
-        final text = tester.widget<Text>(second);
-        expect(text.data, startsWith('molto lu'));
-        expect(text.softWrap, isFalse);
-        // La riga sta su una sola riga di testo (17 pt).
-        expect(tester.getSize(second).height, lessThan(17));
-      },
-    );
+    testWidgets('the long label shows whole, tail included (mu21-sel3)', (
+      tester,
+    ) async {
+      await pump(tester);
+      final second = find.textContaining('colonna');
+      expect(second, findsOneWidget);
+      final text = tester.widget<Text>(second);
+      expect(text.data, startsWith('molto lu'));
+      expect(text.softWrap, isFalse);
+      // The row fits on a single line of text (17 pt).
+      expect(tester.getSize(second).height, lessThan(17));
+    });
   });
 
-  test('miniature solo per le immagini', () {
+  test('thumbnails only for images', () {
     expect(hasThumbnail('foto.JPG'), isTrue);
     expect(hasThumbnail('nota.txt'), isFalse);
     expect(hasThumbnail('.png'), isFalse);

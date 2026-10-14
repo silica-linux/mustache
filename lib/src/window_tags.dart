@@ -1,18 +1,18 @@
-// Le etichette nella finestra (MU-62): lettura dagli attributi estesi, assegnazione dalla fila dei
-// cerchi del menu contestuale (R10.3), la sezione Tag della barra laterale e la vista degli
-// elementi con un'etichetta (R2.15).
+// Tags in the window (MU-62): reading from extended attributes, assignment from the row of circles
+// in the context menu (R10.3), the Tags section of the sidebar and the view of the items with a tag
+// (R2.15).
 
 part of 'window.dart';
 
-/// Quanti elementi esamina al più la ricerca di un'etichetta nella home.
+/// How many items the search for a tag in home examines at most.
 const int tagScanLimit = 50000;
 
 extension _Tags on _MustacheWindowState {
-  /// Le etichette di un elemento, lette una volta per caricamento.
+  /// The tags of an item, read once per load.
   List<String> _tagsOf(Entry entry) =>
       _tagCache[entry.path] ??= readTags(entry.path);
 
-  /// Le etichette di colore che hanno tutti gli elementi scelti.
+  /// The color tags all the chosen items have.
   Set<TagColor> _sharedColors(List<Entry> items) {
     if (items.isEmpty) return const {};
     return {
@@ -21,7 +21,7 @@ extension _Tags on _MustacheWindowState {
     };
   }
 
-  /// Un clic su un cerchio: se tutti gli elementi l'hanno la toglie, sennò la aggiunge.
+  /// A click on a circle: if all items have it, it is removed, otherwise added.
   void _toggleTag(TagColor color, [List<Entry>? targets]) {
     final name = tagName(color);
     final items = targets ?? _selection;
@@ -50,7 +50,7 @@ extension _Tags on _MustacheWindowState {
     }
   }
 
-  /// Un'etichetta scritta nel campo del pannello di anteprima.
+  /// A tag typed in the preview pane field.
   void _addTag(Entry entry, String tag) {
     final tags = [..._tagsOf(entry)];
     if (tags.contains(tag)) return;
@@ -65,8 +65,8 @@ extension _Tags on _MustacheWindowState {
     }
   }
 
-  /// Le azioni in fondo al pannello di anteprima, secondo la scelta (spec 1.6): Modifica per
-  /// immagini e PDF (con l'app predefinita), Altro (il menu dell'elemento) sempre.
+  /// The actions at the bottom of the preview pane, depending on the choice (spec 1.6): Edit for
+  /// images and PDFs (with the default app), More (the item menu) always.
   List<PaneAction> _paneActions() {
     final items = _selection;
     if (items.isEmpty) return const [];
@@ -85,7 +85,7 @@ extension _Tags on _MustacheWindowState {
     ];
   }
 
-  /// La fila dei cerchi del menu contestuale.
+  /// The row of circles of the context menu.
   MenuEntry _tagMenuRow(List<Entry> items) => MenuCustom(
     height: 25,
     width: 18 + 24.0 * TagColor.values.length + 12,
@@ -98,13 +98,13 @@ extension _Tags on _MustacheWindowState {
     ),
   );
 
-  /// I luoghi della sezione Tag.
+  /// The places of the Tags section.
   List<Place> get _tagPlaces => [
     for (final name in defaultTags.keys)
       Place(name, '$tagPathPrefix$name', PlaceKind.tag),
   ];
 
-  /// Mostra gli elementi della home con l'etichetta, man mano che la ricerca li trova.
+  /// Shows the items in home with the tag, as the search finds them.
   Future<void> _showTag(String name) async {
     final home =
         widget.places
@@ -127,7 +127,7 @@ extension _Tags on _MustacheWindowState {
       ).list(recursive: true, followLinks: false)) {
         if (search != _tagSearch || !mounted) return;
         if (++seen > tagScanLimit) break;
-        // Niente cartelle nascoste (.cache, .local…): lì le etichette non si mettono.
+        // No hidden folders (.cache, .local…): tags are not put there.
         final relative = item.path.substring(home.length);
         if (relative.contains('/.')) continue;
         if (!readTags(item.path).contains(name)) continue;
@@ -144,7 +144,7 @@ extension _Tags on _MustacheWindowState {
         );
       }
     } on FileSystemException {
-      // Una cartella illeggibile ferma la ricerca: resta quel che si è trovato.
+      // An unreadable folder stops the search: what was found stays.
     }
   }
 }

@@ -12,7 +12,7 @@ import 'package:mustache/src/xattr.dart';
 import 'package:silica_ui/silica_ui.dart';
 
 void main() {
-  test('nomi e colori', () {
+  test('names and colors', () {
     expect(tagName(TagColor.red), 'Rosso');
     expect(tagColor('Verde'), TagColor.green);
     expect(tagColor('Lavoro'), isNull);
@@ -24,12 +24,12 @@ void main() {
     );
   });
 
-  testWidgets('cerchio del menu assegna l\'etichetta; la barra la ritrova', (
+  testWidgets('the menu circle assigns the tag; the sidebar finds it again', (
     tester,
   ) async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(GlassRegistry.channel, (call) async => true);
-    // Sotto la home: /tmp può non avere gli attributi user.
+    // Under home: /tmp may not support user attributes.
     final home = Directory(
       '${Platform.environment['HOME']}/.cache',
     ).createTempSync('mustache-etichette');
@@ -59,15 +59,15 @@ void main() {
     );
     await tester.tapAt(tester.getCenter(row), buttons: kSecondaryMouseButton);
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('etichetta Verde')));
+    await tester.tap(find.byKey(const ValueKey('tag Verde')));
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 50));
     }
     expect(readTags(file.path), ['Verde']);
-    // Il pallino davanti al nome.
+    // The dot before the name.
     expect(find.byType(TagDots), findsOneWidget);
 
-    // La barra laterale: "Verde" mostra gli elementi con l'etichetta.
+    // The sidebar: "Verde" shows the items with the tag.
     await tester.tap(
       find.descendant(of: find.byType(Sidebar), matching: find.text('Verde')),
     );
@@ -78,15 +78,15 @@ void main() {
       await tester.pump();
     }
     expect(row, findsOneWidget);
-    // Il titolo è il nome dell'etichetta.
+    // The title is the tag name.
     expect(
       find.descendant(of: find.byType(Sidebar), matching: find.text('Verde')),
       findsOneWidget,
     );
-    // Di nuovo il cerchio: toglie.
+    // The circle again: removes.
     await tester.tapAt(tester.getCenter(row), buttons: kSecondaryMouseButton);
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('etichetta Verde')));
+    await tester.tap(find.byKey(const ValueKey('tag Verde')));
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 50));
     }

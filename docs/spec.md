@@ -1,122 +1,119 @@
-# Mustache · specifica
+# Mustache · specification
 
-Cosa fa Mustache e come si comporta. Dove un comportamento o un valore aspetta una misura
-del riferimento c'è il codice della richiesta (`MU-xx`); finché manca, il valore nel codice è
-provvisorio e lo dice.
+What Mustache does and how it behaves. Where a behavior or a value waits for a measurement of
+the reference there is the request code (`MU-xx`); until it arrives, the value in code is
+provisional and says so.
 
-## Principi
+## Principles
 
-- **Un gestore dei file per tutto il sistema.** Mustache è anche il browser dei dialoghi Apri e
-  Salva delle altre app (tramite `xdg-desktop-portal`, `silica/crates/portal`) e risponde a
-  `org.freedesktop.FileManager1` (le app chiedono "mostra questo file nella sua cartella").
-- **Standard freedesktop**, non formati nostri: cartelle dell'utente (xdg-user-dirs), Cestino
-  (Trash spec), tipi di file (shared-mime-info), app predefinite (`mimeapps.list`), anteprime
-  (Thumbnail Managing Standard), etichette negli attributi estesi (`user.xdg.tags`).
-- **Tutto è un comando.** Ogni azione ha un id `mustache.*`, un'etichetta e una scorciatoia;
-  menu, barra degli strumenti, tastiera e (dal canale dei comandi delle app di Silica) CLI e MCP
-  chiamano gli stessi comandi.
-- **Mai perdere un file.** Le operazioni distruttive vanno nel Cestino; ogni operazione sui file
-  si annulla con ⌘Z finché è possibile; una copia interrotta lascia la destinazione pulita.
+- **One file manager for the whole system.** Mustache is also the browser of the Open and Save
+  dialogs of the other apps (through `xdg-desktop-portal`, `silica/crates/portal`) and answers
+  `org.freedesktop.FileManager1` (apps ask "show this file in its folder").
+- **freedesktop standards**, not formats of our own: user folders (xdg-user-dirs), Trash (Trash
+  spec), file types (shared-mime-info), default apps (`mimeapps.list`), thumbnails (Thumbnail
+  Managing Standard), tags in extended attributes (`user.xdg.tags`).
+- **Everything is a command.** Every action has a `mustache.*` id, a label and a shortcut;
+  menus, toolbar, keyboard and (from the Silica app command channel) CLI and MCP call the same
+  commands.
+- **Never lose a file.** Destructive operations go to the Trash; every file operation can be
+  undone with ⌘Z while possible; an interrupted copy leaves the destination clean.
 
-## Finestra
+The interface texts are in Italian for now (quoted below as they appear); they move to the
+localization files with English as the source language.
 
-- Barra laterale a sinistra dalla cima al fondo, contenuto a destra, barra degli strumenti
-  unificata con la finestra (52 pt, `silica-window-v1`: Ossido disegna solo i pulsanti della
-  finestra sopra la barra laterale): capsula Indietro/Avanti, titolo, gruppo delle viste
-  (⌘1–⌘4), Cerca. Trascinando il vuoto della barra o la cima della barra laterale si sposta la
-  finestra (MU-02). Da fare: Raggruppa, Condividi, Etichette, Azione, il menu » e il velo sotto
-  la barra (MU-99). Opzionali: barra del percorso, barra di stato, pannello di anteprima (MU-03,
+## Window
+
+- Sidebar on the left from top to bottom, content on the right, toolbar unified with the window
+  (52 pt, `silica-window-v1`: Ossido draws only the window buttons above the sidebar): Back/
+  Forward capsule, title, view group (⌘1–⌘4), Search. Dragging the empty space of the toolbar or
+  the top of the sidebar moves the window (MU-02, MU-08). To do: Group, Share, Tags, Action, the
+  » menu and the veil under the bar (MU-99). Optional: path bar, status bar, preview pane (MU-03,
   MU-04, MU-05).
-- Schede: ⌘T apre una scheda nella cartella corrente; la barra delle schede compare con la
-  seconda scheda (MU-01).
-- Finestra nuova: ⌘N, nella cartella Inizio (impostazione); posizione a cascata (MU-01).
+- Tabs: ⌘T opens a tab in the current folder; the tab bar appears with the second tab (MU-01).
+- New window: ⌘N, in the Home folder (setting); cascading position (MU-01).
 
-## Barra laterale
+## Sidebar
 
-- Sezioni: **Preferiti** (le cartelle dell'utente, poi quelle aggiunte trascinandole),
-  **Posizioni** (cartella Inizio, dischi, volumi montati, rete, Cestino), **Etichette**.
-- Attaccata ai bordi della finestra, dalla cima al fondo, senza linea verso il contenuto. Righe a
-  passo 32 pt (prima riga con il centro a 68), testo a 47 pt, icone dei simboli di `silica-icons`
-  nel colore d'accento (grigie per la cartella Inizio e il Cestino); intestazioni a 24 pt dalla
-  prima riga e 40 dall'ultima della sezione prima (MU-10).
-- Selezione: rettangolo di raggio 8 alto quanto la riga, da 10 pt dal bordo, testo in semibold;
-  nessun fondo al passaggio. Colori per tema e per finestra attiva/inattiva (MU-10, MU-98).
-- Intestazioni: chevron al passaggio, clic per comprimere ed espandere (~190 ms, MU-11).
-- Larghezza: trascinando il bordo, fra 135 pt e quanto lascia 316 pt al contenuto; vicino a
-  200 si aggancia a 200 (le finestre nuove partono da 192); contro il bordo sinistro la barra si nasconde. Le finestre nuove
-  prendono l'ultima larghezza (`$XDG_CONFIG_HOME/mustache/settings.json`).
-- Nascondi/mostra: `mustache.sidebar.toggle`, ⌃⌘S (~240 ms, curva a S).
-- Da fare: trascinare per aggiungere, riordinare e togliere (MU-11), volumi ed espulsione
-  (MU-12), etichette (MU-62).
+- Sections: **Favorites** (the user folders, then those added by dragging), **Locations** (Home
+  folder, disks, mounted volumes, network, Trash), **Tags**.
+- Attached to the window edges, from top to bottom, without a line towards the content. Rows at
+  a 32 pt pitch (first row centered at 68), text at 47 pt, symbol icons from `silica-icons` in
+  the accent color (gray for the Home folder and the Trash); headings 24 pt from the first row
+  and 40 from the last row of the previous section (MU-10).
+- Selection: a radius 8 rectangle as tall as the row, 10 pt from the edge, text in semibold; no
+  background on hover. Colors per theme and per active/inactive window (MU-10, MU-98).
+- Headings: chevron on hover, click to collapse and expand (~190 ms, MU-11).
+- Width: dragging the edge, between 135 pt and as much as leaves 316 pt to the content; near 200
+  it snaps to 200 (new windows start at 192); against the left edge the sidebar hides. New
+  windows take the last width (`$XDG_CONFIG_HOME/mustache/settings.json`).
+- Hide/show: `mustache.sidebar.toggle`, ⌃⌘S (~240 ms, S curve).
+- To do: dragging to add, reorder and remove (MU-11), volumes and eject (MU-12), tags (MU-62).
 
-## Viste
+## Views
 
-| Vista | Comando | Scorciatoia | Stato |
+| View | Command | Shortcut | Status |
 | --- | --- | --- | --- |
-| A icone | `mustache.view.icons` | ⌘1 | griglia che riempie la larghezza, etichette su due righe troncate al centro, selezione con fondo e capsula, miniature delle immagini; la vista predefinita e l'ultima scelta restano nelle impostazioni (MU-21, MU-80) |
-| A elenco | `mustache.view.list` | ⌘2 | geometria e colori misurati: intestazione di 28 con separatori e freccia, righe da 20, colonne Nome 364, Data 181, Dimensioni 97, Tipo 121 (allargabili trascinando il separatore), righe alternate fino in fondo, selezione a blocchi, anello del clic destro; cartelle aperte nel posto con il triangolo (⌥ tutto il sottoalbero, → e ←), rientro 15; Data e Dimensioni ordinano dal più grande; nomi e tipi troncati al centro (MU-20). Da fare: animazione dell'apertura, riordino delle colonne trascinando l'intestazione, barra di scorrimento, scuro dall'embedder |
-| A colonne | `mustache.view.columns` | ⌘3 | una colonna per cartella dalla voce della barra laterale, selezione attenuata a sinistra, → e ←, scorrimento orizzontale (MU-22) |
-| Galleria | `mustache.view.gallery` | ⌘4 | anteprima grande (le icone a 0,94 del riquadro), striscia delle miniature, sempre un elemento scelto, pannello con icona 50, nome e tipo, Informazioni, campo dei tag e azioni (Modifica, Altro) (MU-23). Da fare: Ruota, Mostra altro, dimensione delle cartelle |
+| Icons | `mustache.view.icons` | ⌘1 | a grid that fills the width, labels on two lines truncated in the middle, selection with background and capsule, image thumbnails; the default view and the last chosen one stay in the settings (MU-21, MU-80) |
+| List | `mustache.view.list` | ⌘2 | measured geometry and colors: 28 pt header with separators and arrow, 20 pt rows, columns Name 364, Date 181, Size 97, Kind 121 (widened by dragging the separator), alternating rows down to the bottom, block selection, right-click ring; folders expanded in place with the triangle (⌥ the whole subtree, → and ←), 15 pt indent; Date and Size sort from the largest; names and kinds truncated in the middle; pressed header, row and triangle act on release (MU-20, MU-25). To do: expand animation, reordering columns by dragging the header, scroll bar |
+| Columns | `mustache.view.columns` | ⌘3 | one column per folder from the sidebar entry, dimmed selection on the left, → and ←, horizontal scrolling (MU-22) |
+| Gallery | `mustache.view.gallery` | ⌘4 | large preview (icons at 0.94 of the box), thumbnail strip, always a chosen item, pane with 50 pt icon, name and kind, Information, tags field and actions (Edit, More) (MU-23). To do: Rotate, Show More, folder sizes |
 
-- Ordinamento naturale (`file 2` prima di `file 10`), senza distinguere maiuscole e minuscole;
-  a parità, per nome.
-- Date: "oggi, 10:22", "ieri, 18:05", poi giorno, mese abbreviato, anno e ora (R3.1).
-- Dimensioni in unità decimali: "N byte", KB e MB interi, GB con due decimali ("2,15 GB"),
-  "Zero byte", "--" per le cartelle (R3.2). Per un collegamento, data e dimensione sue.
-- Tipo: un nome breve per famiglia, con parole nostre: Cartella, Collegamento, Testo, Markdown,
-  JSON, PDF, Immagine e Audio col formato, Archivio con l'estensione, Video, Documento (R3.3).
-- Cartelle con decine di migliaia di elementi: il contenuto compare subito e si completa mentre
-  si legge (MU-24).
+- Natural sort (`file 2` before `file 10`), case insensitive; ties by name.
+- Dates: "oggi, 10:22", "ieri, 18:05", then day, abbreviated month, year and time (R3.1).
+- Sizes in decimal units: "N byte", KB and MB as integers, GB with two decimals ("2,15 GB"),
+  "Zero byte", "--" for folders (R3.2). For a link, its own date and size.
+- Kind: a short name per family, in our own words: folder, link, text, Markdown, JSON, PDF,
+  image and audio with the format, archive with the extension, video, document (R3.3).
+- Folders with tens of thousands of items: the content appears right away and completes while
+  it is read (MU-24).
 
-## Selezione e tastiera
+## Selection and keyboard
 
-| Azione | Comando | Scorciatoia |
+| Action | Command | Shortcut |
 | --- | --- | --- |
-| Apri | `mustache.open` | ⌘↓, doppio clic |
-| Cartella superiore | `mustache.go.parent` | ⌘↑ |
-| Indietro / Avanti | `mustache.go.back` / `mustache.go.forward` | ⌘[ / ⌘] |
-| Mostra o nascondi i file nascosti | `mustache.view.hidden` | ⌘⇧. |
-| Seleziona tutto | `mustache.select.all` | ⌘A |
-| Rinomina | `mustache.rename` | Invio |
-| Vai alla cartella | `mustache.go.to` | ⌘⇧G |
-| Informazioni | `mustache.info` | ⌘I |
-| Anteprima rapida | `mustache.quicklook` | Spazio |
-| Nuova cartella | `mustache.new.folder` | ⌘⇧N |
-| Duplica | `mustache.duplicate` | ⌘D |
-| Sposta nel Cestino (dentro il Cestino: Ripristina) | `mustache.trash` | ⌘⌫ |
-| Elimina subito, con conferma | `mustache.delete` | ⌥⌘⌫ |
-| Annulla / Ripeti | `mustache.undo` / `mustache.redo` | ⌘Z / ⌘⇧Z |
-| Cerca | `mustache.search` | ⌘F |
-| Nuova finestra / scheda | `mustache.window.new` / `mustache.tab.new` | ⌘N / ⌘T |
+| Open | `mustache.open` | ⌘↓, double click |
+| Enclosing folder | `mustache.go.parent` | ⌘↑ |
+| Back / Forward | `mustache.go.back` / `mustache.go.forward` | ⌘[ / ⌘] (long press on the buttons: history menu) |
+| Show or hide hidden files | `mustache.view.hidden` | ⌘⇧. |
+| Select all | `mustache.select.all` | ⌘A |
+| Rename | `mustache.rename` | Return |
+| Go to folder | `mustache.go.to` | ⌘⇧G |
+| Get Info | `mustache.info` | ⌘I |
+| Quick Look | `mustache.quicklook` | Space |
+| New folder | `mustache.new.folder` | ⌘⇧N |
+| Duplicate | `mustache.duplicate` | ⌘D |
+| Move to Trash (inside the Trash: Put Back) | `mustache.trash` | ⌘⌫ |
+| Delete immediately, with confirmation | `mustache.delete` | ⌥⌘⌫ |
+| Undo / Redo | `mustache.undo` / `mustache.redo` | ⌘Z / ⌘⇧Z |
+| Search | `mustache.search` | ⌘F |
+| New window / tab | `mustache.window.new` / `mustache.tab.new` | ⌘N / ⌘T |
 
-La tabella completa nasce dall'inventario dei menu (MU-51). Selezione: clic, ⌘clic, ⇧clic,
-rettangolo dal vuoto, frecce e ⇧frecce, digitazione per saltare a un nome (MU-30, MU-31).
-Fatto oggi: clic, ⌘clic, ⇧clic, frecce.
+The complete table comes from the menu inventory (MU-51). Selection: click, ⌘-click, ⇧-click,
+rubber band from the background, arrows and ⇧-arrows, typing to jump to a name (MU-30, MU-31).
+Done today: click, ⌘-click, ⇧-click, arrows, rubber band.
 
-## Operazioni sui file
+## File operations
 
-- Copiare, spostare, collegare trascinando (modificatori come in MU-40), con le cartelle che si
-  aprono al passaggio durante il trascinamento.
-- Copie lunghe in background con avanzamento visibile e annullabile; conflitti con una domanda
-  (tenere entrambi, sostituire, saltare) (MU-41).
-- Nuova cartella, duplicato, archivio compresso, collegamento, Cestino e ripristino dal Cestino
-  secondo la Trash spec (MU-42).
-- Rinomina sul posto, con il nome selezionato senza l'estensione; rinomina di più file (MU-32).
+- Copying, moving, linking by dragging (modifiers as in MU-40), with folders that open while
+  hovering during the drag; dragging to and from other apps and the Dock (`SilicaDrag`).
+- Long copies in the background with visible, cancellable progress; conflicts with a question
+  (keep both, replace, skip) (MU-41).
+- New folder, duplicate, compressed archive, link, Trash and putting back from the Trash
+  according to the Trash spec (MU-42).
+- In-place rename, with the name selected without the extension; renaming several files (MU-32).
 
-## Altro
+## More
 
-- **Informazioni** (⌘I) e ispettore che segue la selezione (MU-60).
-- **Anteprima rapida** (Spazio): immagini, PDF, testi, audio e video, cartelle (MU-61).
-- **Etichette** colorate e con nome, negli attributi estesi; righe nella barra laterale (MU-62).
-- **Ricerca** nella cartella e in tutto il disco dell'utente, con criteri (MU-70).
-- **Anteprime** delle immagini, dei PDF e dei video al posto delle icone (MU-80).
-- **Scrivania**: le regole delle icone le applica il componente della shell (MU-90).
-- **Dialoghi Apri e Salva** per le altre app, con lo stesso browser (MU-95).
+- **Get Info** (⌘I) and an inspector that follows the selection (MU-60).
+- **Quick Look** (Space): images, PDFs, texts, audio and video, folders (MU-61).
+- **Tags** with color and name, in extended attributes; rows in the sidebar (MU-62).
+- **Search** in the folder and in the whole user disk, with criteria (MU-70).
+- **Thumbnails** of images, PDFs and videos in place of the icons (MU-80).
+- **Desktop**: the icon rules are applied by the shell component (MU-90).
+- **Open and Save dialogs** for the other apps, with the same browser (MU-95).
 
-## Aperto
+## Open
 
-- Menu dell'app nella barra dei menu: arriva con `silica-menu-v1` (M7 di Silica).
-- Comandi dell'app raggiungibili da CLI e MCP: serve il canale dei comandi delle app (da
-  progettare in Silica).
-- Trascinamento verso le altre app e la shell: `wl_data_device` c'è in Ossido, va verificato con
-  l'embedder.
+- The app menu in the menu bar: it comes with `silica-menu-v1` (Silica M7).
+- App commands reachable from CLI and MCP: the app command channel is needed (to be designed in
+  Silica).

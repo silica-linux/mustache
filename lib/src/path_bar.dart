@@ -1,8 +1,8 @@
-// La barra del percorso (⌥⌘P, MU-03, mustache-spec 1.4): sotto i contenuti, alta 28 pt (linea
-// di 2 px e fondo), un segmento per cartella dal disco a quella aperta (o all'elemento scelto,
-// R1.17): icona 16, testo 5 pt dopo, chevron 5 × 7. Un clic apre la cartella (R1.18). Se lo
-// spazio manca si stringono prima tutti i segmenti intermedi allo stesso modo fino a 29 pt, poi
-// il primo, poi il penultimo; l'ultimo resta intero; il testo tagliato sfuma (R1.20).
+// The path bar (⌥⌘P, MU-03, mustache-spec 1.4): below the content, 28 pt tall (2 px line and
+// background), one segment per folder from the disk to the open one (or to the chosen item, R1.17):
+// 16 pt icon, text 5 pt after it, 5 × 7 chevron. A click opens the folder (R1.18). When space runs
+// out, all the middle segments shrink equally down to 29 pt, then the first, then the second to
+// last; the last stays whole; cut text fades out (R1.20).
 
 import 'dart:math' as math;
 
@@ -17,10 +17,10 @@ const double pathBarLeft = 13;
 const double pathIcon = 16;
 const double pathTextGap = 5;
 
-/// Lo spazio di un segmento oltre al testo: icona, spazi e chevron (passo = testo + ~36).
+/// The space of a segment besides its text: icon, gaps and chevron (pitch = text + ~36).
 const double pathSegmentExtra = 36;
 
-/// Il più stretto a cui si riduce un segmento: icona e chevron.
+/// The narrowest a segment shrinks to: icon and chevron.
 const double pathSegmentMin = 29;
 
 @immutable
@@ -46,8 +46,8 @@ class PathBarColors {
         );
 }
 
-/// Le larghezze dei segmenti in `available` pt (R1.20): intermedi tutti uguali fino a 29, poi
-/// il primo, poi il penultimo; l'ultimo intero.
+/// Segment widths in `available` pt (R1.20): all middle ones equal down to 29, then the first, then
+/// the second to last; the last whole.
 List<double> pathBarWidths(List<double> natural, double available) {
   final widths = [...natural];
   double total() => widths.fold(0.0, (a, b) => a + b);
@@ -55,13 +55,13 @@ List<double> pathBarWidths(List<double> natural, double available) {
   final last = widths.length - 1;
   final middle = [for (var i = 1; i < last - 1; i++) i];
 
-  // Riduce i segmenti `idx` (al più fino al minimo) di quanto serve, il più largo per primo:
-  // il risultato è un tetto comune.
+  // Shrinks the segments `idx` (at most down to the minimum) by as much as needed, the widest
+  // first: the result is a common cap.
   void shrink(List<int> idx) {
     final excess = total() - available;
-    // Mezzo punto di tolleranza: la ricerca del tetto è approssimata.
+    // Half a point of tolerance: the search for the cap is approximate.
     if (excess <= 0.5 || idx.isEmpty) return;
-    // Il tetto t tale che sum(max(min, min(w, t))) tolga `excess`.
+    // The cap t such that sum(max(min, min(w, t))) removes `excess`.
     var lo = pathSegmentMin;
     var hi = idx.map((i) => widths[i]).fold(pathSegmentMin, math.max);
     double cut(double t) => idx
@@ -94,7 +94,7 @@ List<double> pathBarWidths(List<double> natural, double available) {
   return widths;
 }
 
-/// Le cartelle dal disco a `path` compreso.
+/// The folders from the disk to `path` included.
 List<String> pathSegments(String path) {
   final out = <String>['/'];
   var current = '';
@@ -114,12 +114,12 @@ class PathBar extends StatelessWidget {
     this.diskName = 'Disco',
   });
 
-  /// L'ultimo segmento: la cartella aperta o l'elemento scelto.
+  /// The last segment: the open folder or the chosen item.
   final String path;
   final ValueChanged<String> onOpen;
   final Map<String, String>? env;
 
-  /// Il nome del primo segmento (la radice del file system).
+  /// The name of the first segment (the root of the file system).
   final String diskName;
 
   @override
@@ -143,7 +143,7 @@ class PathBar extends StatelessWidget {
                 : pathSegmentExtra),
     ];
     return SizedBox(
-      key: const ValueKey('barra del percorso'),
+      key: const ValueKey('path bar'),
       height: pathBarHeight,
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -198,7 +198,7 @@ class PathBar extends StatelessWidget {
       style: style,
     );
     if (truncated) {
-      // Il testo tagliato sfuma a destra, senza "…".
+      // Cut text fades out on the right, without "…".
       text = ShaderMask(
         blendMode: BlendMode.dstIn,
         shaderCallback: (rect) => const LinearGradient(
@@ -209,7 +209,7 @@ class PathBar extends StatelessWidget {
       );
     }
     return GestureDetector(
-      key: ValueKey('segmento $path'),
+      key: ValueKey('segment $path'),
       behavior: HitTestBehavior.opaque,
       onTap: () => onOpen(path),
       child: Row(

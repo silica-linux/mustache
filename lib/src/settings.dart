@@ -1,6 +1,5 @@
-// Le impostazioni di Mustache che restano fra un avvio e l'altro, in
-// `$XDG_CONFIG_HOME/mustache/settings.json`. Un file che manca, non si legge o ha valori strani
-// vale come impostazioni predefinite: mai un errore.
+// The Mustache settings kept between launches, in `$XDG_CONFIG_HOME/mustache/settings.json`. A
+// missing or unreadable file, or odd values, count as the default settings: never an error.
 
 import 'dart:convert';
 import 'dart:io';
@@ -11,11 +10,11 @@ class Settings {
       final data = jsonDecode(File(path).readAsStringSync());
       if (data is Map<String, Object?>) _data.addAll(data);
     } on Object {
-      // Manca o è rovinato: si riparte dalle predefinite.
+      // Missing or damaged: start again from the defaults.
     }
   }
 
-  /// Il file nella cartella di configurazione dell'utente.
+  /// The file in the user's configuration directory.
   factory Settings.forUser(Map<String, String> env) {
     final home = env['HOME'] ?? '/';
     final config = env['XDG_CONFIG_HOME'];
@@ -26,7 +25,7 @@ class Settings {
   final String path;
   final Map<String, Object?> _data = {};
 
-  /// La larghezza della barra laterale delle finestre nuove (MU-11: l'ultima impostata).
+  /// The sidebar width of new windows (MU-11: the last one set).
   double? get sidebarWidth {
     final value = _data['sidebarWidth'];
     return value is num && value.isFinite && value > 0
@@ -39,7 +38,7 @@ class Settings {
     _save();
   }
 
-  /// L'ultima vista scelta (`icons`, `list`), per le finestre nuove.
+  /// The last chosen view (`icons`, `list`), for new windows.
   String? get view {
     final value = _data['view'];
     return value is String ? value : null;
@@ -50,7 +49,7 @@ class Settings {
     _save();
   }
 
-  /// La barra del percorso è visibile (⌥⌘P), per le finestre nuove.
+  /// The path bar is visible (⌥⌘P), for new windows.
   bool? get pathBar {
     final value = _data['pathBar'];
     return value is bool ? value : null;
@@ -61,7 +60,7 @@ class Settings {
     _save();
   }
 
-  /// Le sezioni aperte della finestra Informazioni (valgono per tutte, R11.1).
+  /// The open sections of the Get Info window (shared by all, R11.1).
   List<String>? get infoSections {
     final value = _data['infoSections'];
     return value is List
@@ -82,7 +81,7 @@ class Settings {
     return v is bool ? v : null;
   }
 
-  /// La barra di stato (⌘') e il pannello di anteprima (⇧⌘P) visibili.
+  /// The status bar (⌘') and the preview pane (⇧⌘P) visible.
   bool? get statusBar => _bool('statusBar');
   set statusBar(bool? value) {
     _data['statusBar'] = value;
@@ -95,7 +94,7 @@ class Settings {
     _save();
   }
 
-  /// Il lato delle icone della vista a icone.
+  /// The icon size of the icon view.
   double? get iconSide {
     final v = _data['iconSide'];
     return v is num && v >= 16 && v <= 512 ? v.toDouble() : null;
@@ -112,7 +111,7 @@ class Settings {
       file.parent.createSync(recursive: true);
       file.writeAsStringSync(jsonEncode(_data));
     } on FileSystemException {
-      // Senza permessi di scrittura l'impostazione vale solo per questa sessione.
+      // Without write permission the setting lasts only for this session.
     }
   }
 }

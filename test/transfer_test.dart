@@ -26,7 +26,7 @@ void main() {
   Future<ConflictChoice> never(String _) async =>
       fail('nessun conflitto atteso');
 
-  test('copia: byte, struttura, data di modifica', () async {
+  test('copy: bytes, structure, modification date', () async {
     final t = Transfer(
       kind: TransferKind.copy,
       sources: ['${src.path}/grande.bin', '${src.path}/Cartella'],
@@ -47,7 +47,7 @@ void main() {
     expect(File('${src.path}/grande.bin').existsSync(), isTrue);
   });
 
-  test('sposta sullo stesso disco: rename, l\'originale sparisce', () async {
+  test('move on the same disk: rename, the original disappears', () async {
     final t = Transfer(
       kind: TransferKind.move,
       sources: ['${src.path}/Cartella'],
@@ -56,12 +56,12 @@ void main() {
     await t.run(onConflict: never);
     expect(Directory('${dst.path}/Cartella/dentro').existsSync(), isTrue);
     expect(Directory('${src.path}/Cartella').existsSync(), isFalse);
-    // Annullare lo spostamento lo rimette.
+    // Undoing the move puts it back.
     expect(MoveOp(t.completed).undo(Trash('${root.path}/Cestino')), isNull);
     expect(Directory('${src.path}/Cartella/dentro').existsSync(), isTrue);
   });
 
-  test('conflitti: mantieni entrambi, sostituisci, interrompi', () async {
+  test('conflicts: keep both, replace, stop', () async {
     File('${dst.path}/grande.bin').writeAsStringSync('vecchio');
     var t = Transfer(
       kind: TransferKind.copy,
@@ -91,7 +91,7 @@ void main() {
   });
 
   test(
-    'annullare durante la copia non lascia nulla nella destinazione',
+    'cancelling during the copy leaves nothing in the destination',
     () async {
       final t = Transfer(
         kind: TransferKind.copy,
@@ -109,7 +109,7 @@ void main() {
   );
 
   test(
-    'incollare nella stessa cartella fa "nome copia"; dentro se stessa no',
+    'pasting into the same folder makes "name copia"; into itself it does not',
     () async {
       var t = Transfer(
         kind: TransferKind.copy,

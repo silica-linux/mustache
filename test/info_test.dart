@@ -9,7 +9,7 @@ import 'package:mustache/src/settings.dart';
 import 'package:mustache/src/window.dart';
 
 void main() {
-  test('stat, privilegi', () {
+  test('stat, privileges', () {
     final s = StatDetails.parse('1760000000 8 io staff 640');
     expect(s.created, DateTime.fromMillisecondsSinceEpoch(1760000000000));
     expect(s.onDisk, 4096);
@@ -26,7 +26,7 @@ void main() {
     );
   });
 
-  testWidgets('⌘I apre Informazioni; le sezioni si ricordano; Nome rinomina', (
+  testWidgets('⌘I opens Get Info; sections are remembered; Name renames', (
     tester,
   ) async {
     final home = Directory.systemTemp.createTempSync('mustache-info');
@@ -54,7 +54,7 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.keyI);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
     await tester.pump();
-    final panel = find.byKey(ValueKey('informazioni ${file.path}'));
+    final panel = find.byKey(ValueKey('info ${file.path}'));
     expect(panel, findsOneWidget);
     expect(tester.getSize(panel).width, infoWidth);
     expect(find.text('Info su nota.txt'), findsOneWidget);
@@ -63,17 +63,17 @@ void main() {
           find.textContaining('su disco)').evaluate().length,
       greaterThan(0),
     );
-    // Commenti chiusa: si apre e lo stato resta per le prossime.
-    await tester.tap(find.byKey(const ValueKey('sezione Commenti')));
+    // Comments closed: it opens and the state stays for the next ones.
+    await tester.tap(find.byKey(const ValueKey('section Commenti')));
     await tester.pump();
-    expect(find.byKey(const ValueKey('campo del commento')), findsOneWidget);
+    expect(find.byKey(const ValueKey('comment field')), findsOneWidget);
     expect(settings.infoSections, contains('comments'));
-    // Permessi: il gruppo passa da Sola lettura a Nessun accesso, subito su disco.
+    // Permissions: the group goes from Read only to No access, on disk right away.
     await tester.tap(
-      find.byKey(const ValueKey('sezione Condivisione e permessi')),
+      find.byKey(const ValueKey('section Condivisione e permessi')),
     );
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('privilegio 3')));
+    await tester.tap(find.byKey(const ValueKey('privilege 3')));
     await tester.pump();
     final mode = Process.runSync('stat', [
       '-c',
@@ -81,10 +81,10 @@ void main() {
       file.path,
     ]).stdout.toString().trim();
     expect(mode, '604');
-    // Nome: Invio rinomina.
+    // Name: Return renames.
     await tester.enterText(
       find.descendant(
-        of: find.byKey(const ValueKey('campo del nome')),
+        of: find.byKey(const ValueKey('name field')),
         matching: find.byType(EditableText),
       ),
       'promemoria.txt',
@@ -92,7 +92,7 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump();
     expect(File('${home.path}/promemoria.txt').existsSync(), isTrue);
-    await tester.tap(find.byKey(const ValueKey('chiudi le informazioni')));
+    await tester.tap(find.byKey(const ValueKey('close info')));
     await tester.pump();
     expect(find.byType(InfoPanel), findsNothing);
   });

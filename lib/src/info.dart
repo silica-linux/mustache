@@ -1,10 +1,10 @@
-// La finestra Informazioni (⌘I, MU-60, mustache-spec 11): larga 265, alta quanto il contenuto;
-// intestazione con l'icona da 44, il nome in semibold, la dimensione e la data; sezioni con il
-// chevron che si aprono e si chiudono (lo stato vale per tutte le finestre Info, R11.1):
-// Generali, Nome ed estensione, Commenti, Apri con, Anteprima, Condivisione e permessi. Etichette
-// allineate a destra fino a x 91, valori da x 93, corpo ~11.
+// The Get Info window (⌘I, MU-60, mustache-spec 11): 265 wide, as tall as its content; a header
+// with the 44 pt icon, the name in semibold, the size and the date; sections with a chevron that
+// open and close (the state applies to all Info windows, R11.1): General, Name & Extension,
+// Comments, Open With, Preview, Sharing & Permissions. Labels right-aligned up to x 91, values from
+// x 93, ~11 pt text.
 //
-// In Silica sta dentro la finestra di Mustache (l'embedder non ha finestre figlie).
+// In Silica it lives inside the Mustache window (the embedder has no child windows).
 
 import 'dart:io';
 
@@ -19,7 +19,7 @@ const double infoWidth = 265;
 const double infoLabelRight = 91;
 const double infoValueLeft = 93;
 
-/// Le sezioni, nell'ordine.
+/// The sections, in order.
 enum InfoSection { general, name, comments, openWith, preview, permissions }
 
 String infoSectionTitle(InfoSection s) => switch (s) {
@@ -31,8 +31,8 @@ String infoSectionTitle(InfoSection s) => switch (s) {
   InfoSection.permissions => 'Condivisione e permessi',
 };
 
-/// Quel che `stat` dice di un file e che `FileStat` non ha: creazione, spazio su disco,
-/// proprietario e gruppo.
+/// What `stat` says about a file that `FileStat` does not have: creation, disk usage, owner and
+/// group.
 class StatDetails {
   const StatDetails({
     this.created,
@@ -50,7 +50,7 @@ class StatDetails {
 
   int get onDisk => blocks * 512;
 
-  /// Dall'uscita di `stat -c '%W %b %U %G %a'`.
+  /// From the output of `stat -c '%W %b %U %G %a'`.
   static StatDetails parse(String line) {
     final parts = line.trim().split(' ');
     if (parts.length < 5) return const StatDetails();
@@ -76,7 +76,7 @@ class StatDetails {
   }
 }
 
-/// I privilegi di una classe (proprietario, gruppo, altri) come li mostra il menu.
+/// The privileges of a class (owner, group, others) as the menu shows them.
 enum Privilege { readWrite, readOnly, writeOnly, none }
 
 String privilegeLabel(Privilege p) => switch (p) {
@@ -86,7 +86,7 @@ String privilegeLabel(Privilege p) => switch (p) {
   Privilege.none => 'Nessun accesso',
 };
 
-/// I privilegi della classe `shift` (6 proprietario, 3 gruppo, 0 altri) nel modo.
+/// The privileges of the class `shift` (6 owner, 3 group, 0 others) in the mode.
 Privilege privilegeOf(int mode, int shift) {
   final r = mode >> (shift + 2) & 1 == 1;
   final w = mode >> (shift + 1) & 1 == 1;
@@ -99,7 +99,7 @@ Privilege privilegeOf(int mode, int shift) {
       : Privilege.none;
 }
 
-/// Il modo con i privilegi della classe `shift` cambiati (l'esecuzione resta com'è).
+/// The mode with the privileges of the class `shift` changed (execute stays as it is).
 int withPrivilege(int mode, int shift, Privilege p) {
   final bits = switch (p) {
     Privilege.readWrite => 6,
@@ -130,9 +130,8 @@ String _date(DateTime? t) {
   return '${t.day} ${months[t.month - 1]} ${t.year}, ${two(t.hour)}:${two(t.minute)}';
 }
 
-/// I colori della finestra (MU-60); in scuro da mu60-info-file-dark: fondo `#272728`, testo
-/// bianco, secondario `#9e9e9e`, titolo `#a1a1a1`, linee `#3c3c3d`; il collegamento in scuro
-/// è *stimato*.
+/// Window colors (MU-60); in dark from mu60-info-file-dark: background `#272728`, white text,
+/// secondary `#9e9e9e`, title `#a1a1a1`, lines `#3c3c3d`; the link in dark is *estimated*.
 @immutable
 class InfoColors {
   const InfoColors({
@@ -194,18 +193,18 @@ class InfoPanel extends StatefulWidget {
 
   final Entry entry;
 
-  /// La descrizione del tipo (come nella colonna Tipo).
+  /// The description of the type (as in the Kind column).
   final String kind;
 
-  /// Le sezioni aperte e il clic sul chevron.
+  /// The open sections and the click on the chevron.
   final Set<InfoSection> open;
   final ValueChanged<InfoSection> onToggle;
   final VoidCallback onClose;
 
-  /// Il nome scritto nel campo Nome (Invio rinomina subito, R8.8).
+  /// The name typed in the Name field (Return renames right away, R8.8).
   final ValueChanged<String> onRename;
 
-  /// L'app che apre il file (null per le cartelle).
+  /// The app that opens the file (null for folders).
   final String? openWith;
   final Map<String, String>? env;
 
@@ -227,7 +226,7 @@ class _InfoPanelState extends State<InfoPanel> {
   @override
   void initState() {
     super.initState();
-    // Il commento si salva quando si esce dal campo (R11.2).
+    // The comment is saved when leaving the field (R11.2).
     _commentFocus.addListener(() {
       if (!_commentFocus.hasFocus) {
         writeAttribute(
@@ -273,7 +272,7 @@ class _InfoPanelState extends State<InfoPanel> {
   Widget build(BuildContext context) {
     final entry = widget.entry;
     return Container(
-      key: ValueKey('informazioni ${entry.path}'),
+      key: ValueKey('info ${entry.path}'),
       width: infoWidth,
       decoration: BoxDecoration(
         color: _c.fill,
@@ -312,7 +311,7 @@ class _InfoPanelState extends State<InfoPanel> {
       children: [
         const SizedBox(width: 10),
         GestureDetector(
-          key: const ValueKey('chiudi le informazioni'),
+          key: const ValueKey('close info'),
           onTap: widget.onClose,
           child: Container(
             width: 12,
@@ -384,7 +383,7 @@ class _InfoPanelState extends State<InfoPanel> {
       children: [
         Container(height: 1, color: _c.line),
         GestureDetector(
-          key: ValueKey('sezione ${infoSectionTitle(section)}'),
+          key: ValueKey('section ${infoSectionTitle(section)}'),
           behavior: HitTestBehavior.opaque,
           onTap: () => widget.onToggle(section),
           child: SizedBox(
@@ -463,7 +462,7 @@ class _InfoPanelState extends State<InfoPanel> {
           child: _field(
             _name,
             _nameFocus,
-            key: 'campo del nome',
+            key: 'name field',
             onSubmitted: (value) {
               if (value.trim().isNotEmpty) widget.onRename(value.trim());
             },
@@ -475,7 +474,7 @@ class _InfoPanelState extends State<InfoPanel> {
           child: _field(
             _comment,
             _commentFocus,
-            key: 'campo del commento',
+            key: 'comment field',
             lines: 3,
             onSubmitted: (_) => _commentFocus.unfocus(),
           ),
@@ -511,9 +510,9 @@ class _InfoPanelState extends State<InfoPanel> {
       child: Row(
         children: [
           Expanded(child: Text(who, style: _text())),
-          // Un clic passa al privilegio successivo, applicato subito su disco (R11.4).
+          // A click moves to the next privilege, applied on disk right away (R11.4).
           GestureDetector(
-            key: ValueKey('privilegio $shift'),
+            key: ValueKey('privilege $shift'),
             onTap: () {
               const order = [
                 Privilege.readWrite,
@@ -531,7 +530,7 @@ class _InfoPanelState extends State<InfoPanel> {
                   setState(() => _stat = StatDetails.of(widget.entry.path));
                 }
               } on ProcessException {
-                // Senza chmod resta com'era.
+                // Without chmod it stays as it was.
               }
             },
             child: Text(privilegeLabel(current), style: _text(color: _c.link)),

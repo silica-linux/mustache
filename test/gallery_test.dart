@@ -9,7 +9,7 @@ import 'package:mustache/src/settings.dart';
 import 'package:mustache/src/window.dart';
 
 void main() {
-  testWidgets('⌘4: galleria con la striscia e il pannello; → avanza', (
+  testWidgets('⌘4: gallery with the strip and the pane; → advances', (
     tester,
   ) async {
     final home = Directory.systemTemp.createTempSync('mustache-galleria');
@@ -41,7 +41,7 @@ void main() {
     expect(find.byType(GalleryView), findsOneWidget);
     expect(settings.view, 'gallery');
     expect(
-      tester.getSize(find.byKey(const ValueKey('pannello di anteprima'))).width,
+      tester.getSize(find.byKey(const ValueKey('preview pane'))).width,
       250,
     );
     GalleryView gallery() =>
@@ -50,18 +50,18 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pump();
     expect(gallery().selected, '${home.path}/f2.txt');
-    // Clic su una miniatura.
-    await tester.tap(find.byKey(ValueKey('miniatura ${home.path}/f4.txt')));
+    // Click on a thumbnail.
+    await tester.tap(find.byKey(ValueKey('thumbnail ${home.path}/f4.txt')));
     await tester.pump(const Duration(milliseconds: 310));
     expect(gallery().selected, '${home.path}/f4.txt');
     final thumbs = tester.getRect(
-      find.byKey(const ValueKey('striscia delle miniature')),
+      find.byKey(const ValueKey('thumbnail strip')),
     );
     expect(thumbs.height, galleryStrip + 12);
   });
 
   testWidgets(
-    'senza scelta la galleria sceglie il primo; l\'icona riempie l\'anteprima',
+    'without a choice the gallery chooses the first; the icon fills the preview',
     (tester) async {
       final home = Directory.systemTemp.createTempSync('mustache-galleria');
       addTearDown(() => home.deleteSync(recursive: true));
@@ -83,18 +83,16 @@ void main() {
         ),
       );
       await tester.pump();
-      // Il pannello descrive la cartella scelta (mu23-gallery-folder).
+      // The pane describes the chosen folder (mu23-gallery-folder).
       expect(
         find.descendant(
-          of: find.byKey(const ValueKey('pannello di anteprima')),
+          of: find.byKey(const ValueKey('preview pane')),
           matching: find.text('Alfa'),
         ),
         findsOneWidget,
       );
-      // L'icona grande è quanto il lato corto dell'anteprima (non 256 fissi).
-      final big = tester.getSize(
-        find.byKey(const ValueKey('anteprima grande')),
-      );
+      // The large icon is as big as the short side of the preview (not a fixed 256).
+      final big = tester.getSize(find.byKey(const ValueKey('large preview')));
       expect(big.shortestSide, greaterThan(400));
     },
   );

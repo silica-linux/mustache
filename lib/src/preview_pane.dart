@@ -1,16 +1,15 @@
-// Il pannello di anteprima (⇧⌘P, MU-05, mustache-spec 1.6) e quello della galleria (MU-23,
-// spec 6): a destra dei contenuti, largo 264 (250 in galleria), fondo `#ececec` senza linea di
-// separazione.
+// The preview pane (⇧⌘P, MU-05, mustache-spec 1.6) and the gallery one (MU-23, spec 6): right of
+// the content, 264 wide (250 in the gallery), background `#ececec` without a separator line.
 //
-// In cima, nel pannello: l'anteprima 244 × 320 a 10 pt di margine, poi il nome in semibold e
-// "Tipo - dimensione". In galleria (`compact`) l'anteprima grande è già a sinistra: in cima c'è
-// l'icona di 50 con accanto nome e "Tipo - dimensione" (mu23-gallery-folder-light).
+// At the top of the pane: the 244 × 320 preview with a 10 pt margin, then the name in semibold and
+// "Kind - size". In the gallery (`compact`) the large preview is already on the left: at the top
+// there is the 50 pt icon with the name and "Kind - size" beside it (mu23-gallery-folder-light).
 //
-// Poi, uguali (misurati su mu23-gallery-folder-light, y dalla cima del pannello): Informazioni
-// in grassetto 13 (linea di base 100), righe da 23 pt con etichetta 11 `#858787` a sinistra e
-// valore 11 `#353537` a destra, linee di 1 pt `#d5d5d5` sotto (130, 153); Tag in grassetto (base
-// 180) e il campo "Aggiungi un tag…" bianco alto 33 da y 190; in fondo la barra delle azioni,
-// bianca, alta 70.
+// Then, the same in both (measured on mu23-gallery-folder-light, y from the top of the pane):
+// Information in bold 13 (baseline 100), 23 pt rows with an 11 pt `#858787` label on the left and
+// an 11 pt `#353537` value on the right, 1 pt `#d5d5d5` lines below (130, 153); Tags in bold
+// (baseline 180) and the white "Aggiungi un tag…" field 33 tall from y 190; at the bottom the
+// actions bar, white, 70 tall.
 
 import 'dart:io';
 
@@ -39,7 +38,7 @@ const Color paneValue = Color(0xFF353537);
 const Color paneHeading = Color(0xFF1A1A1A);
 const Color panePlaceholder = Color(0xFFB4B4B4);
 
-/// I colori del pannello (MU-05), chiaro e scuro (i testi in scuro dai pixel più chiari di
+/// Pane colors (MU-05), light and dark (dark texts from the lightest pixels of
 /// mu05-list-image-dark).
 @immutable
 class PaneColors {
@@ -117,15 +116,15 @@ TextStyle _text(double size, {FontWeight? weight, Color color = paneHeading}) =>
       height: 1,
     );
 
-/// Un testo con la linea di base a `baseline` dalla cima del suo riquadro.
+/// A text with its baseline at `baseline` from the top of its box.
 Widget _onBaseline(Widget text, double baseline) => Baseline(
   baseline: baseline,
   baselineType: TextBaseline.alphabetic,
   child: text,
 );
 
-/// Un'azione della barra in fondo: un simbolo e un'etichetta sotto; riceve il punto del clic
-/// (per aprire un menu lì).
+/// An action of the bottom bar: a symbol with a label below; it receives the click point (to open a
+/// menu there).
 class PaneAction {
   const PaneAction(this.label, this.symbol, this.onPressed);
   final String label;
@@ -148,28 +147,28 @@ class PreviewPane extends StatelessWidget {
     this.iconsDir,
   });
 
-  /// Largo 264, 250 in galleria.
+  /// 264 wide, 250 in the gallery.
   final double width;
 
-  /// In galleria: in cima l'icona di 50 con nome e tipo accanto, niente anteprima.
+  /// In the gallery: at the top the 50 pt icon with name and kind beside it, no preview.
   final bool compact;
 
-  /// La selezione (vuota: niente).
+  /// The selection (empty: nothing).
   final List<Entry> items;
   final String Function(Entry entry) kindOf;
   final Map<String, String>? env;
 
-  /// Per "oggi" e "ieri" nelle date (i test fissano l'ora).
+  /// For "oggi" and "ieri" in dates (tests fix the time).
   final DateTime? now;
 
-  /// Le etichette di un elemento e l'aggiunta di una dal campo.
+  /// The tags of an item and adding one from the field.
   final List<String> Function(Entry entry)? tagsOf;
   final void Function(Entry entry, String tag)? onAddTag;
 
-  /// I pulsanti della barra in fondo (vuota: niente barra).
+  /// The buttons of the bottom bar (empty: no bar).
   final List<PaneAction> actions;
 
-  /// La cartella di silica-icons, per i simboli delle azioni.
+  /// The silica-icons directory, for the action symbols.
   final String? iconsDir;
 
   @override
@@ -181,7 +180,7 @@ class PreviewPane extends StatelessWidget {
         ? _many(c)
         : _one(c, items.single);
     return Container(
-      key: const ValueKey('pannello di anteprima'),
+      key: const ValueKey('preview pane'),
       width: width,
       color: c.fill,
       child: Column(
@@ -210,7 +209,7 @@ class PreviewPane extends StatelessWidget {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Un ventaglio di icone ruotate.
+                  // A fan of rotated icons.
                   for (var i = 0; i < items.length && i < 3; i++)
                     Transform.rotate(
                       angle: (i - 1) * 0.12,
@@ -241,7 +240,7 @@ class PreviewPane extends StatelessWidget {
     );
   }
 
-  /// `stat` per percorso e data: non a ogni disegno.
+  /// `stat` per path and date: not on every paint.
   static final Map<String, StatDetails> _stats = {};
 
   String _when(DateTime? t) =>
@@ -271,7 +270,8 @@ class PreviewPane extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (compact)
-            // Icona 50 a (8, 18); nome con la base a 39 e tipo con la base a 58, da x 69.
+            // 50 pt icon at (8, 18); name with baseline at 39 and kind with baseline at 58, from x
+            // 69.
             SizedBox(
               height: 76,
               child: Stack(
@@ -319,7 +319,7 @@ class PreviewPane extends StatelessWidget {
             ),
             const SizedBox(height: 4),
           ],
-          // Informazioni: la base a 100 in galleria (24 sotto la cima di questa sezione).
+          // Information: baseline at 100 in the gallery (24 below the top of this section).
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Column(
@@ -364,7 +364,7 @@ class PreviewPane extends StatelessWidget {
                     ),
                   ),
                   _TagField(
-                    key: ValueKey('campo dei tag ${entry.path}'),
+                    key: ValueKey('tags field ${entry.path}'),
                     tags: tagsOf!(entry),
                     onAdd: (tag) => onAddTag?.call(entry, tag),
                   ),
@@ -377,8 +377,8 @@ class PreviewPane extends StatelessWidget {
     );
   }
 
-  /// Una riga da 23: etichetta a sinistra, valore a destra, base a 15; una linea di 1 pt la
-  /// separa dalla riga dopo (sotto l'ultima niente, mu23-gallery-folder).
+  /// A 23 pt row: label on the left, value on the right, baseline at 15; a 1 pt line separates it
+  /// from the next row (none below the last, mu23-gallery-folder).
   Widget _row(PaneColors c, String label, String value, {bool last = false}) =>
       Container(
         height: paneRow,
@@ -392,7 +392,7 @@ class PreviewPane extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: _onBaseline(
-                // Larga quanto la riga: il valore sta sul bordo destro.
+                // As wide as the row: the value sits on the right edge.
                 SizedBox(
                   width: double.infinity,
                   child: Text(
@@ -411,7 +411,7 @@ class PreviewPane extends StatelessWidget {
       );
 
   Widget _actionsBar(PaneColors c) => Container(
-    key: const ValueKey('azioni del pannello'),
+    key: const ValueKey('pane actions'),
     height: paneActionsHeight,
     color: c.actions,
     child: Row(
@@ -419,7 +419,7 @@ class PreviewPane extends StatelessWidget {
       children: [
         for (final action in actions)
           GestureDetector(
-            key: ValueKey('azione ${action.label}'),
+            key: ValueKey('action ${action.label}'),
             behavior: HitTestBehavior.opaque,
             onTapUp: (d) => action.onPressed(d.globalPosition),
             child: SizedBox(
@@ -501,7 +501,7 @@ class PreviewPane extends StatelessWidget {
   }
 }
 
-/// Il campo dei tag: bianco, alto 33; mostra le etichette dell'elemento, Invio ne aggiunge una.
+/// The tags field: white, 33 tall; shows the item's tags, Return adds one.
 class _TagField extends StatefulWidget {
   const _TagField({super.key, required this.tags, required this.onAdd});
   final List<String> tags;
@@ -547,7 +547,7 @@ class _TagFieldState extends State<_TagField> {
       child: Container(
         height: paneTagField,
         color: c.field,
-        // Il testo in alto a sinistra (mu23-gallery-folder: base a ~12 dalla cima del campo).
+        // Text at the top left (mu23-gallery-folder: baseline ~12 from the top of the field).
         padding: const EdgeInsets.fromLTRB(4, 3, 4, 0),
         alignment: Alignment.topLeft,
         child: Stack(

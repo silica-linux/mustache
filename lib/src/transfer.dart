@@ -1,8 +1,7 @@
-// Copie e spostamenti in background (MU-41, MU-43, mustache-spec 9.2): a pezzi, con
-// l'avanzamento in byte, l'annullamento che non lascia niente nella destinazione (R9.6) e i
-// conflitti di nome chiesti a chi guarda (Mantieni entrambi → "nome 2.ext", Sostituisci,
-// Interrompi; R9.7). Lo spostamento sullo stesso disco è un rename; fra dischi diversi è una copia
-// seguita dalla cancellazione. La data di modifica resta quella dell'originale (R9.8).
+// Background copies and moves (MU-41, MU-43, mustache-spec 9.2): in chunks, with progress in bytes,
+// cancellation that leaves nothing in the destination (R9.6) and name conflicts asked to the user
+// (Keep Both → "name 2.ext", Replace, Stop; R9.7). A move on the same disk is a rename; across
+// disks it is a copy followed by deletion. The modification date stays the original's (R9.8).
 
 import 'dart:async';
 import 'dart:io';
@@ -16,10 +15,10 @@ enum TransferKind { copy, move }
 
 enum TransferState { running, done, cancelled, failed }
 
-/// Che fare quando nella destinazione c'è già un elemento con lo stesso nome.
+/// What to do when an item with the same name is already in the destination.
 enum ConflictChoice { keepBoth, replace, stop }
 
-/// Il risultato di un elemento: da dove a dove.
+/// The result of an item: from where to where.
 typedef TransferMove = (String from, String to);
 
 class Transfer extends ChangeNotifier {
@@ -34,7 +33,7 @@ class Transfer extends ChangeNotifier {
   final List<String> sources;
   final String destination;
 
-  /// Byte per pezzo letto e scritto.
+  /// Bytes per chunk read and written.
   final int chunk;
 
   TransferState state = TransferState.running;
@@ -42,11 +41,11 @@ class Transfer extends ChangeNotifier {
   int totalBytes = 0;
   int doneBytes = 0;
 
-  /// L'elemento in corso (nome) e i percorsi creati nella destinazione, finiti o no.
+  /// The current item (name) and the paths created in the destination, finished or not.
   String? currentName;
   final List<String> targets = [];
 
-  /// Gli elementi completati.
+  /// The completed items.
   final List<TransferMove> completed = [];
 
   bool _cancelled = false;
@@ -55,13 +54,13 @@ class Transfer extends ChangeNotifier {
   double get fraction =>
       totalBytes == 0 ? 0 : (doneBytes / totalBytes).clamp(0, 1);
 
-  /// Il percorso è un elemento (o dentro un elemento) ancora in copia?
+  /// Is the path an item (or inside an item) still being copied?
   bool isPending(String path) =>
       state == TransferState.running &&
       targets.any((t) => path == t || path.startsWith('$t/')) &&
       !completed.any((c) => c.$2 == path);
 
-  /// Annulla: si ferma al prossimo pezzo e toglie dalla destinazione quel che ha creato.
+  /// Cancel: stops at the next chunk and removes from the destination what it created.
   void cancel() => _cancelled = true;
 
   Future<void> run({
@@ -74,7 +73,7 @@ class Transfer extends ChangeNotifier {
         if (_cancelled) break;
         final name = displayName(source);
         var target = '$destination/$name';
-        // Incollare nella stessa cartella: la copia prende "nome copia".
+        // Pasting into the same folder: the copy gets "name copia".
         if (target == source) {
           if (kind == TransferKind.move) continue;
           target =
@@ -119,8 +118,7 @@ class Transfer extends ChangeNotifier {
         notifyListeners();
       }
       if (_cancelled) {
-        // Nella destinazione non resta nulla della copia (R9.6); quel che è stato spostato
-        // per intero resta spostato.
+        // Nothing of the copy stays in the destination (R9.6); what was moved entirely stays moved.
         for (final target in targets) {
           if (kind == TransferKind.copy ||
               !completed.any((c) => c.$2 == target)) {
@@ -133,7 +131,7 @@ class Transfer extends ChangeNotifier {
         state = TransferState.done;
       }
     } on FileSystemException catch (e) {
-      // Il pezzo a metà non resta.
+      // A half-written chunk does not stay.
       final last = targets.lastOrNull;
       if (last != null && !completed.any((c) => c.$2 == last)) {
         deletePermanently(last);
@@ -157,7 +155,7 @@ class Transfer extends ChangeNotifier {
       }
       return true;
     } on FileSystemException {
-      // Un altro disco (EXDEV) o un permesso: si copia.
+      // Another disk (EXDEV) or a permission: copy.
       return false;
     }
   }
@@ -197,11 +195,11 @@ class Transfer extends ChangeNotifier {
     if (_cancelled) return;
     _keepTimes(from, to);
     try {
-      // Gli stessi permessi (l'eseguibile resta eseguibile).
+      // The same permissions (an executable stays executable).
       final mode = FileStat.statSync(from).mode & 0x1ff;
       Process.runSync('chmod', [mode.toRadixString(8), to]);
     } on ProcessException {
-      // Senza chmod restano i permessi predefiniti.
+      // Without chmod the default permissions stay.
     }
   }
 
@@ -211,7 +209,7 @@ class Transfer extends ChangeNotifier {
       if (FileSystemEntity.isFileSync(to))
         File(to).setLastModifiedSync(modified);
     } on FileSystemException {
-      // La data non è essenziale.
+      // The date is not essential.
     }
   }
 
@@ -229,13 +227,13 @@ class Transfer extends ChangeNotifier {
       }
       if (type == FileSystemEntityType.file) return File(path).lengthSync();
     } on FileSystemException {
-      // Illeggibile: conta zero, l'errore arriverà copiando.
+      // Unreadable: counts as zero, the error will come while copying.
     }
     return 0;
   }
 }
 
-/// Elementi spostati: annullare li rimette dov'erano.
+/// Moved items: undo puts them back where they were.
 class MoveOp extends Undoable {
   MoveOp(this.moves);
   final List<TransferMove> moves;
@@ -284,7 +282,7 @@ class MoveOp extends Undoable {
   }
 }
 
-/// Gli appunti dei file di questo processo (⌘C): i percorsi copiati.
+/// The file clipboard of this process (⌘C): the copied paths.
 class FileClipboard {
   FileClipboard._();
   static List<String> paths = const [];

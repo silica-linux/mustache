@@ -1,7 +1,7 @@
-// Le viste delle copie (mustache-spec 9.2): la torta dell'avanzamento accanto al nome
-// nell'elenco, la finestra di avanzamento (404 × 88: icona 34, "Copio …", barra 309 × 20 in
-// accento, × a destra, riga "fatto di totale") e la finestra del conflitto (404 × 106, tre
-// pulsanti piccoli alti 22: Mantieni entrambi 117, Interrompi 88, Sostituisci 88).
+// Copy views (mustache-spec 9.2): the progress pie next to the name in the list, the progress
+// window (404 × 88: 34 pt icon, "Copio …", 309 × 20 accent bar, × on the right, "done of total"
+// line) and the conflict window (404 × 106, three small buttons 22 tall: Keep Both 117, Stop 88,
+// Replace 88).
 
 import 'dart:math' as math;
 
@@ -16,10 +16,10 @@ const Size conflictWindowSize = Size(404, 106);
 const double pieSide = 14;
 const Color transferAccent = Color(0xFF0064E1);
 
-/// Dopo quanto la finestra di avanzamento si apre da sola (R9.4, ~2–3 s, stimato).
+/// After how long the progress window opens by itself (R9.4, ~2–3 s, estimated).
 const Duration progressWindowDelay = Duration(milliseconds: 2500);
 
-/// La torta: contorno grigio di 1 pt che si riempie in senso orario.
+/// The pie: a 1 pt gray outline that fills clockwise.
 class ProgressPie extends StatelessWidget {
   const ProgressPie(this.fraction, {super.key});
   final double fraction;
@@ -91,7 +91,7 @@ BoxDecoration _panel() => BoxDecoration(
   ],
 );
 
-/// La finestra di avanzamento di una copia.
+/// The progress window of a copy.
 class ProgressWindow extends StatelessWidget {
   const ProgressWindow({super.key, required this.transfer, this.icon});
 
@@ -103,7 +103,7 @@ class ProgressWindow extends StatelessWidget {
     final verb = transfer.kind == TransferKind.copy ? 'Copio' : 'Sposto';
     final name = transfer.currentName ?? '';
     return Container(
-      key: const ValueKey('finestra di avanzamento'),
+      key: const ValueKey('progress window'),
       width: progressWindowSize.width,
       height: progressWindowSize.height,
       decoration: _panel(),
@@ -133,7 +133,7 @@ class ProgressWindow extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     GestureDetector(
-                      key: const ValueKey('annulla la copia'),
+                      key: const ValueKey('cancel copy'),
                       onTap: transfer.cancel,
                       child: SizedBox(
                         width: 15,
@@ -208,7 +208,7 @@ class _CrossPainter extends CustomPainter {
   bool shouldRepaint(_CrossPainter old) => false;
 }
 
-/// La finestra del conflitto di nome.
+/// The name conflict window.
 class ConflictWindow extends StatelessWidget {
   const ConflictWindow({
     super.key,
@@ -231,7 +231,7 @@ class ConflictWindow extends StatelessWidget {
       ConflictChoice choice, {
       bool primary = false,
     }) => GestureDetector(
-      key: ValueKey('conflitto $label'),
+      key: ValueKey('conflict $label'),
       onTap: () => onChoice(choice),
       child: Container(
         width: width,
@@ -251,7 +251,7 @@ class ConflictWindow extends StatelessWidget {
       ),
     );
     return Container(
-      key: const ValueKey('finestra del conflitto'),
+      key: const ValueKey('conflict window'),
       width: conflictWindowSize.width,
       height: conflictWindowSize.height,
       decoration: _panel(),

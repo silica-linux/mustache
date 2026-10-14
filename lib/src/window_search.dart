@@ -1,15 +1,15 @@
-// La ricerca (⌘F, MU-70, mustache-spec 13): il campo nella barra, la barra dell'ambito sotto
-// ("Cerca in:" Questo computer / la cartella), i risultati nell'elenco con il titolo "Ricerca in
-// …". Senza gettoni si cerca nel nome e nel contenuto (R13.2): il nome subito, il contenuto solo
-// dei file di testo piccoli. Esc svuota il campo ma resta in ricerca (R13.4); Indietro esce.
+// Search (⌘F, MU-70, mustache-spec 13): the field in the toolbar, the scope bar below ("Cerca in:"
+// This computer / the folder), the results in the list titled "Ricerca in …". Without tokens it
+// searches name and content (R13.2): the name right away, the content only of small text files. Esc
+// clears the field but stays in search (R13.4); Back leaves.
 
 part of 'window.dart';
 
-/// Quanti elementi esamina al più una ricerca, e il più grande file letto per il contenuto.
+/// How many items a search examines at most, and the largest file read for its content.
 const int searchScanLimit = 200000;
 const int searchContentLimit = 256 * 1024;
 
-/// Dopo l'ultima lettera, quanto si aspetta prima di cercare (i primi risultati a ~600 ms).
+/// After the last letter, how long to wait before searching (first results at ~600 ms).
 const Duration searchDebounce = Duration(milliseconds: 250);
 
 enum SearchScope { computer, folder }
@@ -21,7 +21,7 @@ extension _Search on _MustacheWindowState {
     _searchFocus.requestFocus();
   });
 
-  /// Esc nel campo: si svuota, ma la finestra resta in ricerca (R13.4).
+  /// Esc in the field: it is cleared, but the window stays in search (R13.4).
   void _clearSearchField() {
     _searchQuery.clear();
     _searchToken++;
@@ -82,7 +82,7 @@ extension _Search on _MustacheWindowState {
           }
           continue;
         }
-        // Il contenuto: solo testo piccolo, letto per intero.
+        // Content: only small text files, read whole.
         if (item is File && isTextPreview(name)) {
           try {
             if (item.lengthSync() > searchContentLimit) continue;
@@ -100,7 +100,7 @@ extension _Search on _MustacheWindowState {
         }
       }
     } on FileSystemException {
-      // Una cartella illeggibile ferma il giro: resta quel che si è trovato.
+      // An unreadable folder stops the pass: what was found stays.
     }
     if (token == _searchToken && mounted) show();
   }
@@ -108,10 +108,10 @@ extension _Search on _MustacheWindowState {
   bool get _dark =>
       MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark;
 
-  /// Il campo della ricerca nella barra: 242 × 38 con l'anello di focus (spec 13); in scuro
-  /// fondo `#4b4b4b` e anello `#3a6996` (mu70-empty-dark).
+  /// The search field in the toolbar: 242 × 38 with the focus ring (spec 13); in dark background
+  /// `#4b4b4b` and ring `#3a6996` (mu70-empty-dark).
   Widget _searchField() => Container(
-    key: const ValueKey('campo di ricerca'),
+    key: const ValueKey('search field'),
     width: 242,
     height: toolbarCapsuleHeight,
     padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -148,16 +148,16 @@ extension _Search on _MustacheWindowState {
     ),
   );
 
-  /// La barra dell'ambito: 32 pt, "Cerca in:" e le due capsule alte 22; la scelta su un fondo
-  /// grigio con il testo scuro, l'altra in grigio (mu70-empty: chiaro `#222222` / `#808080`,
-  /// scuro `#e3e3e3` / `#a1a1a1` su `#494949`; la barra `#2f2f2f`).
+  /// The scope bar: 32 pt, "Cerca in:" and the two 22 pt capsules; the chosen one on a gray
+  /// background with dark text, the other in gray (mu70-empty: light `#222222` / `#808080`, dark
+  /// `#e3e3e3` / `#a1a1a1` on `#494949`; the bar `#2f2f2f`).
   Widget _scopeBar() {
     final dark = _dark;
     final minor = dark ? const Color(0xFFA1A1A1) : secondaryText;
     Widget capsule(String label, SearchScope scope) {
       final chosen = _searchScope == scope;
       return GestureDetector(
-        key: ValueKey('ambito $label'),
+        key: ValueKey('scope $label'),
         onTap: () {
           _update(() => _searchScope = scope);
           _runSearch();
@@ -189,7 +189,7 @@ extension _Search on _MustacheWindowState {
     }
 
     return Container(
-      key: const ValueKey('barra dell\'ambito'),
+      key: const ValueKey('scope bar'),
       height: 32,
       color: _listColors.header,
       child: Row(

@@ -72,7 +72,7 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('file: Apri con mostra la predefinita in cima, poi le altre', (
+  testWidgets('file: Open With shows the default on top, then the others', (
     tester,
   ) async {
     await pump(tester);
@@ -80,10 +80,10 @@ void main() {
     await rightClick(tester, at);
     expect(find.text('Apri'), findsOneWidget);
     expect(find.text('Sposta nel Cestino'), findsOneWidget);
-    // Il menu si apre con l'angolo sul puntatore (+1, −6).
+    // The menu opens with its corner at the pointer (+1, −6).
     final panel = tester.getRect(find.byType(MenuPanel));
     expect(panel.topLeft, at + const Offset(1, -6));
-    // Il sottomenu "Apri con".
+    // The "Apri con" submenu.
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
     await mouse.addPointer(location: at);
     await mouse.moveTo(tester.getCenter(find.text('Apri con')));
@@ -95,7 +95,7 @@ void main() {
     expect(tester.getTopLeft(find.text('Appunti')).dy, greaterThan(defaultTop));
   });
 
-  testWidgets('il clic destro su una riga non scelta non la sceglie: anello', (
+  testWidgets('a right click on an unselected row does not select it: ring', (
     tester,
   ) async {
     await pump(tester);
@@ -107,7 +107,7 @@ void main() {
     expect(rows.where((r) => r.ring), hasLength(1));
   });
 
-  testWidgets('Sposta nel Cestino dal menu, che poi si chiude', (tester) async {
+  testWidgets('Move to Trash from the menu, which then closes', (tester) async {
     await pump(tester);
     await rightClick(tester, tester.getCenter(find.text('nota.txt')));
     await tester.tap(find.text('Sposta nel Cestino'));
@@ -119,7 +119,7 @@ void main() {
   });
 
   testWidgets(
-    'la colonna Tipo è la famiglia del tipo di shared-mime-info (R3.3)',
+    'the Kind column is the family of the shared-mime-info type (R3.3)',
     (tester) async {
       File('${home.path}/sys/mime/text/plain.xml')
         ..createSync(recursive: true)
@@ -131,7 +131,7 @@ void main() {
         '${home.path}/sys/mime/globs2',
       ).writeAsStringSync('50:text/plain:*.txt\n');
       await pump(tester);
-      // Il tipo viene da shared-mime-info, il nome è quello breve della famiglia.
+      // The type comes from shared-mime-info, the name is the short family name.
       expect(find.text('Testo'), findsWidgets);
       expect(find.text('Testo semplice'), findsNothing);
     },

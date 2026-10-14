@@ -1,15 +1,15 @@
-// Le operazioni sui file della finestra (MU.4): rinomina, nuova cartella, duplica, Cestino,
-// eliminazione, annulla e ripeti, con gli avvisi.
+// File operations of the window (MU.4): rename, new folder, duplicate, Trash, delete, undo and
+// redo, with their alerts.
 
 part of 'window.dart';
 
-/// Il clic lento sul nome di un elemento già selezionato apre la rinomina dopo ~440 ms
-/// (mustache-spec 8), se non segue un doppio clic.
+/// A slow click on the name of an already selected item starts renaming after ~440 ms
+/// (mustache-spec 8), unless a double click follows.
 const Duration slowClickRename = Duration(milliseconds: 440);
 
 extension _Operations on _MustacheWindowState {
-  /// La selezione nell'ordine della vista; nelle colonne può essere una cartella fuori dal
-  /// contenuto mostrato (la cartella aperta).
+  /// The selection in view order; in columns it can be a folder outside the shown contents (the
+  /// open folder).
   List<Entry> get _selection => [
     for (final e in _entries)
       if (_selected.contains(e.path)) e,
@@ -31,7 +31,7 @@ extension _Operations on _MustacheWindowState {
     _focus.requestFocus();
   }
 
-  /// Un errore: avviso con un solo OK.
+  /// An error: alert with a single OK.
   void _showError(String title, [String? message]) => _showAlert(
     SilicaAlert(
       opaque: true,
@@ -57,8 +57,8 @@ extension _Operations on _MustacheWindowState {
     _focus.requestFocus();
   }
 
-  /// Il nome scritto nel campo: controlli (R8.2, R8.3), conferma se cambia l'estensione
-  /// (R8.4), poi la rinomina.
+  /// The name typed in the field: checks (R8.2, R8.3), confirmation if the extension changes
+  /// (R8.4), then the rename.
   void _commitRename(Entry entry, String name) {
     _endRename();
     if (name == entry.name) return;
@@ -117,7 +117,7 @@ extension _Operations on _MustacheWindowState {
     _load();
   }
 
-  /// ⇧⌘N: "cartella senza nome", subito in rinomina; ⌘Z la elimina.
+  /// ⇧⌘N: "untitled folder", renamed right away; ⌘Z deletes it.
   void _newFolder() {
     final result = createFolder(_history.current);
     if (result.error != null) {
@@ -139,7 +139,7 @@ extension _Operations on _MustacheWindowState {
     _startRename(path);
   }
 
-  /// ⌘D: le copie accanto agli originali; la selezione passa alle copie.
+  /// ⌘D: copies next to the originals; the selection moves to the copies.
   void _duplicate([List<Entry>? items]) {
     final sources = items ?? _selection;
     if (sources.isEmpty) return;
@@ -161,7 +161,7 @@ extension _Operations on _MustacheWindowState {
               ? 'Duplicazione'
               : 'Duplicazione di ${made.length} elementi',
           (copy) {
-            // Ripetere: di nuovo la copia, con lo stesso nome.
+            // Redo: copy again, with the same name.
             final source = made[copy];
             if (source == null) return (path: null, error: 'Copia sconosciuta');
             final again = duplicate(source);
@@ -176,8 +176,8 @@ extension _Operations on _MustacheWindowState {
     if (error != null) _showError('Non si può duplicare.', error);
   }
 
-  /// ⌘⌫: nel Cestino (la selezione passa all'elemento dopo); dentro il Cestino, Ripristina.
-  /// Nel Cestino gli elementi scelti, o `targets` (la riga con l'anello del menu).
+  /// ⌘⌫: to the Trash (the selection moves to the next item); inside the Trash, Put Back.
+  /// To the Trash: the selected items, or `targets` (the row with the menu ring).
   void _moveToTrash([List<Entry>? targets]) {
     final items = targets ?? _selection;
     if (items.isEmpty) return;
@@ -197,7 +197,7 @@ extension _Operations on _MustacheWindowState {
       moves.add((entry.path, result.path!));
     }
     if (moves.isNotEmpty) _undo.push(TrashOp(moves));
-    // L'elemento dopo l'ultimo tolto, se c'è, altrimenti quello prima.
+    // The item after the last removed one, if any, otherwise the one before.
     final gone = {for (final (from, _) in moves) from};
     final rest = [
       for (final e in _entries)
@@ -228,7 +228,7 @@ extension _Operations on _MustacheWindowState {
     if (error != null) _showError('Non si può ripristinare.', error);
   }
 
-  /// ⌥⌘⌫: conferma, poi elimina subito (non si annulla).
+  /// ⌥⌘⌫: confirmation, then deletes immediately (cannot be undone).
   void _confirmDelete() {
     final items = _selection;
     if (items.isEmpty) return;
@@ -282,8 +282,8 @@ extension _Operations on _MustacheWindowState {
     if (error != null) _showError('Non si può ripetere.', error);
   }
 
-  /// Un clic su un elemento: se era già l'unico selezionato, la rinomina dopo ~440 ms (a meno
-  /// che arrivi un doppio clic, che apre).
+  /// A click on an item: if it was already the only selected one, rename after ~440 ms (unless a
+  /// double click arrives, which opens it).
   void _clickForRename(Entry entry, {required bool wasOnlySelected}) {
     _slowClick?.cancel();
     if (!wasOnlySelected) return;

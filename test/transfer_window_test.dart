@@ -58,9 +58,9 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
   }
 
-  /// Lascia finire l'I/O vero della copia.
+  /// Lets the real I/O of the copy finish.
   Future<void> settle(WidgetTester tester) async {
-    // L'I/O vero finisce fuori dal tempo finto; i suoi seguiti girano a ogni pump.
+    // The real I/O finishes outside fake time; its continuations run on every pump.
     for (var i = 0; i < 20; i++) {
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 10)),
@@ -69,19 +69,17 @@ void main() {
     }
   }
 
-  testWidgets('⌘C e ⌘V copiano; un conflitto chiede, Mantieni entrambi', (
-    tester,
-  ) async {
+  testWidgets('⌘C and ⌘V copy; a conflict asks, Keep Both', (tester) async {
     await pump(tester, '${home.path}/A');
     await tester.tap(find.text('nota.txt'));
     await tester.pump(const Duration(milliseconds: 310));
     await keys(tester, LogicalKeyboardKey.keyC);
     expect(FileClipboard.paths, ['${home.path}/A/nota.txt']);
-    // Nella stessa cartella: "nota copia.txt".
+    // In the same folder: "nota copia.txt".
     await keys(tester, LogicalKeyboardKey.keyV);
     await settle(tester);
     expect(File('${home.path}/A/nota copia.txt').readAsStringSync(), 'ciao');
-    // In B due volte: la seconda è un conflitto.
+    // Twice into B: the second one is a conflict.
     await tester.tap(find.text('casa'));
     await tester.pump();
     await tester.tap(find.text('B'));
@@ -93,17 +91,14 @@ void main() {
     expect(File('${home.path}/B/nota.txt').existsSync(), isTrue);
     await keys(tester, LogicalKeyboardKey.keyV);
     await settle(tester);
-    expect(
-      find.byKey(const ValueKey('finestra del conflitto')),
-      findsOneWidget,
-    );
-    await tester.tap(find.byKey(const ValueKey('conflitto Mantieni entrambi')));
+    expect(find.byKey(const ValueKey('conflict window')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('conflict Mantieni entrambi')));
     await settle(tester);
     expect(File('${home.path}/B/nota 2.txt').existsSync(), isTrue);
-    expect(find.byKey(const ValueKey('finestra del conflitto')), findsNothing);
+    expect(find.byKey(const ValueKey('conflict window')), findsNothing);
   });
 
-  testWidgets('⌥⌘V sposta; ⌘Z lo rimette', (tester) async {
+  testWidgets('⌥⌘V moves; ⌘Z puts it back', (tester) async {
     FileClipboard.paths = ['${home.path}/A/nota.txt'];
     await pump(tester, '${home.path}/B');
     await keys(tester, LogicalKeyboardKey.keyV, alt: true);

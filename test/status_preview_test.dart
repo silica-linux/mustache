@@ -11,7 +11,7 @@ import 'package:mustache/src/status_bar.dart';
 import 'package:mustache/src/window.dart';
 
 void main() {
-  test('cursore delle icone e testo della barra (spec 1.5)', () {
+  test('icon slider and bar text (spec 1.5)', () {
     for (final (v, side) in [
       (0.0, 16.0),
       (8.0, 32.0),
@@ -21,7 +21,7 @@ void main() {
       (80.0, 248.0),
       (112.0, 512.0),
     ]) {
-      expect(iconSideFor(v), closeTo(side, 4.5), reason: 'valore $v');
+      expect(iconSideFor(v), closeTo(side, 4.5), reason: 'value $v');
     }
     expect(sliderValueFor(64), closeTo(24, 0.01));
     expect(
@@ -40,7 +40,7 @@ void main() {
   });
 
   testWidgets(
-    '⌘\' mostra la barra di stato, ⇧⌘P il pannello; il cursore cambia le icone',
+    '⌘\' shows the status bar, ⇧⌘P the pane; the slider changes the icons',
     (tester) async {
       final home = Directory.systemTemp.createTempSync('mustache-stato');
       addTearDown(() => home.deleteSync(recursive: true));
@@ -78,8 +78,8 @@ void main() {
         await tester.pump();
       }
 
-      // ⌘' è l'apostrofo (`quoteSingle`): `quote` in Flutter è il carattere ". Il simulatore
-      // dei test non sa produrre l'apostrofo: si controlla il legame e si invoca il suo intento.
+      // ⌘' is the apostrophe (`quoteSingle`): `quote` in Flutter is the " character. The test
+      // simulator cannot produce the apostrophe: the binding is checked and its intent invoked.
       final shortcuts = tester
           .widgetList<Shortcuts>(find.byType(Shortcuts))
           .expand((s) => s.shortcuts.entries)
@@ -97,13 +97,13 @@ void main() {
         shortcuts.single.value,
       );
       await tester.pump();
-      final bar = find.byKey(const ValueKey('barra di stato'));
+      final bar = find.byKey(const ValueKey('status bar'));
       expect(bar, findsOneWidget);
       expect(tester.getSize(bar).height, statusBarHeight);
       expect(find.textContaining('2 elementi'), findsOneWidget);
       expect(settings.statusBar, isTrue);
-      // Il cursore tutto a destra: icone da 512.
-      final slider = find.byKey(const ValueKey('cursore delle icone'));
+      // The slider all the way right: 512 pt icons.
+      final slider = find.byKey(const ValueKey('icon slider'));
       await tester.tapAt(
         tester.getRect(slider).centerRight - const Offset(1, 0),
       );
@@ -115,7 +115,7 @@ void main() {
       expect(settings.iconSide, greaterThan(400));
 
       await combo(LogicalKeyboardKey.keyP, shift: true);
-      final pane = find.byKey(const ValueKey('pannello di anteprima'));
+      final pane = find.byKey(const ValueKey('preview pane'));
       expect(pane, findsOneWidget);
       expect(tester.getSize(pane).width, previewPaneWidth);
     },

@@ -70,22 +70,25 @@ text/plain=editor.desktop;
     subclasses: 'text/x-csrc text/plain\n',
   );
 
-  test('voci .desktop: nome tradotto, nascoste, id con le sottocartelle', () {
-    final registry = AppRegistry.load(env: env, mime: mime);
-    expect(registry.apps['editor.desktop']?.name, 'Editor di testo');
-    expect(registry.apps.containsKey('nascosta.desktop'), isFalse);
-    expect(registry.apps['sub-codice.desktop']?.name, 'Codice');
-  });
+  test(
+    '.desktop entries: translated name, hidden ones, ids with subdirectories',
+    () {
+      final registry = AppRegistry.load(env: env, mime: mime);
+      expect(registry.apps['editor.desktop']?.name, 'Editor di testo');
+      expect(registry.apps.containsKey('nascosta.desktop'), isFalse);
+      expect(registry.apps['sub-codice.desktop']?.name, 'Codice');
+    },
+  );
 
-  test('predefinita, tolte, genitori e ordine di "Apri con"', () {
+  test('default, removed, parents and the order of "Apri con"', () {
     final registry = AppRegistry.load(env: env, mime: mime);
     expect(registry.defaultFor('image/png')?.id, 'visore.desktop');
-    // L'editor è tolto per text/plain: resta il visore.
+    // The editor is removed for text/plain: the viewer remains.
     expect(
       [for (final a in registry.appsFor('text/plain')) a.id],
       ['visore.desktop'],
     );
-    // Per il sorgente C: prima chi lo dichiara, poi chi apre il genitore text/plain.
+    // For C source: first who declares it, then who opens the text/plain parent.
     expect(
       [for (final a in registry.appsFor('text/x-csrc')) a.id],
       ['sub-codice.desktop', 'visore.desktop'],
@@ -93,7 +96,7 @@ text/plain=editor.desktop;
     expect(registry.defaultFor('application/x-ignoto'), isNull);
   });
 
-  test('Exec: codici di campo, virgolette, file in fondo', () {
+  test('Exec: field codes, quoting, file at the end', () {
     final registry = AppRegistry.load(env: env, mime: mime);
     expect(
       execArguments(registry.apps['editor.desktop']!, ['/a b.txt', '/c.txt']),
@@ -117,7 +120,7 @@ text/plain=editor.desktop;
   });
 
   test(
-    'un programma che non esiste è un messaggio, non un\'eccezione',
+    'a program that does not exist is a message, not an exception',
     () async {
       final error = await launchApp(
         const DesktopApp(id: 'x', name: 'Fantasma', exec: '/non/esiste %f'),

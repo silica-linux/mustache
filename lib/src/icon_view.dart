@@ -1,11 +1,11 @@
-// La vista a icone (MU-21, mustache-spec 4): griglia che riempie la larghezza, etichette sotto
-// le icone su al più due righe, selezione con il fondo dell'icona e la capsula del nome.
+// The icon view (MU-21, mustache-spec 4): a grid that fills the width, labels below the icons on at
+// most two lines, selection with the icon background and the name capsule.
 //
-// Griglia (spec 4.1, R4.1, R4.6): il passo x è la larghezza disponibile divisa per le colonne
-// che entrano con il passo minimo; il passo y e la cima della prima icona seguono il lato
-// (59 / 78 / 116 / 154 / 192 per 16 / 32 / 64 / 96 / 128, prima icona a 21–28 pt dall'alto).
-// Selezione (spec 4.2): fondo 72 × 72 di raggio ~6 attorno all'icona da 64 (4 pt per lato),
-// capsula del nome alta 17 per riga, raggio ~5, 4 pt di margine, 2 pt sotto il fondo.
+// Grid (spec 4.1, R4.1, R4.6): the x pitch is the available width divided by the columns that fit
+// at the minimum pitch; the y pitch and the top of the first icon follow the size (59 / 78 / 116 /
+// 154 / 192 for 16 / 32 / 64 / 96 / 128, first icon 21–28 pt from the top). Selection (spec 4.2): a
+// 72 × 72 background with radius ~6 around the 64 icon (4 pt per side), name capsule 17 tall per
+// line, radius ~5, 4 pt margin, 2 pt below the background.
 
 import 'dart:async';
 import 'dart:io';
@@ -17,26 +17,26 @@ import 'package:silica_ui/silica_ui.dart';
 import 'model.dart';
 import 'tags.dart';
 
-/// Il lato predefinito delle icone e il corpo del testo (spec 4.1).
+/// The default icon size and the text size (spec 4.1).
 const double defaultIconSide = 64;
 const double defaultLabelSize = 12;
 
-/// Margine fra l'icona e il suo fondo selezionato, e raggio del fondo.
+/// Margin between the icon and its selected background, and the background radius.
 const double iconSelectionPad = 4;
 const double iconSelectionRadius = 6;
 
-/// La capsula del nome: alta 17 per riga, raggio 5, 4 pt di margine, 2 pt sotto il fondo.
+/// The name capsule: 17 tall per line, radius 5, 4 pt margin, 2 pt below the background.
 const double labelLine = 17;
 const double labelRadius = 5;
 const double labelPad = 4;
 const double labelGap = 2;
 
-/// Le immagini in miniatura occupano ~89 % del lato dell'icona, angoli di ~3 pt (spec 4.4).
+/// Image thumbnails take ~89% of the icon size, ~3 pt corners (spec 4.4).
 const double thumbnailRatio = 0.89;
 
 const double thumbnailRadius = 3;
 
-/// I colori della selezione (spec 4.2), chiaro e scuro.
+/// Selection colors (spec 4.2), light and dark.
 @immutable
 class IconViewColors {
   const IconViewColors({
@@ -74,7 +74,7 @@ class IconViewColors {
         );
 }
 
-/// La geometria della griglia per una larghezza del contenuto.
+/// The grid geometry for a content width.
 @immutable
 class IconGrid {
   const IconGrid({
@@ -86,23 +86,23 @@ class IconGrid {
     required this.top,
   });
 
-  /// Lato dell'icona.
+  /// Icon size.
   final double side;
   final int columns;
   final double pitchX;
   final double pitchY;
 
-  /// Bordo sinistro della prima cella e cima della prima icona.
+  /// Left edge of the first cell and top of the first icon.
   final double left;
   final double top;
 
-  /// Il centro x della cella `column`.
+  /// The x center of cell `column`.
   double centerX(int column) => left + pitchX * (column + 0.5);
 
-  /// La cima dell'icona della riga `row`.
+  /// The top of the icon of row `row`.
   double iconTop(int row) => top + pitchY * row;
 
-  /// La cella sotto un punto (null fuori dalle celle occupate da `count` elementi).
+  /// The cell under a point (null outside the cells taken by `count` items).
   int? indexAt(Offset p, int count) {
     if (p.dx < left || p.dy < top - iconSelectionPad) return null;
     final column = ((p.dx - left) / pitchX).floor();
@@ -113,20 +113,20 @@ class IconGrid {
   }
 }
 
-/// La griglia per `width` pt di contenuto (spec 4.1, R4.1, R4.6).
+/// The grid for `width` pt of content (spec 4.1, R4.1, R4.6).
 IconGrid iconGrid(
   double width, {
   double side = defaultIconSide,
   double text = defaultLabelSize,
 }) {
-  // Passo minimo: la larghezza dell'etichetta o l'icona con il suo margine.
+  // Minimum pitch: the label width or the icon with its margin.
   final minPitch = math.max(side + 36, 50 + text * 5);
-  // ~11 pt di margine per lato (6 colonne da 126,8 in 783 pt).
+  // ~11 pt margin per side (6 columns of 126.8 in 783 pt).
   const margin = 11.0;
   final available = math.max(0.0, width - 2 * margin);
   final columns = math.max(1, (available / minPitch).floor());
-  // Passo y: 116 a 64/12, 38 pt ogni 32 di lato; il testo più piccolo o più grande lo
-  // accorcia o allunga (110 a 10, 120 a 14, 122 a 16).
+  // y pitch: 116 at 64/12, 38 pt for every 32 of size; smaller or larger text shortens or lengthens
+  // it (110 at 10, 120 at 14, 122 at 16).
   final textDelta = text <= 12 ? (text - 12) * 3 : math.min(6, (text - 12) * 2);
   return IconGrid(
     side: side,
@@ -138,12 +138,12 @@ IconGrid iconGrid(
   );
 }
 
-/// La larghezza massima di un'etichetta: ~104 pt a testo 12 (mu21-sel3: "Beta con un nome"
-/// entra, "configurazione.jso" no), in proporzione al corpo del testo.
+/// The maximum width of a label: ~104 pt at text 12 (mu21-sel3: "Beta con un nome" fits,
+/// "configurazione.jso" does not), proportional to the text size.
 double labelMaxWidth(double text) => 104 * text / defaultLabelSize;
 
-/// Le righe dell'etichetta: al più due; la prima va a capo agli spazi, e dentro una parola solo
-/// se la parola non entra; la seconda se non entra si tronca al centro (R4.5).
+/// The label lines: at most two; the first wraps at spaces, and inside a word only if the word does
+/// not fit; the second, if it does not fit, is truncated in the middle (R4.5).
 List<String> labelLines(String name, double maxWidth, TextStyle style) {
   double widthOf(String s) {
     final painter = TextPainter(
@@ -157,8 +157,8 @@ List<String> labelLines(String name, double maxWidth, TextStyle style) {
   }
 
   if (widthOf(name) <= maxWidth) return [name];
-  // La prima riga: quanti caratteri entrano; si spezza all'ultimo spazio che entra, e dentro
-  // una parola solo se la prima parola da sola non entra (mu21-sel3: "barre / colorate.mov",
+  // The first line: how many characters fit; it breaks at the last space that fits, and inside a
+  // word only if the first word alone does not fit (mu21-sel3: "barre / colorate.mov",
   // "configurazione.js / on").
   var cut = 1;
   while (cut < name.length && widthOf(name.substring(0, cut + 1)) <= maxWidth) {
@@ -170,12 +170,12 @@ List<String> labelLines(String name, double maxWidth, TextStyle style) {
   var rest = name.substring(cut).trimLeft();
   if (rest.isEmpty) return [first];
   if (widthOf(rest) > maxWidth) {
-    // Troncamento al centro: si tolgono caratteri attorno al centro finché entra.
+    // Middle truncation: characters around the middle are removed until it fits.
     var keep = rest.length - 1;
     String middle(int n) {
       final head = (n + 1) ~/ 2;
       final tail = n - head;
-      // Niente spazi attorno al "…" (mu21-sel3: "molto lu…colonna").
+      // No spaces around the "…" (mu21-sel3: "molto lu…colonna").
       return '${rest.substring(0, head).trimRight()}…'
           '${rest.substring(rest.length - tail).trimLeft()}';
     }
@@ -188,11 +188,11 @@ List<String> labelLines(String name, double maxWidth, TextStyle style) {
   return [first, rest];
 }
 
-/// Il rettangolo di selezione (spec 7.1): nero ~10 % con un filo di 1 pt al ~33 %, angoli retti.
+/// The rubber band (spec 7.1): black ~10% with a 1 pt outline at ~33%, square corners.
 const Color rubberFill = Color(0x1A000000);
 const Color rubberBorder = Color(0x55000000);
 
-/// Scorrimento automatico oltre il bordo: ~38,5 pt/s per ogni pt oltre (R7.4).
+/// Autoscroll past the edge: ~38.5 pt/s for each pt beyond (R7.4).
 const double autoScrollPerPoint = 38.5;
 
 class IconView extends StatefulWidget {
@@ -216,10 +216,10 @@ class IconView extends StatefulWidget {
     this.tagsOf,
   });
 
-  /// Le etichette di un elemento: i pallini prima del nome, sulla prima riga.
+  /// The tags of an item: the dots before the name, on the first line.
   final List<String> Function(Entry entry)? tagsOf;
 
-  /// Il rettangolo di selezione: gli elementi toccati, dal vivo; `done` al rilascio.
+  /// The rubber band: the touched items, live; `done` on release.
   final void Function(Set<String> paths, {required bool done})? onRubberBand;
 
   final List<Entry> entries;
@@ -227,24 +227,24 @@ class IconView extends StatefulWidget {
   final ValueChanged<Entry> onTap;
   final ValueChanged<Entry> onOpen;
 
-  /// Clic nel vuoto: toglie la selezione.
+  /// Click on the background: clears the selection.
   final VoidCallback onBackground;
 
-  /// Avvolge ogni cella (trascinamento, destinazione dei rilasci).
+  /// Wraps every cell (dragging, drop target).
   final Widget Function(Entry entry, Widget child)? wrapItem;
 
-  /// Clic secondario su un elemento (o nel vuoto, null), nella posizione globale.
+  /// Secondary click on an item (or on the background, null), at the global position.
   final void Function(Entry? entry, Offset position)? onContext;
   final bool active;
   final double side;
   final double text;
 
-  /// L'ambiente per trovare silica-icons (test).
+  /// The environment where silica-icons is found (tests).
   final Map<String, String>? env;
   final ScrollController? controller;
 
-  /// L'elemento in rinomina: al posto dell'etichetta, il campo costruito da `renameBuilder`
-  /// (largo al più quanto la cella).
+  /// The item being renamed: instead of the label, the field built by `renameBuilder` (at most as
+  /// wide as the cell).
   final String? renaming;
   final Widget Function(Entry entry, double maxWidth)? renameBuilder;
 
@@ -257,7 +257,7 @@ class _IconViewState extends State<IconView> {
   Offset? _bandStart;
   Offset? _bandEnd;
 
-  /// Dove sta il puntatore rispetto alla vista (per lo scorrimento al bordo).
+  /// Where the pointer is relative to the view (for edge autoscroll).
   double _pointerY = 0;
   double _viewHeight = 0;
   Timer? _auto;
@@ -286,7 +286,7 @@ class _IconViewState extends State<IconView> {
     super.dispose();
   }
 
-  /// Il rettangolo di una cella (fondo dell'icona e riga dell'etichetta), nel contenuto.
+  /// The rectangle of a cell (icon background and label line), in the content.
   Rect _cellRect(IconGrid grid, int index) {
     final cx = grid.centerX(index % grid.columns);
     final top = grid.iconTop(index ~/ grid.columns) - iconSelectionPad;
@@ -313,7 +313,7 @@ class _IconViewState extends State<IconView> {
     }, done: done);
   }
 
-  /// Oltre il bordo alto o basso la vista scorre, più veloce quanto più si è fuori.
+  /// Past the top or bottom edge the view scrolls, faster the further out.
   void _autoScroll() {
     _auto ??= Timer.periodic(const Duration(milliseconds: 16), (_) {
       final over = _pointerY < 0
@@ -357,7 +357,7 @@ class _IconViewState extends State<IconView> {
           child: SingleChildScrollView(
             controller: _scroll,
             child: GestureDetector(
-              // Dal vuoto: il rettangolo di selezione (le celle hanno il loro trascinamento).
+              // From the background: the rubber band (cells have their own drag).
               behavior: HitTestBehavior.translucent,
               onPanStart: widget.onRubberBand == null
                   ? null
@@ -399,7 +399,7 @@ class _IconViewState extends State<IconView> {
                         rect: band,
                         child: IgnorePointer(
                           child: DecoratedBox(
-                            key: const ValueKey('rettangolo di selezione'),
+                            key: const ValueKey('rubber band'),
                             decoration: BoxDecoration(
                               color: rubberFill,
                               border: Border.all(color: rubberBorder),
@@ -456,7 +456,7 @@ class _IconViewState extends State<IconView> {
       top: iconTop - iconSelectionPad,
       width: grid.pitchX,
       height: bg + labelGap + labelLine * lines.length,
-      // La selezione alla pressione, subito (non dopo l'attesa del doppio clic).
+      // Selection on press, right away (not after the double-click wait).
       child: (wrapItem ?? (_, Widget child) => child)(
         entry,
         Listener(
@@ -464,7 +464,8 @@ class _IconViewState extends State<IconView> {
           child: GestureDetector(
             key: ValueKey(entry.path),
             behavior: HitTestBehavior.translucent,
-            // Il vuoto attorno non tocca: il clic sulla cella non è un clic nel vuoto.
+            // The empty space around does not count: a click on the cell is not a click on the
+            // background.
             onTap: () {},
             onDoubleTap: () => onOpen(entry),
             onSecondaryTapDown: (d) => onContext?.call(entry, d.globalPosition),
@@ -495,8 +496,8 @@ class _IconViewState extends State<IconView> {
                     child: Center(child: field),
                   )
                 else
-                  // La capsula può uscire di qualche pt dalla cella: la riga è già spezzata da
-                  // `labelLines`, qui non va più a capo.
+                  // The capsule may extend a few pt beyond the cell: the line is already broken by
+                  // `labelLines`, it does not wrap again here.
                   for (var i = 0; i < lines.length; i++)
                     Positioned(
                       left: -labelPad,
@@ -508,7 +509,7 @@ class _IconViewState extends State<IconView> {
                       height: labelLine,
                       child: Center(
                         child: DecoratedBox(
-                          key: ValueKey('nome ${entry.path} $i'),
+                          key: ValueKey('name ${entry.path} $i'),
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? (active ? c.capsule : c.capsuleInactive)
@@ -552,7 +553,7 @@ class _IconViewState extends State<IconView> {
   }
 }
 
-/// Le estensioni di cui si mostra la miniatura.
+/// The extensions whose thumbnail is shown.
 const Set<String> thumbnailExtensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'};
 
 bool hasThumbnail(String name) {
@@ -561,8 +562,8 @@ bool hasThumbnail(String name) {
       thumbnailExtensions.contains(name.substring(dot + 1).toLowerCase());
 }
 
-/// L'icona di un elemento: cartella (con il simbolo delle cartelle speciali), miniatura delle
-/// immagini, o l'icona del tipo con le regole di silica-icons; con i badge (alias, illeggibile).
+/// The icon of an item: folder (with the symbol of special folders), image thumbnail, or the type
+/// icon with the silica-icons rules; with badges (alias, unreadable).
 class EntryIcon extends StatelessWidget {
   const EntryIcon({
     super.key,
@@ -575,8 +576,8 @@ class EntryIcon extends StatelessWidget {
   final double side;
   final Map<String, String>? env;
 
-  /// Tipo e badge per percorso e data di modifica: si calcolano una volta, non a ogni disegno
-  /// (cartelle da migliaia di file, MU-24).
+  /// Type and badges per path and modification date: computed once, not on every paint (folders
+  /// with thousands of files, MU-24).
   static final Map<String, (FileIcon?, Set<IconBadge>)> _cache = {};
 
   (FileIcon?, Set<IconBadge>) _resolve() {
@@ -595,8 +596,8 @@ class EntryIcon extends StatelessWidget {
     if (hasThumbnail(entry.name) && !entry.isDirectory) {
       return _Thumbnail(entry.path, side);
     }
-    // Cartelle e documenti: la tela di silica-icons è il lato intero (silica-icons 0.2, misurata
-    // su mu21-size-56: cartella 0,922 × 0,734, foglio 0,668 × 0,883 della tela).
+    // Folders and documents: the silica-icons canvas is the whole size (silica-icons 0.2, measured
+    // on mu21-size-56: folder 0.922 × 0.734, sheet 0.668 × 0.883 of the canvas).
     return _icon(side);
   }
 
@@ -619,8 +620,8 @@ class EntryIcon extends StatelessWidget {
   }
 }
 
-/// La miniatura di un'immagine: ~89 % del lato, angoli di 3 pt, ombra morbida in basso; se
-/// l'immagine non si legge, l'icona del tipo.
+/// The thumbnail of an image: ~89% of the size, 3 pt corners, soft shadow below; if the image
+/// cannot be read, the type icon.
 class _Thumbnail extends StatelessWidget {
   const _Thumbnail(this.path, this.side);
   final String path;
@@ -632,8 +633,8 @@ class _Thumbnail extends StatelessWidget {
     final ratio = MediaQuery.maybeDevicePixelRatioOf(context) ?? 1;
     return Center(
       child: ConstrainedBox(
-        // Larga: l'immagine tiene le sue proporzioni dentro il riquadro, e ombra e angoli
-        // seguono l'immagine, non il riquadro.
+        // Wide: the image keeps its proportions inside the box, and shadow and corners follow the
+        // image, not the box.
         constraints: BoxConstraints.loose(Size(box, box)),
         child: Image.file(
           File(path),

@@ -1,17 +1,17 @@
-// La vista a elenco nella finestra (MU-20, mustache-spec 3; geometria e colori in
-// list_view.dart): intestazione che ordina e ridimensiona, righe con triangolo, icona e celle,
-// cartelle aperte nel posto (rientro di 15 pt per livello), righe alternate fino in fondo anche
-// a cartella vuota, selezione a blocchi. Le righe vuote dopo l'ultima sono fondo: un clic toglie
-// la selezione, il clic destro apre il menu della cartella.
+// The list view in the window (MU-20, mustache-spec 3; geometry and colors in list_view.dart): a
+// header that sorts and resizes, rows with disclosure triangle, icon and cells, folders expanded in
+// place (15 pt indent per level), alternating rows down to the bottom even for an empty folder,
+// block selection. The empty rows after the last one are background: a click clears the selection,
+// a right click opens the folder menu.
 
 part of 'window.dart';
 
-/// Una riga dell'elenco: l'elemento e il suo livello (0 per il contenuto della cartella).
+/// A list row: the item and its level (0 for the folder's own contents).
 typedef ListRowItem = ({Entry entry, int depth});
 
 extension _ListView on _MustacheWindowState {
-  /// Le righe in ordine: il contenuto con le cartelle aperte espanse (solo nell'elenco, non
-  /// nei risultati della ricerca).
+  /// Rows in order: the contents with expanded folders opened (only in the list, not in search
+  /// results).
   List<ListRowItem> get _listRows {
     final rows = <ListRowItem>[];
     void add(List<Entry> entries, int depth) {
@@ -27,7 +27,7 @@ extension _ListView on _MustacheWindowState {
     return rows;
   }
 
-  /// L'ordine in cui si muovono le frecce e ⇧clic: nell'elenco anche le figlie aperte.
+  /// The order the arrows and ⇧-click move in: in the list, expanded children too.
   List<Entry> get _ordered => _view == ViewMode.list && !_searching
       ? [for (final row in _listRows) row.entry]
       : _entries;
@@ -39,7 +39,7 @@ extension _ListView on _MustacheWindowState {
     kindOf: _kind,
   );
 
-  /// Apre o chiude una cartella nel posto; con ⌥ tutto il sottoalbero (R3.7).
+  /// Expands or collapses a folder in place; with ⌥ the whole subtree (R3.7).
   void _toggleExpanded(Entry entry, {bool subtree = false}) {
     final open = !_expanded.contains(entry.path);
     _update(() {
@@ -47,7 +47,7 @@ extension _ListView on _MustacheWindowState {
         open ? _expanded.add(entry.path) : _expanded.remove(entry.path);
         return;
       }
-      // Il sottoalbero, al più 2000 cartelle (una cartella enorme non blocca la finestra).
+      // The subtree, at most 2000 folders (a huge folder does not freeze the window).
       final stack = [entry.path];
       var budget = 2000;
       while (stack.isNotEmpty && budget-- > 0) {
@@ -68,7 +68,7 @@ extension _ListView on _MustacheWindowState {
     });
   }
 
-  /// → e ← nell'elenco: aprono e chiudono la cartella del cursore (R3.7).
+  /// → and ← in the list: expand and collapse the cursor's folder (R3.7).
   bool _expandAtCursor({required bool open}) {
     if (_view != ViewMode.list || _searching) return false;
     final path = _cursor ?? _anchor;
@@ -83,8 +83,8 @@ extension _ListView on _MustacheWindowState {
     return true;
   }
 
-  /// Clic su un'intestazione: una colonna nuova parte da crescente (Data e Dimensioni da
-  /// decrescente), la stessa si inverte (R3.5).
+  /// Click on a header: a new column starts ascending (Date and Size descending), the same one is
+  /// reversed (R3.5).
   void _sortList(SortKey key) {
     final column = listColumns.firstWhere((c) => c.key == key);
     _update(() {
@@ -100,8 +100,8 @@ extension _ListView on _MustacheWindowState {
     });
   }
 
-  /// Trascinando un separatore cambia la colonna a sinistra; l'ultima assorbe la differenza
-  /// finché può, poi la tabella si allarga (R3.6).
+  /// Dragging a separator changes the column on its left; the last one absorbs the difference while
+  /// it can, then the table widens (R3.6).
   void _resizeColumn(int index, double dx) {
     _update(() {
       final last = _listWidths.length - 1;
@@ -138,7 +138,7 @@ extension _ListView on _MustacheWindowState {
         final table = listTableWidth(_listWidths);
         final scrolls = table + listInset > box.maxWidth;
         final width = scrolls ? table + listInset : box.maxWidth;
-        // Le righe alternate continuano fino in fondo (R3.10).
+        // Alternating rows continue down to the bottom (R3.10).
         final fill =
             ((box.maxHeight - listHeaderHeight - listHeaderLine) /
                     listRowHeight)
@@ -160,7 +160,7 @@ extension _ListView on _MustacheWindowState {
               ),
               Expanded(
                 child: ListView.builder(
-                  key: const ValueKey('elenco'),
+                  key: const ValueKey('list'),
                   padding: const EdgeInsets.only(top: listFirstRowGap),
                   itemExtent: listRowHeight,
                   itemCount: count,
@@ -181,10 +181,10 @@ extension _ListView on _MustacheWindowState {
     );
   }
 
-  /// Una riga dopo l'ultima: solo la striscia; un clic è un clic sul fondo.
+  /// A row after the last one: only the stripe; a click is a click on the background.
   Widget _emptyListRow(int index, ListColors colors, double table) =>
       GestureDetector(
-        key: ValueKey('riga vuota $index'),
+        key: ValueKey('empty row $index'),
         behavior: HitTestBehavior.opaque,
         onTap: () => _update(() {
           _selected.clear();
@@ -218,7 +218,7 @@ extension _ListView on _MustacheWindowState {
     final indent = listIndent * depth;
     final nameEnd = listInset + _listWidths[0];
     final tags = _tagsOf(entry);
-    // I punti delle etichette in fondo alla colonna Nome (R3.4).
+    // The tag dots at the end of the Name column (R3.4).
     final tagsWidth = tags.isEmpty ? 0.0 : 10 + 5.0 * (tags.length - 1) + 8;
     final nameStyle = listText(13, nameColor);
     final nameRoom =
@@ -263,10 +263,9 @@ extension _ListView on _MustacheWindowState {
       _folderTarget(
         entry,
         (context, dropActive) => Listener(
-          // La riga si sceglie al rilascio, se non è partito un trascinamento (MU-25:
-          // nessun cambiamento fino al rilascio). Solo il pulsante primario sceglie: il
-          // clic destro su una riga non scelta lascia la selezione com'è e dà l'anello
-          // (R3.9, MU-50); il triangolo non sceglie la riga.
+          // The row is chosen on release, if no drag started (MU-25: no change until release). Only
+          // the primary button chooses: a right click on an unselected row leaves the selection as
+          // it is and gives the ring (R3.9, MU-50); the triangle does not choose the row.
           onPointerDown: (e) {
             _rowDragged = false;
             final onTriangle =
@@ -307,15 +306,15 @@ extension _ListView on _MustacheWindowState {
                 ),
                 if (entry.isDirectory && !_searching)
                   Positioned(
-                    // La presa del triangolo: 15 × 20 da x 11 (AX 15 × 22).
+                    // The triangle hit area: 15 × 20 from x 11 (AX 15 × 22).
                     left: 11 + indent,
                     width: 15,
                     top: 0,
                     height: listRowHeight,
-                    // Il triangolo apre al rilascio (MU-25), con ⌥ letto alla pressione; il
-                    // doppio clic qui non apre la cartella.
+                    // The triangle opens on release (MU-25), with ⌥ read at press time; a double
+                    // click here does not open the folder.
                     child: Listener(
-                      key: ValueKey('triangolo ${entry.path}'),
+                      key: ValueKey('triangle ${entry.path}'),
                       behavior: HitTestBehavior.opaque,
                       onPointerDown: (e) {
                         _triangleDown = e.buttons == kPrimaryButton
@@ -337,7 +336,7 @@ extension _ListView on _MustacheWindowState {
                         onDoubleTap: () {},
                         child: Stack(
                           children: [
-                            // › 5 × 8 a x 17–21, ⌄ 8 × 5 centrato nello stesso punto.
+                            // › 5 × 8 at x 17–21, ⌄ 8 × 5 centered on the same point.
                             Positioned(
                               left: _expanded.contains(entry.path)
                                   ? listTriangleLeft - 11 - 1.5

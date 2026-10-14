@@ -9,7 +9,7 @@ import 'package:mustache/src/settings.dart';
 import 'package:mustache/src/sidebar.dart';
 import 'package:mustache/src/window.dart';
 
-/// Un testo dentro la barra laterale (la vista a icone mostra gli stessi nomi).
+/// A text inside the sidebar (the icon view shows the same names).
 Finder inSidebar(String text) =>
     find.descendant(of: find.byType(Sidebar), matching: find.text(text));
 
@@ -51,7 +51,7 @@ void main() {
   double centerY(WidgetTester tester, Finder finder) =>
       tester.getCenter(finder).dy;
 
-  testWidgets('righe a passo 32, intestazioni a 24 e 40 dalle righe', (
+  testWidgets('rows at a 32 pitch, headings at 24 and 40 from the rows', (
     tester,
   ) async {
     await pump(tester);
@@ -63,9 +63,9 @@ void main() {
     expect(downloads - documents, sidebarRow);
     expect(places - downloads, closeTo(sidebarRowToHeading, 0.5));
     expect(documents, sidebarFirstRowCenter);
-    // La riga della cartella mostrata è selezionata, con il testo in semibold.
+    // The row of the shown folder is selected, with the text in semibold.
     final selection = tester.getRect(
-      find.byKey(const ValueKey('selezione della barra')),
+      find.byKey(const ValueKey('sidebar selection')),
     );
     expect(selection.left, sidebarSelectionInset);
     expect(selection.height, sidebarRow);
@@ -73,7 +73,7 @@ void main() {
     expect(home.style?.fontWeight, FontWeight.w600);
   });
 
-  test('larghezza: minimo, contenuto minimo, aggancio a 200, nascosta', () {
+  test('width: minimum, minimum content, snap to 200, hidden', () {
     expect(dragWidth(100, 1000), sidebarMinWidth);
     expect(dragWidth(900, 1000), 1000 - contentMinWidth);
     expect(dragWidth(300, 1000), 300);
@@ -84,11 +84,11 @@ void main() {
     expect(releaseWidth(212), 212);
   });
 
-  testWidgets('trascinare il bordo cambia la larghezza e la ricorda', (
+  testWidgets('dragging the edge changes the width and remembers it', (
     tester,
   ) async {
     final settings = await pump(tester);
-    final divider = find.byKey(const ValueKey('bordo della barra'));
+    final divider = find.byKey(const ValueKey('sidebar edge'));
     final gesture = await tester.startGesture(tester.getCenter(divider));
     await gesture.moveBy(const Offset(60, 0));
     await gesture.moveBy(const Offset(40, 0));
@@ -97,13 +97,13 @@ void main() {
     await tester.pump();
     expect(tester.getCenter(divider).dx, closeTo(sidebarDefaultWidth + 100, 1));
     expect(settings.sidebarWidth, closeTo(sidebarDefaultWidth + 100, 1));
-    // Una finestra nuova parte dalla stessa larghezza (il file sul disco).
+    // A new window starts from the same width (the file on disk).
     expect(
       Settings(settings.path).sidebarWidth,
       closeTo(sidebarDefaultWidth + 100, 1),
     );
 
-    // Rilasciata vicino a 200 si aggancia a 200.
+    // Released near 200 it snaps to 200.
     final again = await tester.startGesture(tester.getCenter(divider));
     await again.moveBy(const Offset(-50, 0));
     await again.moveBy(const Offset(-45, 0));
@@ -113,7 +113,9 @@ void main() {
     expect(tester.getCenter(divider).dx, closeTo(sidebarSnapWidth, 1));
   });
 
-  testWidgets('⌃⌘S nasconde la barra in ~240 ms e la rimostra', (tester) async {
+  testWidgets('⌃⌘S hides the sidebar in ~240 ms and shows it again', (
+    tester,
+  ) async {
     await pump(tester);
     Future<void> toggle() async {
       await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
@@ -123,7 +125,7 @@ void main() {
       await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     }
 
-    final divider = find.byKey(const ValueKey('bordo della barra'));
+    final divider = find.byKey(const ValueKey('sidebar edge'));
     await toggle();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 120));
@@ -134,28 +136,28 @@ void main() {
     await toggle();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 30));
-    // Il mostrare parte con ~40 ms di ritardo.
+    // Showing starts with a ~40 ms delay.
     expect(tester.getCenter(divider).dx, 0);
     await tester.pump(const Duration(milliseconds: 260));
     expect(tester.getCenter(divider).dx, sidebarDefaultWidth);
   });
 
-  testWidgets('il chevron dell\'intestazione comprime e riapre la sezione', (
+  testWidgets('the heading chevron collapses and reopens the section', (
     tester,
   ) async {
     await pump(tester);
-    expect(find.byKey(const ValueKey('comprimi Preferiti')), findsNothing);
+    expect(find.byKey(const ValueKey('collapse Preferiti')), findsNothing);
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
     await mouse.addPointer(location: Offset.zero);
     await mouse.moveTo(tester.getCenter(inSidebar('Preferiti')));
     await tester.pump();
-    // Compare subito, senza ritardo.
-    final chevron = find.byKey(const ValueKey('comprimi Preferiti'));
+    // It appears right away, without delay.
+    final chevron = find.byKey(const ValueKey('collapse Preferiti'));
     expect(chevron, findsOneWidget);
     final placesBefore = centerY(tester, inSidebar('Posizioni'));
     await tester.tap(chevron);
     await tester.pump();
-    // Il testo delle righe sparisce subito; il movimento parte dopo ~70 ms.
+    // The row text disappears right away; the movement starts after ~70 ms.
     expect(inSidebar('Documenti'), findsNothing);
     await tester.pump(const Duration(milliseconds: 60));
     expect(centerY(tester, inSidebar('Posizioni')), placesBefore);
@@ -164,26 +166,26 @@ void main() {
       centerY(tester, inSidebar('Posizioni')),
       closeTo(placesBefore - 2 * sidebarRow, 0.5),
     );
-    // Riaperta: torna com'era.
-    await tester.tap(find.byKey(const ValueKey('comprimi Preferiti')));
+    // Reopened: back as it was.
+    await tester.tap(find.byKey(const ValueKey('collapse Preferiti')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 320));
     expect(centerY(tester, inSidebar('Posizioni')), placesBefore);
     expect(inSidebar('Documenti'), findsOneWidget);
   });
 
-  test('impostazioni rovinate o illeggibili valgono come predefinite', () {
+  test('damaged or unreadable settings count as defaults', () {
     final file = File('${root.path}/rotto.json')..writeAsStringSync('{non è');
     expect(Settings(file.path).sidebarWidth, isNull);
     file.writeAsStringSync('{"sidebarWidth": "largo"}');
     expect(Settings(file.path).sidebarWidth, isNull);
-    // Una cartella al posto del file: si scrive senza errori, vale per la sessione.
+    // A folder in place of the file: it is written without errors, it lasts for the session.
     Directory('${root.path}/cartella.json').createSync();
     final settings = Settings('${root.path}/cartella.json')..sidebarWidth = 250;
     expect(settings.sidebarWidth, 250);
   });
 
-  test('i simboli della barra stanno in symbols/regular', () {
+  test('the sidebar symbols are in symbols/regular', () {
     expect(symbolFor(PlaceKind.downloads), 'arrow-down-circle');
     expect(accentIcon(PlaceKind.documents), isTrue);
     expect(accentIcon(PlaceKind.trash), isFalse);

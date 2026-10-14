@@ -1,5 +1,5 @@
-// Il modello di Mustache, senza interfaccia: il contenuto di una cartella, l'ordinamento, i
-// formati di date e dimensioni, la cronologia della navigazione e i luoghi dell'utente.
+// The Mustache model, without UI: the contents of a folder, sorting, date and size formats,
+// navigation history and the user's places.
 
 import 'dart:io';
 
@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart';
 
 import 'link_stat.dart';
 
-/// Un elemento di una cartella.
+/// An item of a folder.
 @immutable
 class Entry {
   const Entry({
@@ -23,14 +23,14 @@ class Entry {
   final String path;
   final bool isDirectory;
 
-  /// Byte; per le cartelle non conta.
+  /// Bytes; irrelevant for folders.
   final int size;
   final DateTime modified;
   final bool isLink;
 
   bool get isHidden => name.startsWith('.');
 
-  /// L'estensione senza punto, minuscola; vuota per le cartelle e i nomi senza punto.
+  /// The extension without the dot, lowercase; empty for folders and names without a dot.
   String get extension {
     if (isDirectory) return '';
     final dot = name.lastIndexOf('.');
@@ -40,11 +40,11 @@ class Entry {
   }
 }
 
-/// Le colonne per cui si ordina.
+/// The columns to sort by.
 enum SortKey { name, modified, size, kind }
 
-/// Il contenuto di `path`, senza i file nascosti salvo `showHidden`. Una cartella che non si
-/// legge (permessi, sparita) dà un errore, non un'eccezione.
+/// The contents of `path`, without hidden files unless `showHidden`. A folder that cannot be read
+/// (permissions, gone) gives an error, not an exception.
 ({List<Entry> entries, String? error}) listDirectory(
   String path, {
   bool showHidden = false,
@@ -58,8 +58,8 @@ enum SortKey { name, modified, size, kind }
       );
       if (!showHidden && name.startsWith('.')) continue;
       final link = item is Link;
-      // Per i collegamenti la destinazione dice se è una cartella (si apre); data e dimensione
-      // sono del collegamento (R3.2).
+      // For links the target says whether it is a folder (it opens); date and size are the link's
+      // (R3.2).
       final stat = link ? FileStat.statSync(item.path) : item.statSync();
       final own = link ? linkStat(item.path) : null;
       entries.add(
@@ -79,8 +79,8 @@ enum SortKey { name, modified, size, kind }
   return (entries: entries, error: null);
 }
 
-/// Confronto "naturale": i numeri nei nomi si confrontano per valore (`file 2` prima di
-/// `file 10`), le lettere senza distinguere maiuscole e minuscole.
+/// "Natural" comparison: numbers in names compare by value (`file 2` before `file 10`), letters
+/// without case distinction.
 int naturalCompare(String a, String b) {
   final x = a.toLowerCase();
   final y = b.toLowerCase();
@@ -114,8 +114,8 @@ int naturalCompare(String a, String b) {
 
 bool _isDigit(int c) => c >= 0x30 && c <= 0x39;
 
-/// Gli elementi ordinati per `key`. A parità si ordina per nome; le cartelle stanno fra i
-/// file (l'ordine misto è quello predefinito, da verificare: MU-20).
+/// Items sorted by `key`. Ties are sorted by name; folders are mixed with files (mixed order is the
+/// default, to be verified: MU-20).
 List<Entry> sortEntries(
   Iterable<Entry> entries,
   SortKey key, {
@@ -143,8 +143,8 @@ List<Entry> sortEntries(
 
 const List<String> _units = ['KB', 'MB', 'GB', 'TB'];
 
-/// Dimensione in unità decimali (1 KB = 1000 byte, R3.2): "N byte" sotto 1000, KB e MB interi,
-/// GB e TB con due decimali e la virgola; "Zero byte" per un file vuoto, "--" per le cartelle.
+/// Size in decimal units (1 KB = 1000 bytes, R3.2): "N byte" below 1000, KB and MB as integers, GB
+/// and TB with two decimals and a decimal comma; "Zero byte" for an empty file, "--" for folders.
 String formatSize(Entry entry) {
   if (entry.isDirectory) return '--';
   final bytes = entry.size;
@@ -177,8 +177,8 @@ const List<String> _months = [
   'dic',
 ];
 
-/// "oggi, 10:22", "ieri, 18:05", altrimenti "3 ott 2026, 09:14" (R3.1: minuscolo, anno
-/// sempre).
+/// "oggi, 10:22", "ieri, 18:05", otherwise "3 ott 2026, 09:14" (R3.1: lowercase, year always
+/// shown).
 String formatDate(DateTime t, DateTime now) {
   final hh = t.hour.toString().padLeft(2, '0');
   final mm = t.minute.toString().padLeft(2, '0');
@@ -232,9 +232,9 @@ const Set<String> _archives = {
   'application/x-zstd-compressed-tar',
 };
 
-/// La colonna Tipo: un nome breve per famiglia (R3.3), con parole nostre: cartella,
-/// collegamento, testo, archivio, video, PDF, immagine e audio col formato, documento per il
-/// resto. `mime` è il tipo del contenuto (della destinazione, per un collegamento).
+/// The Kind column: a short name per family (R3.3), in our own words: folder, link, text, archive,
+/// video, PDF, image and audio with the format, document for the rest. `mime` is the content type
+/// (of the target, for a link).
 String kindLabel(Entry entry, [String? mime]) {
   if (entry.isLink) return 'Collegamento';
   if (entry.isDirectory) return 'Cartella';
@@ -256,7 +256,7 @@ String kindLabel(Entry entry, [String? mime]) {
   return 'Documento';
 }
 
-/// La cronologia di una finestra: indietro e avanti come in un navigatore.
+/// The history of a window: back and forward as in a browser.
 class History {
   History(String start) : _stack = [start];
 
@@ -267,7 +267,7 @@ class History {
   bool get canGoBack => _index > 0;
   bool get canGoForward => _index < _stack.length - 1;
 
-  /// Va in `path`: la cronologia in avanti si perde.
+  /// Goes to `path`: the forward history is lost.
   void go(String path) {
     if (path == current) return;
     _stack
@@ -276,15 +276,15 @@ class History {
     _index = _stack.length - 1;
   }
 
-  /// I luoghi prima di questo, il più recente per primo (il menu di Indietro).
+  /// The places before this one, the most recent first (the Back menu).
   List<String> get backList => [
     for (var i = _index - 1; i >= 0; i--) _stack[i],
   ];
 
-  /// I luoghi dopo questo, il più vicino per primo (il menu di Avanti).
+  /// The places after this one, the nearest first (the Forward menu).
   List<String> get forwardList => _stack.sublist(_index + 1);
 
-  /// Salta di `steps` luoghi (negativo: indietro), entro la cronologia.
+  /// Jumps by `steps` places (negative: back), within the history.
   bool jump(int steps) {
     final target = _index + steps;
     if (steps == 0 || target < 0 || target >= _stack.length) return false;
@@ -305,7 +305,7 @@ class History {
   }
 }
 
-/// La cartella che contiene `path`, o null alla radice.
+/// The folder containing `path`, or null at the root.
 String? parentOf(String path) {
   final trimmed = path.length > 1 && path.endsWith('/')
       ? path.substring(0, path.length - 1)
@@ -316,14 +316,14 @@ String? parentOf(String path) {
   return slash == 0 ? '/' : trimmed.substring(0, slash);
 }
 
-/// Il nome da mostrare per una cartella: l'ultimo segmento, "/" per la radice.
+/// The name to show for a folder: the last segment, "/" for the root.
 String displayName(String path) {
   if (path == '/') return '/';
   final parts = path.split('/').where((s) => s.isNotEmpty);
   return parts.isEmpty ? path : parts.last;
 }
 
-/// Un luogo della barra laterale.
+/// A sidebar place.
 @immutable
 class Place {
   const Place(this.label, this.path, this.kind);
@@ -343,15 +343,15 @@ enum PlaceKind {
   videos,
   trash,
 
-  /// Un'etichetta (percorso `tag:<nome>`): mostra gli elementi che la portano.
+  /// A tag (path `tag:<name>`): shows the items that carry it.
   tag,
 }
 
-/// Il prefisso dei percorsi delle etichette nella barra laterale.
+/// The prefix of tag paths in the sidebar.
 const String tagPathPrefix = 'tag:';
 
-/// Le cartelle dell'utente da `~/.config/user-dirs.dirs` (specifica xdg-user-dirs), con il
-/// nome della cartella come etichetta; solo quelle che esistono.
+/// The user folders from `~/.config/user-dirs.dirs` (xdg-user-dirs specification), with the folder
+/// name as the label; only those that exist.
 List<Place> userPlaces({required String home, String? userDirs}) {
   final dirs = <String, String>{};
   for (final line in (userDirs ?? '').split('\n')) {
@@ -375,7 +375,7 @@ List<Place> userPlaces({required String home, String? userDirs}) {
   return places;
 }
 
-/// Il Cestino dell'utente (specifica freedesktop Trash): `$XDG_DATA_HOME/Trash/files`.
+/// The user's Trash (freedesktop Trash specification): `$XDG_DATA_HOME/Trash/files`.
 Place trashPlace({required String home, String? dataHome}) {
   final base = (dataHome == null || dataHome.isEmpty)
       ? '$home/.local/share'
@@ -383,7 +383,7 @@ Place trashPlace({required String home, String? dataHome}) {
   return Place('Cestino', '$base/Trash/files', PlaceKind.trash);
 }
 
-/// L'elemento in `path` (null se non esiste): come una riga di `listDirectory`.
+/// The item at `path` (null if it does not exist): like a row of `listDirectory`.
 Entry? entryAt(String path) {
   try {
     final type = FileSystemEntity.typeSync(path, followLinks: false);
@@ -404,5 +404,5 @@ Entry? entryAt(String path) {
   }
 }
 
-/// La vista dei contenuti (spec 3–6): a icone (⌘1), a elenco (⌘2), a colonne (⌘3).
+/// The content view (spec 3–6): icons (⌘1), list (⌘2), columns (⌘3).
 enum ViewMode { icons, list, columns, gallery }

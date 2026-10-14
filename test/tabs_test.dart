@@ -9,7 +9,7 @@ import 'package:mustache/src/tabs.dart';
 import 'package:mustache/src/window.dart';
 
 void main() {
-  testWidgets('⌘T apre una scheda; la barra compare con due; ⌃⇥ e ⌘W', (
+  testWidgets('⌘T opens a tab; the bar appears with two; ⌃⇥ and ⌘W', (
     tester,
   ) async {
     final home = Directory.systemTemp.createTempSync('mustache-schede');
@@ -38,7 +38,7 @@ void main() {
       ),
     );
     await tester.pump();
-    final bar = find.byKey(const ValueKey('barra delle schede'));
+    final bar = find.byKey(const ValueKey('tab bar'));
     expect(bar, findsNothing);
 
     Future<void> keys(
@@ -61,18 +61,16 @@ void main() {
 
     await keys(LogicalKeyboardKey.keyT, meta: true);
     expect(bar, findsOneWidget);
-    // A sinistra della prima scheda la barra sposta la finestra (MU-08).
-    final grip = tester.getRect(
-      find.byKey(const ValueKey('presa delle schede')),
-    );
+    // Left of the first tab the bar moves the window (MU-08).
+    final grip = tester.getRect(find.byKey(const ValueKey('tab grip')));
     expect(grip.width, 8);
     expect(grip.right, tester.getRect(bar).left + 8);
-    // Le scorciatoie della finestra arrivano alla scheda nuova (⌘3: colonne, ⌘2: elenco).
+    // The window shortcuts reach the new tab (⌘3: columns, ⌘2: list).
     await keys(LogicalKeyboardKey.digit3, meta: true);
     expect(settings.view, 'columns');
     await keys(LogicalKeyboardKey.digit2, meta: true);
     expect(settings.view, 'list');
-    // Nella seconda scheda si entra in Alfa: la prima resta nella home.
+    // In the second tab Alfa is entered: the first stays in home.
     await tester.tap(find.text('Alfa'));
     await tester.pump(const Duration(milliseconds: 50));
     await tester.tap(find.text('Alfa'));
@@ -83,17 +81,17 @@ void main() {
       displayName(home.path),
       'Alfa',
     ]);
-    // ⌃⇥: la prima scheda, ancora nella home.
+    // ⌃⇥: the first tab, still in home.
     await keys(LogicalKeyboardKey.tab, control: true);
     expect(host.active, 0);
     expect(find.text('Beta'), findsOneWidget);
-    // ⌘W chiude la scheda attiva: resta Alfa, la barra sparisce.
+    // ⌘W closes the active tab: Alfa remains, the bar disappears.
     await keys(LogicalKeyboardKey.keyW, meta: true);
     expect(host.tabs.length, 1);
     expect(bar, findsNothing);
-    // Una cartella vuota non scrive niente (R3.10): lo dice il titolo.
+    // An empty folder shows no text (R3.10): the title says it.
     expect(
-      tester.widget<Text>(find.byKey(const ValueKey('titolo'))).data,
+      tester.widget<Text>(find.byKey(const ValueKey('title'))).data,
       'Alfa',
     );
     await tester.pump(const Duration(milliseconds: 500));

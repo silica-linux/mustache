@@ -51,7 +51,7 @@ void main() {
 
   Future<void> select(WidgetTester tester, String name) async {
     await tester.tap(find.text(name));
-    // Oltre l'attesa del doppio clic, senza arrivare alla rinomina col clic lento.
+    // Past the double-click wait, without reaching the slow-click rename.
     await tester.pump(const Duration(milliseconds: 310));
   }
 
@@ -72,7 +72,7 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('Invio rinomina: solo il nome selezionato, Invio conferma, ⌘Z', (
+  testWidgets('Return renames: only the name selected, Return confirms, ⌘Z', (
     tester,
   ) async {
     await pump(tester);
@@ -97,7 +97,7 @@ void main() {
   });
 
   testWidgets(
-    'su Linux il focus non seleziona tutto: resta il nome senza estensione',
+    'on Linux the focus does not select everything: the name without extension stays',
     (tester) async {
       debugDefaultTargetPlatformOverride = TargetPlatform.linux;
       addTearDown(() => debugDefaultTargetPlatformOverride = null);
@@ -116,7 +116,9 @@ void main() {
     },
   );
 
-  testWidgets('Esc annulla; un nome già usato apre l\'avviso', (tester) async {
+  testWidgets('Esc cancels; a name already used opens the alert', (
+    tester,
+  ) async {
     await pump(tester);
     await select(tester, 'appunti.txt');
     await keys(tester, LogicalKeyboardKey.enter);
@@ -138,7 +140,7 @@ void main() {
     expect(File(p('bozza.txt')).readAsStringSync(), 'b');
   });
 
-  testWidgets('cambiare estensione chiede: Mantieni tiene la vecchia', (
+  testWidgets('changing the extension asks: Keep keeps the old one', (
     tester,
   ) async {
     await pump(tester);
@@ -153,7 +155,7 @@ void main() {
     expect(File(p('note.txt')).existsSync(), isTrue);
   });
 
-  testWidgets('⇧⌘N crea "cartella senza nome" in rinomina; ⌘Z la toglie', (
+  testWidgets('⇧⌘N creates "cartella senza nome" in rename; ⌘Z removes it', (
     tester,
   ) async {
     await pump(tester);
@@ -162,7 +164,7 @@ void main() {
     expect(Directory(p('cartella senza nome')).existsSync(), isTrue);
     final field = tester.widget<EditableText>(find.byType(EditableText));
     expect(field.controller.text, 'cartella senza nome');
-    // Tutto selezionato (una cartella non ha estensione).
+    // Everything selected (a folder has no extension).
     expect(
       field.controller.selection.extentOffset,
       'cartella senza nome'.length,
@@ -172,7 +174,7 @@ void main() {
     expect(Directory(p('cartella senza nome')).existsSync(), isFalse);
   });
 
-  testWidgets('⌘D duplica e seleziona le copie', (tester) async {
+  testWidgets('⌘D duplicates and selects the copies', (tester) async {
     await pump(tester);
     await select(tester, 'bozza.txt');
     await keys(tester, LogicalKeyboardKey.keyD, meta: true);
@@ -183,25 +185,28 @@ void main() {
     expect(File(p('bozza copia copia.txt')).existsSync(), isFalse);
   });
 
-  testWidgets('⌘⌫ nel Cestino, la selezione passa al dopo; ⌘Z rimette', (
+  testWidgets(
+    '⌘⌫ to the Trash, the selection moves to the next; ⌘Z puts it back',
+    (tester) async {
+      await pump(tester);
+      await select(tester, 'bozza.txt');
+      await keys(tester, LogicalKeyboardKey.backspace, meta: true);
+      expect(File(p('bozza.txt')).existsSync(), isFalse);
+      final trashed = File('${home.path}/.local/share/Trash/files/bozza.txt');
+      expect(trashed.existsSync(), isTrue);
+      // The next item (conto.txt) is selected: another ⌘⌫ moves it.
+      await keys(tester, LogicalKeyboardKey.backspace, meta: true);
+      expect(File(p('conto.txt')).existsSync(), isFalse);
+      await keys(tester, LogicalKeyboardKey.keyZ, meta: true);
+      await keys(tester, LogicalKeyboardKey.keyZ, meta: true);
+      expect(File(p('bozza.txt')).readAsStringSync(), 'b');
+      expect(File(p('conto.txt')).readAsStringSync(), 'c');
+    },
+  );
+
+  testWidgets('⌥⌘⌫ asks for confirmation; Delete removes right away', (
     tester,
   ) async {
-    await pump(tester);
-    await select(tester, 'bozza.txt');
-    await keys(tester, LogicalKeyboardKey.backspace, meta: true);
-    expect(File(p('bozza.txt')).existsSync(), isFalse);
-    final trashed = File('${home.path}/.local/share/Trash/files/bozza.txt');
-    expect(trashed.existsSync(), isTrue);
-    // L'elemento dopo (conto.txt) è selezionato: un altro ⌘⌫ lo sposta.
-    await keys(tester, LogicalKeyboardKey.backspace, meta: true);
-    expect(File(p('conto.txt')).existsSync(), isFalse);
-    await keys(tester, LogicalKeyboardKey.keyZ, meta: true);
-    await keys(tester, LogicalKeyboardKey.keyZ, meta: true);
-    expect(File(p('bozza.txt')).readAsStringSync(), 'b');
-    expect(File(p('conto.txt')).readAsStringSync(), 'c');
-  });
-
-  testWidgets('⌥⌘⌫ chiede conferma; Elimina cancella subito', (tester) async {
     await pump(tester);
     await select(tester, 'conto.txt');
     await keys(tester, LogicalKeyboardKey.backspace, meta: true, alt: true);
@@ -218,7 +223,7 @@ void main() {
     );
   });
 
-  testWidgets('clic lento sul nome già selezionato: rinomina dopo ~440 ms', (
+  testWidgets('slow click on the already selected name: rename after ~440 ms', (
     tester,
   ) async {
     await pump(tester);

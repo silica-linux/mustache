@@ -1,7 +1,7 @@
-// La barra degli strumenti unificata con la finestra (MU-02, mustache-spec 1.2): alta 52 dalla
-// cima, a destra della barra laterale, senza fondo; Ossido mette sopra i pulsanti della finestra
-// (silica-window-v1). Capsula Indietro/Avanti (75), titolo da 12 pt dopo, gruppo delle viste
-// (162) e Cerca (cerchio di 38) a destra, 7–8 pt fra le capsule. Il vuoto sposta la finestra.
+// The toolbar unified with the window (MU-02, mustache-spec 1.2): 52 tall from the top, right of
+// the sidebar, without a background; Ossido puts the window buttons on top (silica-window-v1).
+// Back/Forward capsule (75), title 12 pt after it, view group (162) and Search (38 pt circle) on
+// the right, 7–8 pt between capsules. The empty space moves the window.
 
 import 'dart:io';
 
@@ -11,11 +11,11 @@ import 'package:silica_ui/silica_ui.dart';
 
 import 'model.dart';
 
-/// Larghezza minima del titolo (spec 1.2).
+/// Minimum width of the title (spec 1.2).
 const double toolbarTitleMin = 160;
 
-/// I pulsanti della finestra finiscono a x 79 (centri 26/49/72, diametro 14): a barra laterale
-/// nascosta la barra degli strumenti parte da qui.
+/// The window buttons end at x 79 (centers 26/49/72, diameter 14): with the sidebar hidden the
+/// toolbar starts here.
 const double windowButtonsEnd = 80;
 
 class MustacheToolbar extends StatefulWidget {
@@ -38,31 +38,31 @@ class MustacheToolbar extends StatefulWidget {
     this.onForwardHistory,
   });
 
-  /// Il fondo della barra; in scuro, con il puntatore nella barra, `#2e3030` (MU-07).
+  /// The bar background; in dark, with the pointer in the bar, `#2e3030` (MU-07).
   final Color? background;
 
-  /// Pressione lunga su Indietro / Avanti: il menu della cronologia, con l'angolo in alto a
-  /// sinistra sul bordo sinistro del segmento, 2 pt sopra il fondo della capsula (MU-07).
+  /// Long press on Back / Forward: the history menu, with its top-left corner on the left edge of
+  /// the segment, 2 pt above the bottom of the capsule (MU-07).
   final ValueChanged<Offset>? onBackHistory;
   final ValueChanged<Offset>? onForwardHistory;
 
-  /// Lo spazio a sinistra prima della prima capsula.
+  /// The space on the left before the first capsule.
   final double leading;
   final String title;
 
-  /// Finestra attiva: titolo scuro.
+  /// Active window: dark title.
   final bool active;
   final bool canGoBack;
   final bool canGoForward;
   final VoidCallback onBack;
   final VoidCallback onForward;
 
-  /// La vista scelta (null: nessun gruppo delle viste, come nella ricerca).
+  /// The chosen view (null: no view group, as in search).
   final ViewMode? view;
   final ValueChanged<ViewMode> onView;
   final VoidCallback onSearch;
 
-  /// Il campo della ricerca al posto del cerchio di Cerca.
+  /// The search field in place of the Search circle.
   final Widget? searchField;
   final String? iconsDir;
 
@@ -73,20 +73,20 @@ class MustacheToolbar extends StatefulWidget {
 class _MustacheToolbarState extends State<MustacheToolbar> {
   bool _hovered = false;
 
-  /// L'angolo del menu della cronologia sotto il segmento `index` (0 Indietro, 1 Avanti).
+  /// The corner of the history menu below segment `index` (0 Back, 1 Forward).
   void _history(int index) {
     final callback = index == 0
         ? widget.onBackHistory
         : widget.onForwardHistory;
     final box = context.findRenderObject();
     if (callback == null || box is! RenderBox) return;
-    // Capsula da y 7, alta 38; segmenti da 36 dopo il contorno di 1 pt e il separatore.
+    // Capsule from y 7, 38 tall; 36 pt segments after the 1 pt outline and the separator.
     final x = widget.leading + 1 + index * 37;
     callback(box.localToGlobal(Offset(x, 7 + toolbarCapsuleHeight - 2)));
   }
 
-  /// Il simbolo di silica-icons in un riquadro di `side` (i simboli disegnano in 24 il segno di
-  /// 16–20: il riquadro è scelto perché il segno abbia le misure della barra).
+  /// The silica-icons symbol in a `side` box (symbols draw the 16–20 glyph within 24: the box is
+  /// chosen so the glyph has the toolbar measurements).
   Widget _symbol(String name, double side, String fallback) => SizedBox(
     width: side,
     height: side,
@@ -122,7 +122,7 @@ class _MustacheToolbarState extends State<MustacheToolbar> {
     ),
   );
 
-  /// L'icona nel colore del segmento.
+  /// The icon in the segment color.
   Widget Function(Color) _icon(String name, double side, String fallback) =>
       (color) => DefaultTextStyle(
         style: TextStyle(color: color),
@@ -151,11 +151,11 @@ class _MustacheToolbarState extends State<MustacheToolbar> {
 
   Widget _bar() => WindowDragArea(
     child: SizedBox(
-      key: const ValueKey('barra degli strumenti'),
+      key: const ValueKey('toolbar'),
       height: toolbarHeight,
       child: LayoutBuilder(
         builder: (context, box) {
-          // Al restringersi escono prima le viste, poi Indietro/Avanti (spec 1.2, R1.7).
+          // When shrinking the views go first, then Back/Forward (spec 1.2, R1.7).
           final room = box.maxWidth - widget.leading;
           final views =
               widget.view != null && room >= 75 + 12 + 160 + 162 + 8 + 38;
@@ -165,11 +165,11 @@ class _MustacheToolbarState extends State<MustacheToolbar> {
               SizedBox(width: widget.leading),
               if (navigation) ...[
                 ToolbarCapsule(
-                  key: const ValueKey('indietro e avanti'),
+                  key: const ValueKey('back and forward'),
                   separators: true,
                   children: [
                     ToolbarSegment(
-                      key: const ValueKey('indietro'),
+                      key: const ValueKey('back'),
                       width: 36,
                       enabled: widget.canGoBack,
                       onTap: widget.onBack,
@@ -179,7 +179,7 @@ class _MustacheToolbarState extends State<MustacheToolbar> {
                       icon: _icon('chevron-left', 24, '‹'),
                     ),
                     ToolbarSegment(
-                      key: const ValueKey('avanti'),
+                      key: const ValueKey('forward'),
                       width: 36,
                       enabled: widget.canGoForward,
                       onTap: widget.onForward,
@@ -192,7 +192,7 @@ class _MustacheToolbarState extends State<MustacheToolbar> {
                 ),
                 const SizedBox(width: 12),
               ],
-              // Il titolo non sposta la finestra; il vuoto accanto sì (MU-08).
+              // The title does not move the window; the empty space beside it does (MU-08).
               Expanded(
                 child: Align(
                   alignment: Alignment.centerLeft,
@@ -201,7 +201,7 @@ class _MustacheToolbarState extends State<MustacheToolbar> {
                     onPanStart: (_) {},
                     child: Text(
                       widget.title,
-                      key: const ValueKey('titolo'),
+                      key: const ValueKey('title'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -219,17 +219,17 @@ class _MustacheToolbarState extends State<MustacheToolbar> {
               ),
               if (views)
                 ToolbarCapsule(
-                  key: const ValueKey('gruppo delle viste'),
+                  key: const ValueKey('view group'),
                   children: [
                     for (final (mode, symbol, side, fallback) in const [
-                      // Griglia 15, elenco 17 × 12, colonne 20 × 15, galleria 19 × 15.
+                      // Grid 15, list 17 × 12, columns 20 × 15, gallery 19 × 15.
                       (ViewMode.icons, 'square-grid-2x2', 20.0, '▦'),
                       (ViewMode.list, 'list-bullet', 24.0, '≡'),
                       (ViewMode.columns, 'window-split-3', 24.0, '▥'),
                       (ViewMode.gallery, 'gallery', 24.0, '▭'),
                     ])
                       ToolbarSegment(
-                        key: ValueKey('vista ${mode.name}'),
+                        key: ValueKey('view ${mode.name}'),
                         width: 40,
                         chosen: mode == widget.view,
                         onTap: () => widget.onView(mode),
@@ -240,7 +240,7 @@ class _MustacheToolbarState extends State<MustacheToolbar> {
               const SizedBox(width: 8),
               widget.searchField ??
                   ToolbarCapsule(
-                    key: const ValueKey('cerca'),
+                    key: const ValueKey('search'),
                     children: [
                       ToolbarSegment(
                         width: toolbarCapsuleHeight - 2,

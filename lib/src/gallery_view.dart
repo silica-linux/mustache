@@ -1,7 +1,7 @@
-// La galleria (⌘4, MU-23, mustache-spec 6): l'anteprima grande dell'elemento scelto (a 32 pt dai
-// bordi, contorno di 1 pt, nessuna ombra) e sotto la striscia delle miniature (48 pt a passo 59,
-// alta 54; la scelta in un quadrato arrotondato 54 × 54). La striscia scorre per tenere visibile
-// la scelta (R6.1); l'anteprima cambia senza transizione.
+// The gallery (⌘4, MU-23, mustache-spec 6): the large preview of the chosen item (32 pt from the
+// edges, 1 pt outline, no shadow) and below it the strip of thumbnails (48 pt at a 59 pitch, 54
+// tall; the choice in a 54 × 54 rounded square). The strip scrolls to keep the choice visible
+// (R6.1); the preview changes without a transition.
 
 import 'dart:io';
 import 'dart:math' as math;
@@ -18,11 +18,11 @@ const double galleryStrip = 54;
 const Color galleryOutline = Color(0xFFF2F2F2);
 const Color galleryOutlineDark = Color(0xFF313132);
 
-/// L'icona grande rispetto al lato corto dell'anteprima (mu23-gallery-folder-light).
+/// The large icon relative to the short side of the preview (mu23-gallery-folder-light).
 const double galleryIconRatio = 0.94;
 const Color galleryChosen = Color(0xFFBDBDBD);
 
-/// La scelta in scuro (mu23-gallery-image-dark).
+/// The choice in dark (mu23-gallery-image-dark).
 const Color galleryChosenDark = Color(0xFF5C5C5D);
 
 bool _dark(BuildContext context) =>
@@ -40,7 +40,7 @@ class GalleryView extends StatefulWidget {
 
   final List<Entry> entries;
 
-  /// L'elemento scelto (null: il primo).
+  /// The chosen item (null: the first).
   final String? selected;
   final ValueChanged<Entry> onTap;
   final ValueChanged<Entry> onOpen;
@@ -64,7 +64,7 @@ class _GalleryViewState extends State<GalleryView> {
     return i < 0 ? 0 : i;
   }
 
-  /// La striscia scorre quanto basta per tenere visibile la scelta (R6.1).
+  /// The strip scrolls just enough to keep the choice visible (R6.1).
   void _reveal(double width) {
     if (!_strip.hasClients) return;
     final left = 8 + galleryPitch * _index;
@@ -99,7 +99,7 @@ class _GalleryViewState extends State<GalleryView> {
               ),
             ),
             SizedBox(
-              key: const ValueKey('striscia delle miniature'),
+              key: const ValueKey('thumbnail strip'),
               height: galleryStrip + 12,
               child: ListView.builder(
                 controller: _strip,
@@ -113,7 +113,7 @@ class _GalleryViewState extends State<GalleryView> {
                   return Listener(
                     onPointerDown: (_) => widget.onTap(entry),
                     child: GestureDetector(
-                      key: ValueKey('miniatura ${entry.path}'),
+                      key: ValueKey('thumbnail ${entry.path}'),
                       onDoubleTap: () => widget.onOpen(entry),
                       child: Center(
                         child: Container(
@@ -150,13 +150,13 @@ class _GalleryViewState extends State<GalleryView> {
     );
   }
 
-  /// L'anteprima grande: l'immagine adattata e centrata con il contorno di 1 pt, o l'icona
-  /// grande, quanto il quadrato dell'anteprima (cartelle, file senza anteprima, R6.2).
+  /// The large preview: the image fitted and centered with the 1 pt outline, or the large icon, as
+  /// big as the preview square (folders, files without a preview, R6.2).
   Widget _big(Entry entry) {
     if (hasThumbnail(entry.name)) {
       return Center(
         child: DecoratedBox(
-          key: const ValueKey('anteprima grande'),
+          key: const ValueKey('large preview'),
           position: DecorationPosition.foreground,
           decoration: BoxDecoration(
             border: Border.all(
@@ -178,8 +178,8 @@ class _GalleryViewState extends State<GalleryView> {
         ),
       );
     }
-    // L'icona occupa ~0,94 del quadrato dell'anteprima (mu23-gallery-folder: riquadro 494 ×
-    // 525, cartella larga 427, cioè un'icona di ~464; le immagini invece lo riempiono).
+    // The icon takes ~0.94 of the preview square (mu23-gallery-folder: box 494 × 525, folder 427
+    // wide, i.e. an icon of ~464; images fill it instead).
     return LayoutBuilder(
       builder: (context, box) {
         final side = math.max(
@@ -187,7 +187,7 @@ class _GalleryViewState extends State<GalleryView> {
           math.min(box.maxWidth, box.maxHeight) * galleryIconRatio,
         );
         return Center(
-          key: const ValueKey('anteprima grande'),
+          key: const ValueKey('large preview'),
           child: EntryIcon(entry: entry, side: side, env: widget.env),
         );
       },

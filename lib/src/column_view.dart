@@ -1,8 +1,7 @@
-// La vista a colonne (MU-22, mustache-spec 5): una colonna per ogni cartella dalla radice (la
-// voce della barra laterale da cui si parte, R5.6) fino a quella aperta; l'elemento scelto è
-// evidenziato nella sua colonna (blu nella colonna attiva, grigio in quelle a sinistra, R5.1).
-// Le colonne non si comprimono: la vista scorre in orizzontale e salta subito in fondo quando
-// se ne apre una nuova (R5.4, R5.5).
+// The column view (MU-22, mustache-spec 5): one column for each folder from the root (the sidebar
+// entry it starts from, R5.6) down to the open one; the chosen item is highlighted in its column
+// (blue in the active column, gray in those on the left, R5.1). Columns do not shrink: the view
+// scrolls horizontally and jumps to the end right away when a new one opens (R5.4, R5.5).
 
 import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
@@ -12,7 +11,7 @@ import 'list_view.dart' show middleEllipsis;
 import 'model.dart';
 import 'tags.dart' show TagDots;
 
-/// Passo di una colonna (elenco 234 + fascia di separazione 11).
+/// Pitch of a column (list 234 + separator band 11).
 const double columnPitch = 245;
 const double columnBand = 11;
 const double columnRow = 24;
@@ -43,7 +42,7 @@ class ColumnColors {
   final Color active;
   final Color activeText;
 
-  /// La selezione nelle colonne a sinistra della attiva.
+  /// The selection in the columns left of the active one.
   final Color path;
   final Color chevron;
 
@@ -68,8 +67,8 @@ class ColumnColors {
         );
 }
 
-/// Le cartelle delle colonne: dalla radice a `current` compresa (solo se `current` è dentro
-/// `root`; altrimenti la sola `current`).
+/// The folders of the columns: from the root to `current` included (only if `current` is inside
+/// `root`; otherwise `current` alone).
 List<String> columnChain(String root, String current) {
   if (current != root && !current.startsWith(root == '/' ? '/' : '$root/')) {
     return [current];
@@ -99,21 +98,21 @@ class ColumnView extends StatefulWidget {
     this.tagsOf,
   });
 
-  /// Le etichette di un elemento: i punti prima della freccia (mu22-root).
+  /// The tags of an item: the dots before the arrow (mu22-root).
   final List<String> Function(Entry entry)? tagsOf;
 
-  /// La radice (prima colonna) e la cartella aperta (ultima colonna).
+  /// The root (first column) and the open folder (last column).
   final String root;
   final String current;
 
-  /// L'elemento scelto: un file nella colonna di `current`, o `current` stesso se è stata
-  /// scelta una cartella (allora la sua colonna è l'ultima, senza selezione).
+  /// The chosen item: a file in the column of `current`, or `current` itself if a folder was chosen
+  /// (then its column is the last one, without a selection).
   final String? leaf;
 
-  /// Il contenuto di una cartella, già ordinato (dalla finestra: file nascosti, ordinamento).
+  /// The contents of a folder, already sorted (by the window: hidden files, sort order).
   final List<Entry> Function(String dir) list;
 
-  /// Clic su un elemento della colonna di `dir`.
+  /// Click on an item of the column of `dir`.
   final void Function(Entry entry, String dir) onSelect;
   final ValueChanged<Entry> onOpen;
   final bool active;
@@ -140,12 +139,12 @@ class _ColumnViewState extends State<ColumnView> {
     final colors = ColumnColors.of(dark: dark);
     final chain = columnChain(widget.root, widget.current);
     final leaf = widget.leaf;
-    // La colonna attiva è quella dell'elemento scelto: quella del file, o quella che contiene
-    // la cartella scelta (la penultima).
+    // The active column is the one of the chosen item: the file's, or the one containing the chosen
+    // folder (the second to last).
     final leafIsCurrent = leaf == widget.current;
     final activeColumn = leafIsCurrent ? chain.length - 2 : chain.length - 1;
     if (chain.length != _columns) {
-      // Una colonna nuova: la vista salta in fondo, senza animazione (R5.4).
+      // A new column: the view jumps to the end, without animation (R5.4).
       _columns = chain.length;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_scroll.hasClients) {
@@ -164,7 +163,7 @@ class _ColumnViewState extends State<ColumnView> {
             for (var i = 0; i < chain.length; i++)
               _column(
                 chain[i],
-                // Nella colonna i è evidenziata la cartella dopo nella catena, o l'elemento.
+                // In column i the next folder in the chain, or the item, is highlighted.
                 highlighted: i + 1 < chain.length
                     ? chain[i + 1]
                     : (leafIsCurrent ? null : leaf),
@@ -185,14 +184,14 @@ class _ColumnViewState extends State<ColumnView> {
   }) {
     final entries = widget.list(dir);
     return SizedBox(
-      key: ValueKey('colonna $dir'),
+      key: ValueKey('column $dir'),
       width: columnPitch,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
             child: _RevealList(
-              key: ValueKey('elenco $dir'),
+              key: ValueKey('list $dir'),
               reveal: entries.indexWhere((e) => e.path == highlighted),
               itemCount: entries.length,
               itemBuilder: (context, index) {
@@ -243,8 +242,8 @@ class _ColumnViewState extends State<ColumnView> {
                             env: widget.env,
                           ),
                         ),
-                        // Il nome troncato al centro (mu22-root: "Beta con un…nella
-                        // colonna"); i punti delle etichette prima della freccia.
+                        // The name truncated in the middle (mu22-root: "Beta con un…nella
+                        // colonna"); the tag dots before the arrow.
                         Positioned(
                           left: columnTextLeft,
                           right:
@@ -309,7 +308,7 @@ class _ColumnViewState extends State<ColumnView> {
               },
             ),
           ),
-          // La fascia di separazione sul lato destro.
+          // The separator band on the right side.
           SizedBox(
             width: columnBand,
             child: ColoredBox(color: colors.band),
@@ -320,8 +319,8 @@ class _ColumnViewState extends State<ColumnView> {
   }
 }
 
-/// L'elenco di una colonna: quando compare, la voce evidenziata è portata in vista (una
-/// colonna lunga non nasconde la cartella aperta a destra).
+/// The list of a column: when it appears, the highlighted entry is scrolled into view (a long
+/// column does not hide the folder open on the right).
 class _RevealList extends StatefulWidget {
   const _RevealList({
     super.key,

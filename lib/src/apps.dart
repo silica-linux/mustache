@@ -1,13 +1,13 @@
-// Le app che aprono un file (MU-50, mustache-spec R10.1): le voci .desktop con `MimeType`
-// (specifica freedesktop Desktop Entry), le scelte di `mimeapps.list` (specifica "Association
-// between MIME types and applications": predefinite, aggiunte, tolte) e l'avvio con i codici di
-// campo di `Exec`.
+// The apps that open a file (MU-50, mustache-spec R10.1): .desktop entries with `MimeType`
+// (freedesktop Desktop Entry specification), the choices of `mimeapps.list` (the "Association
+// between MIME types and applications" specification: defaults, added, removed) and launching with
+// the field codes of `Exec`.
 
 import 'dart:io';
 
 import 'package:silica_ui/silica_ui.dart' show MimeDatabase, xdgDataDirs;
 
-/// Un'app installata che dichiara i tipi che apre.
+/// An installed app that declares the types it opens.
 class DesktopApp {
   const DesktopApp({
     required this.id,
@@ -18,7 +18,7 @@ class DesktopApp {
     this.terminal = false,
   });
 
-  /// L'id della voce (`org.gnome.TextEditor.desktop`).
+  /// The id of the entry (`org.gnome.TextEditor.desktop`).
   final String id;
   final String name;
   final String exec;
@@ -27,7 +27,7 @@ class DesktopApp {
   final bool terminal;
 }
 
-/// Una voce .desktop (testo); null se non è un'app avviabile o è nascosta.
+/// A .desktop entry (text); null if it is not a launchable app or it is hidden.
 DesktopApp? parseDesktopApp(String id, String text, {String locale = 'it'}) {
   final values = <String, String>{};
   var inEntry = false;
@@ -60,13 +60,13 @@ DesktopApp? parseDesktopApp(String id, String text, {String locale = 'it'}) {
   );
 }
 
-/// Le scelte di `mimeapps.list`, unite nell'ordine di precedenza.
+/// The choices of `mimeapps.list`, merged in precedence order.
 class MimeApps {
   final Map<String, List<String>> defaults = {};
   final Map<String, List<String>> added = {};
   final Map<String, Set<String>> removed = {};
 
-  /// Aggiunge un file (i primi letti hanno precedenza).
+  /// Adds a file (the first ones read take precedence).
   void addFile(String text) {
     String? section;
     for (final raw in text.split('\n')) {
@@ -94,12 +94,12 @@ class MimeApps {
   }
 }
 
-/// Le app e le associazioni del sistema e dell'utente.
+/// The apps and associations of the system and of the user.
 class AppRegistry {
   AppRegistry(this.apps, this.mimeApps, this.mime);
 
-  /// Dai file del sistema: applications/ nelle cartelle dei dati XDG (la prima vince), e i
-  /// `mimeapps.list` di configurazione e dati (specifica, "File name and location").
+  /// From the system files: applications/ in the XDG data directories (the first wins), and the
+  /// `mimeapps.list` files of configuration and data (specification, "File name and location").
   factory AppRegistry.load({Map<String, String>? env, MimeDatabase? mime}) {
     final e = env ?? Platform.environment;
     final apps = <String, DesktopApp>{};
@@ -157,8 +157,8 @@ class AppRegistry {
 
   List<String> _typeChain(String type) => [type, ...mime.parentsOf(type)];
 
-  /// L'app predefinita per un tipo: `Default Applications` per il tipo e poi per i genitori;
-  /// altrimenti la prima app aggiunta o installata che lo apre.
+  /// The default app for a type: `Default Applications` for the type and then for its parents;
+  /// otherwise the first added or installed app that opens it.
   DesktopApp? defaultFor(String type) {
     for (final t in _typeChain(type)) {
       for (final id in mimeApps.defaults[t] ?? const <String>[]) {
@@ -170,8 +170,8 @@ class AppRegistry {
     return appsFor(type).firstOrNull;
   }
 
-  /// Le app che aprono un tipo (o un suo genitore), senza le tolte; prima le aggiunte in
-  /// `mimeapps.list`, poi le altre in ordine di nome.
+  /// The apps that open a type (or one of its parents), without the removed ones; first those added
+  /// in `mimeapps.list`, then the others by name.
   List<DesktopApp> appsFor(String type) {
     final out = <DesktopApp>[];
     final seen = <String>{};
@@ -193,8 +193,8 @@ class AppRegistry {
   }
 }
 
-/// La riga di comando di `Exec` per aprire `paths` (codici di campo: %f %F %u %U, %i %c %k;
-/// %d %D %n %N %v %m deprecati e tolti; %% è %). Le virgolette della specifica si rispettano.
+/// The `Exec` command line to open `paths` (field codes: %f %F %u %U, %i %c %k; %d %D %n %N %v %m
+/// are deprecated and dropped; %% is %). The quoting rules of the specification are respected.
 List<String> execArguments(
   DesktopApp app,
   List<String> paths, {
@@ -228,7 +228,7 @@ List<String> execArguments(
         );
     }
   }
-  // Un'app senza codici di campo riceve comunque il file in fondo.
+  // An app without field codes still gets the file at the end.
   if (!usedFiles) out.addAll(paths);
   return out.where((w) => w.isNotEmpty).toList();
 }
@@ -264,7 +264,7 @@ List<String> _splitExec(String exec) {
   return out;
 }
 
-/// Avvia un'app su dei file, staccata da Mustache. Un errore (programma assente) è un messaggio.
+/// Launches an app on some files, detached from Mustache. An error (missing program) is a message.
 Future<String?> launchApp(DesktopApp app, List<String> paths) async {
   final args = execArguments(app, paths);
   if (args.isEmpty) return 'La voce di «${app.name}» non ha un comando.';
@@ -282,15 +282,15 @@ Future<String?> launchApp(DesktopApp app, List<String> paths) async {
 
 final Map<String, String?> _comments = {};
 
-/// La descrizione di un tipo MIME nella lingua (`<comment xml:lang="it">` di
-/// `mime/<tipo>.xml`), o quella senza lingua; null se il tipo non ha un file.
+/// The description of a MIME type in the language (`<comment xml:lang="it">` of `mime/<type>.xml`),
+/// or the one without a language; null if the type has no file.
 String? mimeComment(
   String type, {
   String locale = 'it',
   Map<String, String>? env,
 }) {
   final key = '$locale $type';
-  // In cache solo con l'ambiente del processo (i test ne passano altri).
+  // Cached only with the process environment (tests pass others).
   if (env == null && _comments.containsKey(key)) return _comments[key];
   String? found;
   for (final dir in xdgDataDirs(env ?? Platform.environment)) {

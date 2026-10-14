@@ -1,7 +1,7 @@
-// Copia, incolla e sposta nella finestra (MU-41, MU-43): ⌘C mette i percorsi negli appunti,
-// ⌘V li copia nella cartella aperta, ⌥⌘V li sposta (R9.8). La copia gira in background; la
-// finestra di avanzamento compare se dura più di ~2,5 s (R9.4); un conflitto apre la sua
-// finestra e aspetta la scelta.
+// Copy, paste and move in the window (MU-41, MU-43): ⌘C puts the paths on the clipboard, ⌘V copies
+// them into the open folder, ⌥⌘V moves them (R9.8). The copy runs in the background; the progress
+// window appears if it lasts more than ~2.5 s (R9.4); a conflict opens its window and waits for a
+// choice.
 
 part of 'window.dart';
 
@@ -10,7 +10,7 @@ extension _Transfers on _MustacheWindowState {
     final paths = [for (final e in items ?? _selection) e.path];
     if (paths.isEmpty) return;
     FileClipboard.paths = paths;
-    // Anche come testo, per le altre app (un percorso per riga).
+    // Also as text, for other apps (one path per line).
     Clipboard.setData(ClipboardData(text: paths.join('\n'))).ignore();
   }
 
@@ -27,11 +27,11 @@ extension _Transfers on _MustacheWindowState {
       sources,
       _history.current,
     );
-    // Spostati, gli appunti non valgono più.
+    // Once moved, the clipboard no longer applies.
     if (move) FileClipboard.paths = const [];
   }
 
-  /// Avvia una copia o uno spostamento verso `destination`.
+  /// Starts a copy or a move to `destination`.
   Future<void> _startTransfer(
     TransferKind kind,
     List<String> sources,
@@ -47,8 +47,7 @@ extension _Transfers on _MustacheWindowState {
     var listed = 0;
     transfer.addListener(() {
       if (!mounted) return;
-      // Un elemento nuovo nella destinazione compare subito; l'avanzamento ridisegna al più
-      // ogni 50 ms.
+      // A new item in the destination appears right away; progress repaints at most every 50 ms.
       final now = DateTime.now();
       if (transfer.targets.length != listed) {
         listed = transfer.targets.length;
@@ -117,7 +116,7 @@ extension _Transfers on _MustacheWindowState {
     conflict.done.complete(choice);
   }
 
-  /// Il percorso è un elemento ancora in copia (nome attenuato, torta).
+  /// The path is an item still being copied (dimmed name, pie).
   Transfer? _pendingTransfer(String path) {
     for (final t in _transfers) {
       if (t.isPending(path)) return t;

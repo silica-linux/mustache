@@ -13,7 +13,7 @@ Entry file(String name, {int size = 0, DateTime? at, bool dir = false}) =>
     );
 
 void main() {
-  test('ordinamento naturale, senza distinguere le maiuscole', () {
+  test('natural sort, case insensitive', () {
     final names = [
       for (final e in sortEntries([
         file('file 10'),
@@ -34,7 +34,7 @@ void main() {
     );
   });
 
-  test('per dimensione le cartelle vengono prima, a parità per nome', () {
+  test('by size folders come first, ties by name', () {
     final sorted = sortEntries([
       file('grande', size: 5000),
       file('cartella', dir: true),
@@ -47,10 +47,10 @@ void main() {
     );
   });
 
-  test('dimensioni e date nei formati della vista a elenco', () {
+  test('sizes and dates in the list view formats', () {
     expect(formatSize(file('x', size: 12)), '12 byte');
     expect(formatSize(file('x', size: 3400000)), '3 MB');
-    // Come le righe di mu20-list-rows (R3.2).
+    // Like the rows of mu20-list-rows (R3.2).
     expect(formatSize(file('x', size: 2967)), '3 KB');
     expect(formatSize(file('x', size: 461000)), '461 KB');
     expect(formatSize(file('x', size: 2150000000)), '2,15 GB');
@@ -62,11 +62,11 @@ void main() {
     expect(formatDate(DateTime(2024, 3, 3, 9, 14), now), '3 mar 2024, 09:14');
   });
 
-  test('estensioni e tipi', () {
+  test('extensions and kinds', () {
     expect(file('foto.JPG').extension, 'jpg');
     expect(file('.nascosto').extension, '');
     expect(file('senza').extension, '');
-    // Famiglie brevi (R3.3): il formato per immagini e audio, l'estensione per gli archivi.
+    // Short families (R3.3): the format for images and audio, the extension for archives.
     expect(kindLabel(file('a.pdf'), 'application/pdf'), 'PDF');
     expect(kindLabel(file('a.png'), 'image/png'), 'Immagine PNG');
     expect(kindLabel(file('a.wav'), 'audio/x-wav'), 'Audio WAV');
@@ -77,26 +77,23 @@ void main() {
     expect(kindLabel(file('Gamma', dir: true)), 'Cartella');
   });
 
-  test(
-    'cronologia: indietro, avanti, e una nuova strada cancella l\'avanti',
-    () {
-      final history = History('/a')
-        ..go('/a/b')
-        ..go('/a/b/c');
-      expect(history.back(), isTrue);
-      expect(history.current, '/a/b');
-      expect(history.canGoForward, isTrue);
-      history.go('/x');
-      expect(history.canGoForward, isFalse);
-      expect(history.back(), isTrue);
-      expect(history.current, '/a/b');
-      expect(parentOf('/a/b/'), '/a');
-      expect(parentOf('/a'), '/');
-      expect(parentOf('/'), isNull);
-    },
-  );
+  test('history: back, forward, and a new path clears forward', () {
+    final history = History('/a')
+      ..go('/a/b')
+      ..go('/a/b/c');
+    expect(history.back(), isTrue);
+    expect(history.current, '/a/b');
+    expect(history.canGoForward, isTrue);
+    history.go('/x');
+    expect(history.canGoForward, isFalse);
+    expect(history.back(), isTrue);
+    expect(history.current, '/a/b');
+    expect(parentOf('/a/b/'), '/a');
+    expect(parentOf('/a'), '/');
+    expect(parentOf('/'), isNull);
+  });
 
-  test('luoghi dalle cartelle dell\'utente, solo quelle che esistono', () {
+  test('places from the user folders, only those that exist', () {
     final home = Directory.systemTemp.createTempSync('mustache-home').path;
     Directory('$home/Scrivania').createSync();
     Directory('$home/Scaricati').createSync();
@@ -117,13 +114,13 @@ void main() {
     expect(trashPlace(home: home, dataHome: '/d').path, '/d/Trash/files');
   });
 
-  test('una cartella che non esiste è un errore, non un\'eccezione', () {
+  test('a folder that does not exist is an error, not an exception', () {
     final result = listDirectory('/non/esiste/davvero');
     expect(result.error, isNotNull);
     expect(result.entries, isEmpty);
   });
 
-  test('un collegamento ha la sua data e la sua dimensione (R3.2)', () {
+  test('a link has its own date and size (R3.2)', () {
     final dir = Directory.systemTemp.createTempSync('mustache-link');
     addTearDown(() => dir.deleteSync(recursive: true));
     final target = File('${dir.path}/appunti.txt')..writeAsStringSync('x' * 31);
@@ -133,14 +130,14 @@ void main() {
       dir.path,
     ).entries.firstWhere((e) => e.name == 'collegamento');
     expect(link.isLink, isTrue);
-    // La destinazione è lunga 11 byte ("appunti.txt"); la data è di adesso, non del 2024.
+    // The target is 11 bytes long ("appunti.txt"); the date is now, not 2024.
     expect(link.size, 11);
     expect(link.modified.year, DateTime.now().year);
     expect(kindLabel(link, 'text/plain'), 'Collegamento');
     expect(entryAt(link.path)?.size, 11);
   });
 
-  test('cronologia: i luoghi prima e dopo, e i salti', () {
+  test('history: the places before and after, and jumps', () {
     final h = History('/a')
       ..go('/b')
       ..go('/c')

@@ -1,11 +1,11 @@
-// La visualizzazione rapida (Spazio, MU-61, mustache-spec 12): un pannello centrato con la
-// barra superiore di 38 pt (×, nome, "Apri con <app>") e una cornice di 5 pt attorno al
-// contenuto. Le dimensioni seguono il contenuto: un'immagine alla sua grandezza naturale più
-// 10 × 43 (larga almeno ~370, alta al più 1256), il testo 816 × 849, il resto (cartelle, codice,
-// archivi, file senza anteprima) 575 × 328 con l'icona grande, il nome e i dati.
+// Quick Look (Space, MU-61, mustache-spec 12): a centered panel with a 38 pt top bar (×, name,
+// "Apri con <app>") and a 5 pt frame around the content. The size follows the content: an image at
+// its natural size plus 10 × 43 (at least ~370 wide, at most 1256 tall), text 816 × 849, the rest
+// (folders, code, archives, files without a preview) 575 × 328 with the large icon, the name and
+// the details.
 //
-// In Silica il pannello vive dentro la finestra (l'embedder non ha ancora finestre figlie): si
-// riduce per starci.
+// In Silica the panel lives inside the window (the embedder has no child windows yet): it shrinks
+// to fit.
 
 import 'dart:io';
 import 'dart:math' as math;
@@ -23,7 +23,7 @@ const double quickLookMinWidth = 370;
 const Size quickLookGeneric = Size(575, 328);
 const Size quickLookText = Size(816, 849);
 
-/// Le estensioni mostrate come testo.
+/// The extensions shown as text.
 const Set<String> textExtensions = {
   'txt',
   'md',
@@ -58,12 +58,12 @@ bool isTextPreview(String name) {
       textExtensions.contains(name.substring(dot + 1).toLowerCase());
 }
 
-/// La dimensione del pannello per un'immagine di `natural` pt (spec 12).
+/// The panel size for an image of `natural` pt (spec 12).
 Size imagePanelSize(Size natural) {
   var w = natural.width + 2 * quickLookFrame;
   var h = natural.height + quickLookBar + quickLookFrame;
   if (h > quickLookMaxHeight) {
-    // Adattata all'altezza massima, in proporzione.
+    // Fitted to the maximum height, proportionally.
     final scale =
         (quickLookMaxHeight - quickLookBar - quickLookFrame) / natural.height;
     w = natural.width * scale + 2 * quickLookFrame;
@@ -72,7 +72,7 @@ Size imagePanelSize(Size natural) {
   return Size(math.max(w, quickLookMinWidth), h);
 }
 
-/// Riduce il pannello perché stia in `room` (la finestra), in proporzione.
+/// Shrinks the panel to fit in `room` (the window), proportionally.
 Size fitPanel(Size panel, Size room) {
   final scale = math.min(
     1.0,
@@ -95,11 +95,11 @@ class QuickLookPanel extends StatefulWidget {
   final Entry entry;
   final VoidCallback onClose;
 
-  /// Il nome dell'app predefinita, per la capsula "Apri con …".
+  /// The name of the default app, for the "Apri con …" capsule.
   final String? openWith;
   final VoidCallback? onOpenWith;
 
-  /// "N di M" quando la selezione ha più elementi.
+  /// "N di M" when the selection has several items.
   final (int, int)? position;
   final Map<String, String>? env;
 
@@ -172,7 +172,7 @@ class _QuickLookPanelState extends State<QuickLookPanel> {
         );
         return Center(
           child: Container(
-            key: const ValueKey('visualizzazione rapida'),
+            key: const ValueKey('quick look'),
             width: size.width,
             height: size.height,
             decoration: BoxDecoration(
@@ -245,7 +245,7 @@ class _QuickLookPanelState extends State<QuickLookPanel> {
         children: [
           const SizedBox(width: 12),
           GestureDetector(
-            key: const ValueKey('chiudi la visualizzazione rapida'),
+            key: const ValueKey('close quick look'),
             onTap: widget.onClose,
             child: Container(
               width: 14,
@@ -286,7 +286,7 @@ class _QuickLookPanelState extends State<QuickLookPanel> {
           ),
           if (widget.openWith != null)
             GestureDetector(
-              key: const ValueKey('apri con dalla visualizzazione rapida'),
+              key: const ValueKey('open with from quick look'),
               onTap: widget.onOpenWith,
               child: Container(
                 height: 24,

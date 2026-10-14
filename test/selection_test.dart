@@ -54,7 +54,7 @@ void main() {
   Finder label(String name) =>
       find.descendant(of: find.byType(IconView), matching: find.text(name));
 
-  testWidgets('⇧ e frecce: intervallo lineare dall\'àncora (R7.6)', (
+  testWidgets('⇧ and arrows: linear range from the anchor (R7.6)', (
     tester,
   ) async {
     await pump(tester);
@@ -70,17 +70,17 @@ void main() {
     expect(selectedNames(tester), {'f01.txt', 'f02.txt', 'f03.txt'});
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pump();
-    // Da 3 all'elemento sotto: tutto l'intervallo lineare 1…3+colonne.
+    // From 3 to the item below: the whole linear range 1…3+columns.
     expect(selectedNames(tester).length, 3 + columns);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
     await tester.pump();
-    // Sulla prima riga ↑ non fa nulla: resta 1…3.
+    // On the first row ↑ does nothing: 1…3 stays.
     expect(selectedNames(tester), {'f01.txt', 'f02.txt', 'f03.txt'});
     await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
   });
 
-  testWidgets('⇧clic nella vista a icone aggiunge o toglie (R7.3)', (
+  testWidgets('⇧-click in the icon view adds or removes (R7.3)', (
     tester,
   ) async {
     await pump(tester);
@@ -94,7 +94,7 @@ void main() {
   });
 
   testWidgets(
-    'rettangolo dal vuoto: seleziona dal vivo e sparisce al rilascio',
+    'rubber band from the background: selects live and disappears on release',
     (tester) async {
       await pump(tester);
       final view = tester.getRect(find.byType(IconView));
@@ -108,17 +108,11 @@ void main() {
       await tester.pump();
       await mouse.moveTo(tester.getCenter(label('f01.txt')));
       await tester.pump();
-      expect(
-        find.byKey(const ValueKey('rettangolo di selezione')),
-        findsOneWidget,
-      );
+      expect(find.byKey(const ValueKey('rubber band')), findsOneWidget);
       expect(selectedNames(tester).length, 15);
       await mouse.up();
       await tester.pump();
-      expect(
-        find.byKey(const ValueKey('rettangolo di selezione')),
-        findsNothing,
-      );
+      expect(find.byKey(const ValueKey('rubber band')), findsNothing);
       expect(selectedNames(tester).length, 15);
     },
   );

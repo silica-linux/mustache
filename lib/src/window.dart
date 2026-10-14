@@ -1,5 +1,5 @@
-// La finestra di Mustache: barra laterale a sinistra (sidebar.dart) dalla cima al fondo, a destra
-// la barra degli strumenti unificata con la finestra (toolbar.dart) e la vista dei contenuti.
+// The Mustache window: the sidebar on the left (sidebar.dart) from top to bottom, on the right the
+// toolbar unified with the window (toolbar.dart) and the content view.
 
 import 'dart:async';
 import 'dart:io';
@@ -49,8 +49,8 @@ const Color textColor = Color(0xFF000000);
 const Color secondaryText = Color(0xFF808182);
 const Color contentFill = Color(0xFFFFFFFF);
 
-/// I colori di fondo e del testo della finestra, chiaro e scuro (mustache.md MU-20, MU-03,
-/// MU-04: contenuto `#272728`, barra degli strumenti e intestazione `#2f2f2f` in scuro).
+/// Background and text colors of the window, light and dark (mustache.md MU-20, MU-03, MU-04:
+/// content `#272728`, toolbar and header `#2f2f2f` in dark).
 @immutable
 class WindowColors {
   const WindowColors({
@@ -93,7 +93,7 @@ TextStyle text(double size, {Color color = textColor, FontWeight? weight}) =>
       color: color,
     );
 
-/// Intenti delle scorciatoie della finestra (comandi `mustache.*`, docs/spec.md).
+/// Intents of the window shortcuts (`mustache.*` commands, docs/spec.md).
 class OpenIntent extends Intent {
   const OpenIntent();
 }
@@ -118,7 +118,7 @@ class ToggleSidebarIntent extends Intent {
   const ToggleSidebarIntent();
 }
 
-/// Mostra o nasconde una parte della finestra.
+/// Shows or hides a part of the window.
 enum WindowPart { statusBar, previewPane }
 
 class TogglePartIntent extends Intent {
@@ -155,10 +155,10 @@ class SetViewIntent extends Intent {
   final ViewMode view;
 }
 
-/// Le direzioni delle frecce: nell'elenco su e giù, nella griglia anche a destra e sinistra.
+/// Arrow directions: up and down in the list, also left and right in the grid.
 enum Move { up, down, left, right }
 
-/// Una delle operazioni sui file (MU.4), con la sua scorciatoia.
+/// One of the file operations (MU.4), with its shortcut.
 enum FileCommand {
   rename,
   newFolder,
@@ -181,11 +181,11 @@ class MoveSelectionIntent extends Intent {
   const MoveSelectionIntent(this.move, {this.extend = false});
   final Move move;
 
-  /// Con ⇧: la selezione si allunga dall'àncora (R7.6).
+  /// With ⇧: the selection extends from the anchor (R7.6).
   final bool extend;
 }
 
-/// La voce .desktop di Mustache (per aprire altre finestre).
+/// The .desktop entry of Mustache (to open more windows).
 const String mustacheDesktopId = 'dev.frascella.Mustache.desktop';
 
 class MustacheWindow extends StatefulWidget {
@@ -207,42 +207,41 @@ class MustacheWindow extends StatefulWidget {
     this.onDialogFinish,
   });
 
-  /// La finestra è un dialogo Apri o Salva per il portale (null: la finestra normale).
+  /// The window is an Open or Save dialog for the portal (null: the normal window).
   final DialogOptions? dialog;
 
-  /// Come finisce il dialogo (test); null: scrive sullo stdout ed esce.
+  /// How the dialog ends (tests); null: writes to stdout and exits.
   final void Function(List<String> paths)? onDialogFinish;
 
-  /// La scheda è quella attiva: diventandolo riprende la tastiera.
+  /// This tab is the active one: becoming active it takes the keyboard back.
   final bool focused;
 
-  /// La barra delle schede (dal [TabsHost], null con una sola scheda): sotto l'intestazione,
-  /// sopra i contenuti.
+  /// The tab bar (from [TabsHost], null with a single tab): below the header, above the content.
   final Widget? tabBar;
 
-  /// Dove si trova la finestra (il titolo della sua scheda).
+  /// Where the window is (the title of its tab).
   final ValueChanged<String>? onLocation;
 
   final String start;
   final List<Place> places;
   final Place trash;
 
-  /// La cartella di silica-icons (`SILICA_ICONS_DIR`): i simboli della barra laterale.
+  /// The silica-icons directory (`SILICA_ICONS_DIR`): the sidebar symbols.
   final String? iconsDir;
 
-  /// Ora fissa (test).
+  /// Fixed time (tests).
   final DateTime? now;
 
-  /// Apre un file con l'app predefinita (test: registra la chiamata).
+  /// Opens a file with the default app (tests: records the call).
   final void Function(String path)? open;
 
-  /// Le impostazioni che restano fra un avvio e l'altro (la larghezza della barra laterale).
+  /// Settings kept between launches (the sidebar width).
   final Settings? settings;
 
-  /// La finestra ha il focus: i colori della barra laterale cambiano quando non ce l'ha.
+  /// The window has the focus: the sidebar colors change when it does not.
   final bool active;
 
-  /// L'ambiente in cui cercare silica-icons (test); null: quello del processo.
+  /// The environment where silica-icons is looked up (tests); null: the process environment.
   final Map<String, String>? iconsEnv;
 
   @override
@@ -253,8 +252,8 @@ class _MustacheWindowState extends State<MustacheWindow>
     with SingleTickerProviderStateMixin {
   late final History _history = History(widget.start);
 
-  /// La finestra è quella attiva per Ossido: l'embedder lo dice con `flutter/lifecycle`
-  /// (`resumed` attiva, `inactive` no; senza notizie, attiva).
+  /// The window is the active one for Ossido: the embedder says so with `flutter/lifecycle`
+  /// (`resumed` active, `inactive` not; without news, active).
   bool _windowActive = _isActive(WidgetsBinding.instance.lifecycleState);
   late final AppLifecycleListener _lifecycle = AppLifecycleListener(
     onStateChange: (state) {
@@ -266,25 +265,25 @@ class _MustacheWindowState extends State<MustacheWindow>
   static bool _isActive(AppLifecycleState? state) =>
       state == null || state == AppLifecycleState.resumed;
 
-  /// Attiva per Ossido e, con le schede, la scheda in primo piano.
+  /// Active for Ossido and, with tabs, the tab in front.
   bool get _active => widget.active && _windowActive;
 
-  /// Il trascinamento fra app: l'immagine da dare a Ossido, se è già uscito, e i rilasci.
+  /// Drag and drop between apps: the image to hand to Ossido, whether it already left, and drops.
   final GlobalKey _dragImageKey = GlobalKey();
   bool _draggedOut = false;
 
-  /// La riga premuta (si sceglie al rilascio, MU-25) e se ne è partito un trascinamento; il
-  /// triangolo premuto con ⌥ letto alla pressione.
+  /// The pressed row (selected on release, MU-25) and whether a drag started from it; the pressed
+  /// disclosure triangle with ⌥ read at press time.
   String? _rowDown;
   bool _rowDragged = false;
   (String, bool)? _triangleDown;
   StreamSubscription<SilicaDragEvent>? _externalDrags;
 
-  /// La larghezza della barra laterale quando si vede; le finestre nuove prendono l'ultima.
+  /// The sidebar width when visible; new windows take the last one.
   late double _sidebarWidth =
       widget.settings?.sidebarWidth ?? sidebarDefaultWidth;
 
-  /// 1: barra visibile, 0: nascosta (⌃⌘S o trascinata contro il bordo).
+  /// 1: sidebar visible, 0: hidden (⌃⌘S or dragged against the edge).
   late final AnimationController _sidebarShown = AnimationController(
     vsync: this,
     duration: sidebarShow,
@@ -293,8 +292,8 @@ class _MustacheWindowState extends State<MustacheWindow>
   )..addListener(() => setState(() {}));
   bool _resizing = false;
 
-  /// Il cursore delle frecce (l'àncora resta dove è iniziata la selezione con ⇧) e la
-  /// selezione all'inizio del rettangolo.
+  /// The arrow cursor (the anchor stays where the ⇧ selection started) and the selection at the
+  /// start of the rubber band.
   String? _cursor;
   Set<String>? _bandBase;
 
@@ -303,29 +302,28 @@ class _MustacheWindowState extends State<MustacheWindow>
   );
   final UndoStack _undo = UndoStack();
 
-  /// L'elemento in rinomina, l'attesa del clic lento e l'avviso aperto.
+  /// The item being renamed, the slow-click wait and the open alert.
   String? _renaming;
   Timer? _slowClick;
   Widget? _alert;
 
-  /// Le app (lette alla prima apertura con un'app), i tipi MIME e il menu contestuale aperto.
+  /// The apps (read the first time an app is opened), the MIME types and the open context menu.
   AppRegistry? _apps;
   final Map<String, String> _types = {};
   Offset? _menuAt;
   List<MenuEntry> _menuEntries = const [];
 
-  /// Le copie in corso, quella con la finestra di avanzamento e il conflitto in attesa.
+  /// Copies in progress, the one with the progress window and the pending conflict.
   final List<Transfer> _transfers = [];
   Transfer? _progress;
   ({String name, bool moving, Completer<ConflictChoice> done})? _conflict;
 
-  /// Le etichette lette in questo caricamento; l'etichetta mostrata (vista dei risultati) e la
-  /// ricerca in corso.
+  /// Tags read in this load; the tag shown (results view) and the search in progress.
   final Map<String, List<String>> _tagCache = {};
   String? _tagView;
   int _tagSearch = 0;
 
-  /// Le finestre Informazioni aperte (percorsi) e le loro sezioni aperte (per tutte).
+  /// The open Get Info windows (paths) and their open sections (shared by all).
   final List<String> _infos = [];
   late final Set<InfoSection> _infoOpen = {
     for (final name
@@ -334,8 +332,7 @@ class _MustacheWindowState extends State<MustacheWindow>
       ?InfoSection.values.where((s) => s.name == name).firstOrNull,
   };
 
-  /// La ricerca: attiva, il campo, l'ambito, la cartella di partenza, l'attesa e il giro in
-  /// corso.
+  /// Search: active, the field, the scope, the starting folder, the debounce and the running pass.
   bool _searching = false;
   final TextEditingController _searchQuery = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
@@ -344,8 +341,8 @@ class _MustacheWindowState extends State<MustacheWindow>
   Timer? _searchTimer;
   int _searchToken = 0;
 
-  /// Barra di stato, pannello di anteprima, lato delle icone, spazio libero.
-  // Nei dialoghi niente barre né pannello (R14.6).
+  /// Status bar, preview pane, icon size, free space.
+  // No bars or pane in dialogs (R14.6).
   late bool _statusBar =
       widget.dialog == null && (widget.settings?.statusBar ?? false);
   late bool _previewPane =
@@ -353,23 +350,23 @@ class _MustacheWindowState extends State<MustacheWindow>
   late double _iconSide = widget.settings?.iconSide ?? defaultIconSide;
   int? _free;
 
-  /// Il nome del file del dialogo Salva.
+  /// The file name of the Save dialog.
   late final TextEditingController _saveName = TextEditingController(
     text: widget.dialog?.name ?? '',
   );
   final FocusNode _saveFocus = FocusNode();
 
-  /// La visualizzazione rapida aperta (Spazio).
+  /// Quick Look open (Space).
   bool _quickLook = false;
 
-  /// La barra del percorso (⌥⌘P), ricordata per le finestre nuove.
+  /// The path bar (⌥⌘P), remembered for new windows.
   late bool _pathBar =
       widget.dialog == null && (widget.settings?.pathBar ?? false);
 
-  /// Il contenuto delle colonne, letto una volta per caricamento.
+  /// The column contents, read once per load.
   final Map<String, List<Entry>> _columnCache = {};
 
-  // Nei dialoghi si parte a colonne, e la galleria non c'è (R14.5, R14.6).
+  // Dialogs start in columns, and there is no gallery (R14.5, R14.6).
   late ViewMode _view = widget.dialog != null
       ? ViewMode.columns
       : ViewMode.values.firstWhere(
@@ -377,7 +374,7 @@ class _MustacheWindowState extends State<MustacheWindow>
           orElse: () => ViewMode.icons,
         );
 
-  /// La larghezza dell'area dei contenuti all'ultimo disegno (per le frecce nella griglia).
+  /// The width of the content area at the last paint (for the arrows in the grid).
   double _contentWidth = 800;
   final FocusNode _focus = FocusNode();
   List<Entry> _entries = const [];
@@ -388,14 +385,14 @@ class _MustacheWindowState extends State<MustacheWindow>
   final Set<String> _selected = {};
   String? _anchor;
 
-  /// Le colonne dell'elenco, allargate trascinando i separatori (R3.6).
+  /// The list columns, widened by dragging the separators (R3.6).
   final List<double> _listWidths = [for (final c in listColumns) c.width];
 
-  /// Le cartelle aperte nel posto nell'elenco e il loro contenuto, letto una volta.
+  /// Folders expanded in place in the list and their contents, read once.
   final Set<String> _expanded = {};
   final Map<String, List<Entry>> _childCache = {};
 
-  /// La riga del clic destro su un elemento non scelto: l'anello, la selezione resta (R3.9).
+  /// The row of a right click on an unselected item: the ring, the selection stays (R3.9).
   String? _contextRing;
 
   @override
@@ -423,13 +420,13 @@ class _MustacheWindowState extends State<MustacheWindow>
     super.dispose();
   }
 
-  /// L'icona dell'app negli avvisi (66 pt), da silica-icons.
+  /// The app icon in alerts (66 pt), from silica-icons.
   Widget? get _appIcon {
     final icon = findSilicaIcon('mustache', env: widget.iconsEnv);
     return icon == null ? null : SilicaIcon(LayeredSource(icon), side: 66);
   }
 
-  /// ⌘N: un'altra finestra, cioè un altro processo avviato dalla voce .desktop dell'app.
+  /// ⌘N: another window, i.e. another process started from the app's .desktop entry.
   Future<void> _newWindow() async {
     final app = _registry.apps[mustacheDesktopId];
     if (app == null) {
@@ -459,7 +456,7 @@ class _MustacheWindowState extends State<MustacheWindow>
     }
   }
 
-  /// `setState` per le operazioni in `window_operations.dart` (un'estensione non può chiamarlo).
+  /// `setState` for the operations in `window_operations.dart` (an extension cannot call it).
   void _update(VoidCallback change) => setState(change);
 
   void _toggleSidebar() {
@@ -471,7 +468,7 @@ class _MustacheWindowState extends State<MustacheWindow>
     }
   }
 
-  /// Quanto si vede la barra (0–1): curva a S; il mostrare parte con ~40 ms di ritardo.
+  /// How much of the sidebar shows (0–1): S curve; showing starts with a ~40 ms delay.
   double get _sidebarProgress {
     final value = _sidebarShown.value;
     if (_sidebarShown.status == AnimationStatus.forward) {
@@ -506,8 +503,8 @@ class _MustacheWindowState extends State<MustacheWindow>
   }
 
   void _load() {
-    // Il titolo della finestra è il nome della cartella (l'embedder di Silica lo passa a
-    // Ossido; fuori da Silica la chiamata non fa niente).
+    // The window title is the folder name (the Silica embedder passes it to Ossido; outside Silica
+    // the call does nothing).
     SystemChrome.setApplicationSwitcherDescription(
       ApplicationSwitcherDescription(
         label: widget.dialog?.title.isNotEmpty ?? false
@@ -515,12 +512,12 @@ class _MustacheWindowState extends State<MustacheWindow>
             : displayName(_history.current),
       ),
     );
-    // In ricerca si rifà la ricerca.
+    // While searching, the search is run again.
     if (_searching) {
       _runSearch();
       return;
     }
-    // Nella vista di un'etichetta si rifà la ricerca.
+    // In a tag view, the search is run again.
     final tag = _tagView;
     if (tag != null) {
       _tagCache.clear();
@@ -540,10 +537,10 @@ class _MustacheWindowState extends State<MustacheWindow>
         descending: _descending,
         kindOf: _kind,
       );
-      // Le cartelle aperte che non ci sono più si dimenticano.
+      // Expanded folders that no longer exist are forgotten.
       _expanded.removeWhere((path) => !Directory(path).existsSync());
       _error = result.error;
-      // Nelle colonne la scelta può essere la cartella aperta, che non è nel suo contenuto.
+      // In columns the selection can be the open folder, which is not in its own contents.
       _selected.removeWhere(
         (path) =>
             !_ordered.any((e) => e.path == path) &&
@@ -572,7 +569,7 @@ class _MustacheWindowState extends State<MustacheWindow>
     if (entry.isDirectory) {
       _navigate(entry.path);
     } else if (widget.dialog case final d?) {
-      // Nel dialogo Apri il doppio clic su un file lo sceglie.
+      // In the Open dialog a double click on a file chooses it.
       if (!d.save && !d.directory) _finish([entry.path]);
     } else {
       _openWith([entry]);
@@ -596,14 +593,14 @@ class _MustacheWindowState extends State<MustacheWindow>
     final columns = _view == ViewMode.icons
         ? iconGrid(_contentWidth, side: _iconSide).columns
         : 1;
-    // Nell'elenco → e ← aprono e chiudono la cartella (R3.7).
+    // In the list → and ← expand and collapse the folder (R3.7).
     if ((move == Move.left || move == Move.right) &&
         _expandAtCursor(open: move == Move.right)) {
       return;
     }
     final across = _view == ViewMode.icons || _view == ViewMode.gallery;
     final delta = switch (move) {
-      // In galleria la striscia è una riga: su e giù non la muovono.
+      // In the gallery the strip is a single row: up and down do not move it.
       Move.up => _view == ViewMode.gallery ? 0 : -columns,
       Move.down => _view == ViewMode.gallery ? 0 : columns,
       Move.left => across ? -1 : 0,
@@ -614,7 +611,7 @@ class _MustacheWindowState extends State<MustacheWindow>
   }
 
   void _setView(ViewMode view) {
-    // Nei dialoghi niente galleria, e la scelta non cambia quella delle finestre.
+    // No gallery in dialogs, and their choice does not change the windows' one.
     if (widget.dialog != null) {
       if (view != ViewMode.gallery) setState(() => _view = view);
       return;
@@ -626,7 +623,8 @@ class _MustacheWindowState extends State<MustacheWindow>
     widget.settings?.view = view.name;
   }
 
-  /// In galleria c'è sempre un elemento scelto, quello in grande (mu23): senza scelta, il primo.
+  /// In the gallery there is always a chosen item, the large one (mu23): without a selection, the
+  /// first.
   void _galleryChoice() {
     if (_view != ViewMode.gallery || _searching) return;
     final shown = _cursor ?? (_selected.isEmpty ? null : _selected.last);
@@ -638,9 +636,9 @@ class _MustacheWindowState extends State<MustacheWindow>
     _anchor = _cursor = _entries.first.path;
   }
 
-  /// Le frecce: il cursore si sposta di `delta` nell'ordine di lettura. Senza ⇧ seleziona
-  /// solo il cursore; con ⇧ l'intervallo lineare dall'àncora al cursore (R7.6). Oltre la prima
-  /// o l'ultima riga nella griglia non succede niente.
+  /// Arrows: the cursor moves by `delta` in reading order. Without ⇧ only the cursor is selected;
+  /// with ⇧ the linear range from the anchor to the cursor (R7.6). Past the first or last row in
+  /// the grid nothing happens.
   void _moveBy(int delta, {bool extend = false}) {
     final order = _ordered;
     if (order.isEmpty) return;
@@ -651,7 +649,7 @@ class _MustacheWindowState extends State<MustacheWindow>
     } else {
       next = current + delta;
       if (next < 0 || next >= order.length) {
-        // Nella griglia, su e giù oltre il bordo non si muovono; nell'elenco si ferma lì.
+        // In the grid, up and down past the edge do not move; in the list it stops there.
         if (delta.abs() > 1) return;
         next = next.clamp(0, order.length - 1);
       }
@@ -673,8 +671,7 @@ class _MustacheWindowState extends State<MustacheWindow>
     });
   }
 
-  /// Il rettangolo di selezione: con ⌘ o ⇧ alterna sugli elementi di partenza, sennò li
-  /// sostituisce.
+  /// The rubber band: with ⌘ or ⇧ it toggles the starting items, otherwise it replaces them.
   void _rubberBand(Set<String> paths, {required bool done}) {
     final keys = HardwareKeyboard.instance;
     final base = _bandBase ??= keys.isMetaPressed || keys.isShiftPressed
@@ -697,7 +694,7 @@ class _MustacheWindowState extends State<MustacheWindow>
         !keys.isMetaPressed && !keys.isControlPressed && !keys.isShiftPressed;
     _clickForRename(entry, wasOnlySelected: plain && wasOnlySelected);
     setState(() {
-      // Nella vista a icone ⇧clic aggiunge o toglie come ⌘clic (R7.3).
+      // In the icon view ⇧-click adds or removes like ⌘-click (R7.3).
       if (keys.isMetaPressed ||
           keys.isControlPressed ||
           (keys.isShiftPressed && _view == ViewMode.icons)) {
@@ -827,7 +824,7 @@ class _MustacheWindowState extends State<MustacheWindow>
           ),
           BackIntent: CallbackAction<BackIntent>(
             onInvoke: (_) {
-              // Dalla ricerca, Indietro torna alla cartella (R13.4).
+              // From search, Back returns to the folder (R13.4).
               if (_searching) {
                 _endSearch();
               } else if (_history.back()) {
@@ -918,7 +915,7 @@ class _MustacheWindowState extends State<MustacheWindow>
           ),
           InfoIntent: CallbackAction<InfoIntent>(
             onInvoke: (_) {
-              // La selezione, o la cartella aperta se non c'è.
+              // The selection, or the open folder if there is none.
               final paths = _selected.isEmpty
                   ? [_history.current]
                   : [for (final e in _selection) e.path];
@@ -942,7 +939,7 @@ class _MustacheWindowState extends State<MustacheWindow>
               if (_quickLook) {
                 setState(() => _quickLook = false);
               } else if (widget.dialog != null && _alert == null) {
-                // Esc nel dialogo: annulla.
+                // Esc in the dialog: cancel.
                 _finish(const []);
               }
               return null;
@@ -974,8 +971,7 @@ class _MustacheWindowState extends State<MustacheWindow>
           child: LayoutBuilder(
             builder: (context, constraints) {
               final windowWidth = constraints.maxWidth;
-              // Nascondendosi la barra scorre a sinistra (resta larga uguale) e il contenuto
-              // si allarga.
+              // While hiding, the sidebar slides left (keeping its width) and the content widens.
               final shown = _resizing ? _sidebarShown.value : _sidebarProgress;
               final visible = _sidebarWidth * shown;
               final dark =
@@ -1022,14 +1018,14 @@ class _MustacheWindowState extends State<MustacheWindow>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // Sopra l'elenco la barra ha il fondo dell'intestazione (in scuro
-                          // `#2f2f2f`, più chiaro del contenuto); altrove quello del contenuto.
+                          // Above the list the bar has the header background (in dark `#2f2f2f`,
+                          // lighter than the content); elsewhere the content's.
                           _toolbar(visible),
                           if (widget.dialog?.save ?? false) _saveBar(),
                           ?widget.tabBar,
                           if (_searching) _scopeBar(),
                           Expanded(
-                            // La cartella aperta come destinazione: linea di 2 pt lungo il bordo.
+                            // The open folder as a drop target: a 2 pt line along the edge.
                             child: FolderDropTarget(
                               path: _history.current,
                               onDrop: _drop,
@@ -1045,7 +1041,7 @@ class _MustacheWindowState extends State<MustacheWindow>
                                 child: LayoutBuilder(
                                   builder: (context, box) {
                                     _contentWidth = box.maxWidth;
-                                    // I risultati della ricerca sono sempre un elenco.
+                                    // Search results are always a list.
                                     final view = _searching
                                         ? _listView()
                                         : switch (_view) {
@@ -1054,12 +1050,12 @@ class _MustacheWindowState extends State<MustacheWindow>
                                             ViewMode.columns => _columnsView(),
                                             ViewMode.gallery => _galleryView(),
                                           };
-                                    // In galleria il pannello c'è sempre, largo 250 (spec 6).
+                                    // In the gallery the pane is always there, 250 wide (spec 6).
                                     final pane =
                                         _previewPane ||
                                         _view == ViewMode.gallery;
                                     if (!pane) return view;
-                                    // Il pannello di anteprima a destra (spec 1.6).
+                                    // The preview pane on the right (spec 1.6).
                                     return Row(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.stretch,
@@ -1088,7 +1084,7 @@ class _MustacheWindowState extends State<MustacheWindow>
                           ),
                           if (_pathBar)
                             PathBar(
-                              // L'elemento scelto è l'ultimo segmento (R1.17).
+                              // The chosen item is the last segment (R1.17).
                               path: _selected.length == 1
                                   ? _selected.first
                                   : _history.current,
@@ -1104,8 +1100,8 @@ class _MustacheWindowState extends State<MustacheWindow>
                               },
                             ),
                           if (widget.dialog != null) _dialogButtons(),
-                          // La barra di stato sotto la barra del percorso (spec 1.5).
-                          // La barra di stato sposta la finestra (MU-08).
+                          // The status bar below the path bar (spec 1.5).
+                          // The status bar moves the window (MU-08).
                           if (_statusBar)
                             WindowDragArea(
                               child: StatusBar(
@@ -1131,8 +1127,8 @@ class _MustacheWindowState extends State<MustacheWindow>
                       ),
                     ),
                   ),
-                  // La cima della barra laterale, sotto i pulsanti della finestra, sposta la
-                  // finestra come la barra degli strumenti.
+                  // The top of the sidebar, below the window buttons, moves the window like the
+                  // toolbar.
                   Positioned(
                     left: 0,
                     top: 0,
@@ -1140,19 +1136,20 @@ class _MustacheWindowState extends State<MustacheWindow>
                     height: toolbarHeight,
                     child: const WindowDragArea(child: SizedBox.expand()),
                   ),
-                  // Il bordo trascinabile, anche a barra nascosta (la si riapre tirandola).
+                  // The draggable edge, also with the sidebar hidden (pulling it reopens the
+                  // sidebar).
                   Positioned(
                     left: visible - 3,
                     top: 0,
                     bottom: 0,
                     width: 6,
                     child: SidebarDivider(
-                      key: const ValueKey('bordo della barra'),
+                      key: const ValueKey('sidebar edge'),
                       onDrag: (x) => _dragSidebar(x, windowWidth),
                       onRelease: _releaseSidebar,
                     ),
                   ),
-                  // Il menu contestuale: un clic fuori lo chiude.
+                  // The context menu: a click outside closes it.
                   if (_menuAt != null)
                     Positioned.fill(
                       child: MenuHost(
@@ -1163,10 +1160,10 @@ class _MustacheWindowState extends State<MustacheWindow>
                         onDismissed: _closeContextMenu,
                       ),
                     ),
-                  // La visualizzazione rapida: l'ultimo elemento scelto; le frecce la cambiano.
+                  // Quick Look: the last chosen item; the arrows change it.
                   if (_quickLook && _selection.isNotEmpty)
                     Positioned.fill(child: _quickLookPanel()),
-                  // Le finestre Informazioni, una accanto all'altra a +285 pt.
+                  // The Get Info windows, side by side at +285 pt.
                   for (var i = 0; i < _infos.length; i++)
                     if (entryAt(_infos[i]) case final entry?)
                       Positioned(
@@ -1212,7 +1209,7 @@ class _MustacheWindowState extends State<MustacheWindow>
                           ),
                         ),
                       ),
-                  // La finestra di avanzamento non blocca il resto.
+                  // The progress window does not block the rest.
                   if (_progress != null && _alert == null)
                     Align(
                       alignment: const Alignment(0, 0.85),
@@ -1221,7 +1218,7 @@ class _MustacheWindowState extends State<MustacheWindow>
                         icon: _appIcon,
                       ),
                     ),
-                  // Il conflitto aspetta una scelta: copre la finestra.
+                  // The conflict waits for a choice: it covers the window.
                   if (_conflict != null)
                     Positioned.fill(
                       child: GestureDetector(
@@ -1238,7 +1235,7 @@ class _MustacheWindowState extends State<MustacheWindow>
                         ),
                       ),
                     ),
-                  // Un avviso copre la finestra: il resto non riceve clic finché è aperto.
+                  // An alert covers the window: the rest gets no clicks while it is open.
                   if (_alert != null)
                     Positioned.fill(
                       child: GestureDetector(
@@ -1259,9 +1256,8 @@ class _MustacheWindowState extends State<MustacheWindow>
     );
   }
 
-  /// La barra degli strumenti (spec 1.2); `visible` è la parte visibile della barra laterale.
-  /// Il menu della cronologia (pressione lunga su Indietro o Avanti, MU-07): voci da 24 con
-  /// l'icona della cartella, il luogo più vicino in alto.
+  /// The history menu (long press on Back or Forward, MU-07): 24 pt items with the folder icon, the
+  /// nearest place on top.
   void _historyMenu(Offset at, {required bool back}) {
     final places = back ? _history.backList : _history.forwardList;
     if (places.isEmpty) return;
@@ -1284,15 +1280,16 @@ class _MustacheWindowState extends State<MustacheWindow>
     });
   }
 
+  /// The toolbar (spec 1.2); `visible` is the visible part of the sidebar.
   Widget _toolbar(double visible) => MustacheToolbar(
-    // Sopra l'elenco la barra ha il fondo dell'intestazione (in scuro `#2f2f2f`, più chiaro
-    // del contenuto); altrove quello del contenuto.
+    // Above the list the bar has the header background (in dark `#2f2f2f`, lighter than the
+    // content); elsewhere the content's.
     background: _searching || _view == ViewMode.list
         ? _listColors.header
         : WindowColors.of(context).content,
     onBackHistory: (at) => _historyMenu(at, back: true),
     onForwardHistory: (at) => _historyMenu(at, back: false),
-    // A barra laterale nascosta la barra lascia il posto ai pulsanti della finestra.
+    // With the sidebar hidden the toolbar leaves room for the window buttons.
     leading: visible < windowButtonsEnd ? windowButtonsEnd - visible + 7 : 7,
     title: widget.dialog != null && widget.dialog!.title.isNotEmpty
         ? widget.dialog!.title
@@ -1303,7 +1300,7 @@ class _MustacheWindowState extends State<MustacheWindow>
     canGoBack: _history.canGoBack || _searching,
     canGoForward: _history.canGoForward,
     onBack: () {
-      // Dalla ricerca, Indietro torna alla cartella (R13.4).
+      // From search, Back returns to the folder (R13.4).
       if (_searching) {
         _endSearch();
       } else if (_history.back()) {
@@ -1321,7 +1318,7 @@ class _MustacheWindowState extends State<MustacheWindow>
   );
 
   Widget _renameField(Entry entry, {double maxWidth = 400}) => RenameField(
-    key: ValueKey('rinomina ${entry.path}'),
+    key: ValueKey('rename ${entry.path}'),
     name: entry.name,
     isDirectory: entry.isDirectory,
     maxWidth: maxWidth,

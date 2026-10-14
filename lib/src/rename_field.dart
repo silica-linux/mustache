@@ -1,7 +1,7 @@
-// Il campo della rinomina sul posto (MU-32, mustache-spec 8): largo quanto il testo (cresce e si
-// stringe scrivendo), alto 21 con l'anello di focus di 3 pt, bordo interno di 1 pt, testo 13 a
-// 4 pt dal bordo. All'apertura è selezionato il nome senza estensione (R8.1); Invio conferma,
-// Esc annulla, perdere il focus (un clic altrove) conferma.
+// The in-place rename field (MU-32, mustache-spec 8): as wide as the text (grows and shrinks while
+// typing), 21 tall with the 3 pt focus ring, 1 pt inner border, 13 pt text 4 pt from the edge. On
+// opening the name without the extension is selected (R8.1); Return confirms, Esc cancels, losing
+// focus (a click elsewhere) confirms.
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -34,7 +34,7 @@ class RenameColors {
       ? const RenameColors(
           ring: Color(0xFF296692),
           border: Color(0xFF3586C5),
-          // Stimato: il fondo del contenuto in scuro.
+          // Estimated: the content background in dark.
           fill: Color(0xFF272728),
           text: Color(0xFFFFFFFF),
           selection: Color(0xFF40638B),
@@ -48,8 +48,8 @@ class RenameColors {
         );
 }
 
-/// La parte selezionata all'apertura: il nome senza estensione (tutto per cartelle e nomi senza
-/// estensione).
+/// The part selected on opening: the name without the extension (everything for folders and names
+/// without an extension).
 TextSelection initialRenameSelection(String name, {bool isDirectory = false}) {
   final (base, _) = splitExtension(name, isDirectory: isDirectory);
   return TextSelection(baseOffset: 0, extentOffset: base.length);
@@ -90,7 +90,7 @@ class _RenameFieldState extends State<RenameField> {
     super.initState();
     _controller.addListener(() => setState(() {}));
     _focus.addListener(() {
-      // Un clic altrove: conferma, come Invio.
+      // A click elsewhere: confirms, like Return.
       if (!_focus.hasFocus) _commit();
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -154,7 +154,7 @@ class _RenameFieldState extends State<RenameField> {
         return KeyEventResult.ignored;
       },
       child: Container(
-        key: const ValueKey('campo di rinomina'),
+        key: const ValueKey('rename field'),
         width: width,
         height: renameHeight,
         decoration: BoxDecoration(
@@ -162,14 +162,14 @@ class _RenameFieldState extends State<RenameField> {
           border: Border.all(color: colors.border),
           borderRadius: BorderRadius.circular(3),
           boxShadow: [
-            // L'anello di focus: 3 pt attorno al bordo.
+            // The focus ring: 3 pt around the border.
             BoxShadow(color: colors.ring, spreadRadius: renameRing - 1),
           ],
         ),
         padding: const EdgeInsets.symmetric(horizontal: renameTextInset),
         alignment: Alignment.centerLeft,
-        // Le scorciatoie di modifica del testo (cancella, frecce, ⌘A): la finestra non è dentro
-        // un WidgetsApp che le dà.
+        // Text editing shortcuts (delete, arrows, ⌘A): the window is not inside a WidgetsApp that
+        // provides them.
         child: DefaultTextEditingShortcuts(
           child: EditableText(
             controller: _controller,
@@ -179,10 +179,10 @@ class _RenameFieldState extends State<RenameField> {
             backgroundCursorColor: colors.text,
             selectionColor: colors.selection,
             maxLines: 1,
-            // Su desktop il campo selezionerebbe tutto al focus: qui resta il nome senza
-            // estensione (R8.1).
+            // On desktop the field would select everything on focus: here the name without the
+            // extension stays selected (R8.1).
             selectAllOnFocus: false,
-            // Invio e Esc li gestisce il Focus attorno.
+            // Return and Esc are handled by the surrounding Focus.
             onSubmitted: (_) => _commit(),
           ),
         ),

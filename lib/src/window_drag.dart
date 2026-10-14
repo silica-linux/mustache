@@ -1,17 +1,18 @@
-// Il trascinamento nella finestra (MU-40): chi si trascina, dove si rilascia, la cartella a
-// molla.
+// Dragging inside the window (MU-40): what is dragged, where it is dropped, the spring-loaded
+// folder.
 
 part of 'window.dart';
 
 extension _Drag on _MustacheWindowState {
-  /// Gli elementi che partono trascinando `entry`: la selezione se ne fa parte, sennò lui.
+  /// The items that leave when dragging `entry`: the selection if it belongs to it, otherwise the
+  /// entry alone.
   List<String> _dragPaths(Entry entry) => _selected.contains(entry.path)
       ? [for (final e in _selection) e.path]
       : [entry.path];
 
-  /// Rende trascinabile un elemento della vista (soglia: 1 pt per il mouse, come nell'elenco).
-  /// Uscendo dalla finestra il trascinamento passa a Ossido (`SilicaDrag`), con la stessa
-  /// immagine: le altre app e il Dock ricevono i file.
+  /// Makes an item of the view draggable (threshold: 1 pt for the mouse, as in the list).
+  /// Leaving the window, the drag passes to Ossido (`SilicaDrag`) with the same image: other apps
+  /// and the Dock receive the files.
   Widget _draggable(Entry entry, Widget child) => Draggable<DragPayload>(
     data: DragPayload(_dragPaths(entry), _history.current),
     dragAnchorStrategy: pointerDragAnchorStrategy,
@@ -41,8 +42,8 @@ extension _Drag on _MustacheWindowState {
     SilicaDrag.start(paths, icon: image).whenComplete(() => image?.dispose());
   }
 
-  /// File rilasciati da un'altra app (o tornati qui da fuori): sulla cartella sotto il
-  /// puntatore, altrimenti in quella aperta; sposta o copia come dentro la finestra.
+  /// Files dropped by another app (or coming back here from outside): onto the folder under the
+  /// pointer, otherwise into the open one; move or copy as inside the window.
   void _externalDrop(SilicaDrop drop) {
     final paths = drop.paths;
     if (paths.isEmpty || !widget.focused) return;
@@ -55,7 +56,7 @@ extension _Drag on _MustacheWindowState {
     _drop(payload, destination);
   }
 
-  /// Una cartella della vista come destinazione (e cartella a molla: entra dopo la sosta).
+  /// A folder of the view as a drop target (and spring-loaded folder: it opens after hovering).
   Widget _folderTarget(
     Entry entry,
     Widget Function(BuildContext context, bool active) builder,
@@ -70,7 +71,7 @@ extension _Drag on _MustacheWindowState {
         )
       : builder(context, false);
 
-  /// Rilascio: sposta o copia (R9.1) nella destinazione.
+  /// Drop: move or copy (R9.1) into the destination.
   void _drop(DragPayload payload, String destination) {
     final copy = dropCopies(payload.paths, destination);
     _startTransfer(
@@ -81,8 +82,8 @@ extension _Drag on _MustacheWindowState {
   }
 }
 
-/// Tiene un `Overlay` sopra la finestra (le immagini trascinate ci vivono) e ricostruisce la sua
-/// voce quando la finestra cambia.
+/// Keeps an `Overlay` above the window (dragged images live there) and rebuilds its entry when the
+/// window changes.
 class _OverlayHost extends StatefulWidget {
   const _OverlayHost({required this.child});
   final Widget child;

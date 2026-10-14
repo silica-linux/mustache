@@ -1,8 +1,7 @@
-// Gli attributi estesi dei file (xattr) per le etichette e i commenti, con le chiavi della
-// convenzione freedesktop: `user.xdg.tags` (etichette separate da virgole) e
-// `user.xdg.comment`. Le chiamate a libc (getxattr, setxattr, removexattr) passano da FFI; un
-// file system che non li supporta, un permesso mancante o una libc diversa danno null o false,
-// mai un'eccezione.
+// Extended file attributes (xattr) for tags and comments, with the keys of the freedesktop
+// convention: `user.xdg.tags` (comma-separated tags) and `user.xdg.comment`. The libc calls
+// (getxattr, setxattr, removexattr) go through FFI; a file system without support, a missing
+// permission or a different libc give null or false, never an exception.
 
 import 'dart:convert';
 import 'dart:ffi';
@@ -44,13 +43,13 @@ class _Libc {
         lib.lookupFunction<_RemoveC, _RemoveDart>('removexattr'),
       );
     } on ArgumentError {
-      // Una libc senza xattr: niente etichette su disco.
+      // A libc without xattr: no tags on disk.
     }
     return _instance;
   }
 }
 
-/// Il valore di un attributo (testo UTF-8), o null se manca o non si legge.
+/// The value of an attribute (UTF-8 text), or null if missing or unreadable.
 String? readAttribute(String path, String name) {
   final libc = _Libc.instance;
   if (libc == null) return null;
@@ -74,7 +73,7 @@ String? readAttribute(String path, String name) {
   }
 }
 
-/// Scrive un attributo; un valore vuoto lo toglie. Falso se il disco non lo permette.
+/// Writes an attribute; an empty value removes it. False if the disk does not allow it.
 bool writeAttribute(String path, String name, String value) {
   final libc = _Libc.instance;
   if (libc == null) return false;
@@ -83,7 +82,7 @@ bool writeAttribute(String path, String name, String value) {
   try {
     if (value.isEmpty) {
       final r = libc.remove(p, n);
-      // Toglierne uno che non c'è va bene.
+      // Removing one that is not there is fine.
       return r == 0 || readAttribute(path, name) == null;
     }
     final bytes = Uint8List.fromList(utf8.encode(value));
@@ -101,7 +100,7 @@ bool writeAttribute(String path, String name, String value) {
   }
 }
 
-/// Le etichette di un file (in ordine, senza doppioni).
+/// The tags of a file (in order, without duplicates).
 List<String> readTags(String path) {
   final value = readAttribute(path, tagsAttribute);
   if (value == null) return const [];

@@ -1,6 +1,6 @@
-// La barra di stato (⌘', MU-04, mustache-spec 1.5): 28 pt sotto i contenuti, il testo centrato
-// ("N elementi, X disponibili", "K di N selezionati, X disponibili", R1.21) e, nella vista a
-// icone, il cursore della dimensione (binario 80 × 4, manopola 18 × 14, 17 pt dal bordo destro).
+// The status bar (⌘', MU-04, mustache-spec 1.5): 28 pt below the content, the text centered ("N
+// elementi, X disponibili", "K di N selezionati, X disponibili", R1.21) and, in the icon view, the
+// size slider (80 × 4 track, 18 × 14 knob, 17 pt from the right edge).
 
 import 'dart:io';
 
@@ -9,8 +9,8 @@ import 'package:silica_ui/silica_ui.dart';
 
 const double statusBarHeight = 28;
 
-/// Il lato dell'icona per il valore del cursore 0–112 (mustache-spec 1.5): fino a 56 è
-/// 16 + 2 × valore, poi 5 pt per unità fino a 80, poi più in fretta fino a 512.
+/// The icon size for slider value 0–112 (mustache-spec 1.5): up to 56 it is 16 + 2 × value, then 5
+/// pt per unit up to 80, then faster up to 512.
 double iconSideFor(double value) {
   final v = value.clamp(0, 112).toDouble();
   if (v <= 56) return 16 + 2 * v;
@@ -31,7 +31,7 @@ double iconSideFor(double value) {
   return 512;
 }
 
-/// Il valore del cursore per un lato (l'inversa di [iconSideFor]).
+/// The slider value for a size (the inverse of [iconSideFor]).
 double sliderValueFor(double side) {
   var lo = 0.0;
   var hi = 112.0;
@@ -46,7 +46,7 @@ double sliderValueFor(double side) {
   return hi;
 }
 
-/// Lo spazio libero del disco che contiene `path`, in byte (da `df`); null se non si sa.
+/// The free space of the disk containing `path`, in bytes (from `df`); null if unknown.
 int? freeBytes(String path) {
   try {
     final r = Process.runSync('df', ['-B1', '--output=avail', path]);
@@ -58,7 +58,7 @@ int? freeBytes(String path) {
   }
 }
 
-/// "12,34 GB": due decimali (come nella barra di stato).
+/// "12,34 GB": two decimals (as in the status bar).
 String formatFree(int bytes) {
   String num(double v, int d) => v.toStringAsFixed(d).replaceAll('.', ',');
   if (bytes >= 1e12) return '${num(bytes / 1e12, 2)} TB';
@@ -67,7 +67,7 @@ String formatFree(int bytes) {
   return '${num(bytes / 1e3, 0)} KB';
 }
 
-/// Il testo della barra (R1.21).
+/// The bar text (R1.21).
 String statusText({
   required int count,
   required int selected,
@@ -84,7 +84,7 @@ String statusText({
   return '$head, ${formatFree(free)} disponibili';
 }
 
-/// I colori della barra di stato (MU-04), chiaro e scuro.
+/// Status bar colors (MU-04), light and dark.
 @immutable
 class StatusBarColors {
   const StatusBarColors({
@@ -118,7 +118,7 @@ class StatusBarColors {
     knobShadow: Color(0x40000000),
   );
 
-  /// Scuro: manopola `#dfdfdf` piena, senza ombra.
+  /// Dark: a solid `#dfdfdf` knob, without shadow.
   static const StatusBarColors dark = StatusBarColors(
     fill: Color(0xFF2F2F2F),
     line: Color(0xFF000000),
@@ -147,10 +147,10 @@ class StatusBar extends StatelessWidget {
 
   final String text;
 
-  /// Finestra attiva: in quella inattiva il testo è più tenue.
+  /// Active window: in an inactive one the text is fainter.
   final bool active;
 
-  /// Il valore del cursore delle icone (null: nessun cursore).
+  /// The value of the icon slider (null: no slider).
   final double? slider;
   final ValueChanged<double>? onSlider;
 
@@ -159,7 +159,7 @@ class StatusBar extends StatelessWidget {
     final value = slider;
     final colors = StatusBarColors.of(context);
     return Container(
-      key: const ValueKey('barra di stato'),
+      key: const ValueKey('status bar'),
       height: statusBarHeight,
       decoration: BoxDecoration(
         color: colors.fill,
@@ -201,13 +201,13 @@ class _Slider extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
-      // Corsa di 62 pt sul binario di 80 (la manopola larga 18).
+      // 62 pt of travel on the 80 track (the knob is 18 wide).
       const travel = 62.0;
       final x = 1 + travel * value / 112;
       void set(double local) =>
           onChanged?.call(((local - 1 - 9) / travel * 112).clamp(0, 112));
       return GestureDetector(
-        key: const ValueKey('cursore delle icone'),
+        key: const ValueKey('icon slider'),
         behavior: HitTestBehavior.opaque,
         onTapDown: (d) => set(d.localPosition.dx),
         onHorizontalDragUpdate: (d) => set(d.localPosition.dx),

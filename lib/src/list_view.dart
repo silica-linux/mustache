@@ -1,9 +1,9 @@
-// La vista a elenco (⌘2, MU-20, mustache-spec 3), misurata su mu20-list-*: intestazione da y 52
-// a 79 con la linea di 2 pt sotto (79–81), prima riga a y 85, righe da 20 a passo 20; colonne
-// da x 10: Nome 364, Data di modifica 181, Dimensioni 97, Tipo 121, separatori 1 × 16 (y 58–73
-// della finestra). Righe alternate: rettangoli di raggio 8 sulle righe dispari, da x 10 alla fine
-// della tabella, anche dopo l'ultima riga. Triangolo a x 17–21, icona 16 a x 26, nome da x 47
-// con la linea di base a 15 nella riga; rientro di 15 pt per livello.
+// The list view (⌘2, MU-20, mustache-spec 3), measured on mu20-list-*: header from y 52 to 79 with
+// the 2 pt line below (79–81), first row at y 85, 20 pt rows at a 20 pitch; columns from x 10: Name
+// 364, Date Modified 181, Size 97, Kind 121, 1 × 16 separators (y 58–73 of the window). Alternating
+// rows: rectangles with radius 8 on odd rows, from x 10 to the end of the table, also after the
+// last row. Triangle at x 17–21, 16 pt icon at x 26, name from x 47 with the baseline at 15 in the
+// row; 15 pt indent per level.
 
 import 'dart:math' as math;
 
@@ -14,11 +14,11 @@ import 'model.dart';
 
 const double listRowHeight = 20;
 
-/// L'intestazione: 27 pt di testo e 2 pt di linea.
+/// The header: 27 pt of text and 2 pt of line.
 const double listHeaderHeight = 27;
 const double listHeaderLine = 2;
 
-/// Dalla linea alla prima riga (la prima riga a y 85 della finestra).
+/// From the line to the first row (the first row at y 85 of the window).
 const double listFirstRowGap = 4;
 const double listInset = 10;
 const double listIndent = 15;
@@ -27,28 +27,28 @@ const double listIconLeft = 26;
 const double listIconSide = 16;
 const double listNameLeft = 47;
 
-/// Linee di base: del testo nella riga e delle etichette nell'intestazione.
+/// Baselines: of the text in a row and of the labels in the header.
 const double listRowBaseline = 15;
 const double listHeaderBaseline = 18;
 
-/// Dove comincia l'etichetta di una colonna: Nome a +45, le altre a +5 (inchiostro a +7).
+/// Where a column label starts: Name at +45, the others at +5 (ink at +7).
 const double listNameLabelLeft = 45;
 const double listLabelLeft = 5;
 
-/// Il testo delle celle: Data e Tipo a +7, Dimensioni a destra a 7 pt dal bordo.
+/// Cell text: Date and Kind at +7, Size right-aligned 7 pt from the edge.
 const double listCellLeft = 7;
 const double listCellRight = 7;
 
-/// La larghezza minima di una colonna (Data, osservata).
+/// The minimum width of a column (Date, observed).
 const double listColumnMin = 75;
 
-/// Raggi misurati su mu20-list-light e mu20-list-sel-light confrontando il profilo dell'angolo
-/// con la copertura simulata dei pixel: righe alternate 8; selezione (riga sola e angoli esterni
-/// di un blocco) 7,5. La specifica dice 10 per le capsule, ma l'arrotondamento occupa 4 righe.
+/// Radii measured on mu20-list-light and mu20-list-sel-light by comparing the corner profile with
+/// simulated pixel coverage: alternating rows 8; selection (single row and outer corners of a
+/// block) 7.5. The specification says 10 for the capsules, but the rounding spans 4 rows.
 const double listStripeRadius = 8;
 const double listBlockRadius = 7.5;
 
-/// Una colonna dell'elenco.
+/// A list column.
 @immutable
 class ListColumn {
   const ListColumn(
@@ -63,7 +63,7 @@ class ListColumn {
   final double width;
   final bool alignRight;
 
-  /// Il primo clic ordina dal più grande (Data e Dimensioni, R3.5).
+  /// The first click sorts from the largest (Date and Size, R3.5).
   final bool descendingFirst;
 }
 
@@ -80,12 +80,11 @@ const List<ListColumn> listColumns = [
   ListColumn(SortKey.kind, 'Tipo', 121),
 ];
 
-/// La larghezza della tabella: il margine e le colonne.
+/// The table width: the margin and the columns.
 double listTableWidth(List<double> widths) =>
     listInset + widths.fold(0.0, (a, b) => a + b);
 
-/// I colori dell'elenco (base chiaro e scuro, mustache-spec 3.1; in chiaro misurati su
-/// mu20-list-light).
+/// List colors (light and dark base, mustache-spec 3.1; in light measured on mu20-list-light).
 @immutable
 class ListColors {
   const ListColors({
@@ -115,11 +114,11 @@ class ListColors {
   final Color background;
   final Color header;
 
-  /// La cella dell'intestazione premuta, da separatore a separatore (MU-25).
+  /// The pressed header cell, from separator to separator (MU-25).
   final Color headerPressed;
   final Color stripe;
 
-  /// La linea sotto l'intestazione: in scuro due righe di 1 pt diverse.
+  /// The line below the header: in dark two different 1 pt rows.
   final Color line;
   final Color lineDark;
   final Color separator;
@@ -198,7 +197,7 @@ TextStyle listText(double size, Color color, {FontWeight? weight}) => TextStyle(
   height: 1,
 );
 
-/// Un testo con la linea di base a `baseline` dalla cima del riquadro.
+/// A text with its baseline at `baseline` from the top of the box.
 Widget baselineText(
   String text,
   TextStyle style, {
@@ -220,7 +219,7 @@ Widget baselineText(
   ),
 );
 
-/// Tronca al centro con "…" perché il testo stia in `width` (R3.4).
+/// Truncates in the middle with "…" so the text fits in `width` (R3.4).
 String middleEllipsis(String text, TextStyle style, double width) {
   if (width <= 0) return '';
   double measure(String s) => (TextPainter(
@@ -233,12 +232,12 @@ String middleEllipsis(String text, TextStyle style, double width) {
   var lo = 0;
   var hi = runes.length;
   var best = '…';
-  // Quanti caratteri tenere in tutto, metà davanti e metà dietro.
+  // How many characters to keep in total, half in front and half behind.
   while (lo <= hi) {
     final keep = (lo + hi) ~/ 2;
     final head = (keep + 1) ~/ 2;
     final tail = keep - head;
-    // Niente spazi attorno al "…" (mu22-root: "Beta con un…nella colonna").
+    // No spaces around the "…" (mu22-root: "Beta con un…nella colonna").
     final candidate =
         '${String.fromCharCodes(runes.take(head)).trimRight()}…'
         '${String.fromCharCodes(runes.skip(runes.length - tail)).trimLeft()}';
@@ -252,9 +251,9 @@ String middleEllipsis(String text, TextStyle style, double width) {
   return best;
 }
 
-/// L'intestazione: le etichette, i separatori 1 × 16, la freccia 7 × 4 della colonna
-/// ordinata (8 pt dal suo bordo destro), la linea sotto. Clic per ordinare, trascinando un
-/// separatore cambia la colonna alla sua sinistra.
+/// The header: the labels, the 1 × 16 separators, the 7 × 4 arrow of the sorted column (8 pt from
+/// its right edge), the line below. Click to sort; dragging a separator changes the column on its
+/// left.
 class ListHeader extends StatelessWidget {
   const ListHeader({
     super.key,
@@ -272,13 +271,13 @@ class ListHeader extends StatelessWidget {
   final ListColors colors;
   final ValueChanged<SortKey> onSort;
 
-  /// Trascinamento del separatore a destra della colonna `index`.
+  /// Dragging the separator to the right of column `index`.
   final void Function(int index, double dx) onResize;
 
   @override
   Widget build(BuildContext context) {
     final children = <Widget>[];
-    // Le prese dei separatori stanno sopra le etichette: metà presa cade sulla colonna dopo.
+    // The separator grips sit above the labels: half a grip falls on the next column.
     final handles = <Widget>[];
     var x = listInset;
     for (var i = 0; i < listColumns.length; i++) {
@@ -293,7 +292,7 @@ class ListHeader extends StatelessWidget {
           width: width,
           height: listHeaderHeight,
           child: _HeaderCell(
-            key: ValueKey('intestazione ${column.key.name}'),
+            key: ValueKey('header ${column.key.name}'),
             pressedColor: colors.headerPressed,
             onTap: () => onSort(column.key),
             child: Padding(
@@ -320,7 +319,7 @@ class ListHeader extends StatelessWidget {
             height: 4,
             child: IgnorePointer(
               child: CustomPaint(
-                key: const ValueKey('freccia di ordinamento'),
+                key: const ValueKey('sort arrow'),
                 painter: _ChevronPainter(colors.chevron, up: !descending),
               ),
             ),
@@ -337,7 +336,7 @@ class ListHeader extends StatelessWidget {
           child: ColoredBox(color: colors.separator),
         ),
       );
-      // La presa del separatore: 5 pt, 3 a sinistra della linea e 1 a destra (MU-25).
+      // The separator grip: 5 pt, 3 left of the line and 1 to the right (MU-25).
       handles.add(
         Positioned(
           left: x - 4,
@@ -347,7 +346,7 @@ class ListHeader extends StatelessWidget {
           child: MouseRegion(
             cursor: SystemMouseCursors.resizeColumn,
             child: GestureDetector(
-              key: ValueKey('bordo ${column.key.name}'),
+              key: ValueKey('edge ${column.key.name}'),
               behavior: HitTestBehavior.opaque,
               onHorizontalDragUpdate: (d) => onResize(i, d.delta.dx),
             ),
@@ -356,7 +355,7 @@ class ListHeader extends StatelessWidget {
       );
     }
     return Container(
-      key: const ValueKey('intestazione delle colonne'),
+      key: const ValueKey('column header'),
       height: listHeaderHeight + listHeaderLine,
       color: colors.header,
       child: Column(
@@ -377,8 +376,8 @@ class ListHeader extends StatelessWidget {
   }
 }
 
-/// Una cella dell'intestazione: premuta si riempie (nessun cambio al passaggio); un clic
-/// breve ordina al rilascio, una pressione lunga no (MU-25).
+/// A header cell: pressed it fills (no change on hover); a short click sorts on release, a long
+/// press does not (MU-25).
 class _HeaderCell extends StatefulWidget {
   const _HeaderCell({
     super.key,
@@ -409,7 +408,7 @@ class _HeaderCellState extends State<_HeaderCell> {
     onTapUp: (_) => _set(false),
     onTapCancel: () => _set(false),
     onTap: widget.onTap,
-    // Tenuta a lungo: nessun riordino al rilascio.
+    // Held long: no reordering on release.
     onLongPress: () {},
     onLongPressStart: (_) => _set(true),
     onLongPressEnd: (_) => _set(false),
@@ -420,7 +419,7 @@ class _HeaderCellState extends State<_HeaderCell> {
   );
 }
 
-/// ∧ crescente, ∨ decrescente.
+/// ∧ ascending, ∨ descending.
 class _ChevronPainter extends CustomPainter {
   const _ChevronPainter(this.color, {required this.up});
   final Color color;
@@ -449,7 +448,7 @@ class _ChevronPainter extends CustomPainter {
   bool shouldRepaint(_ChevronPainter old) => old.color != color || old.up != up;
 }
 
-/// Il triangolo di una cartella: › chiusa, ⌄ aperta (5 × 8, cambia in un fotogramma).
+/// A folder's disclosure triangle: › closed, ⌄ open (5 × 8, changes in one frame).
 class ListTriangle extends StatelessWidget {
   const ListTriangle({super.key, required this.open, required this.color});
   final bool open;
@@ -493,9 +492,8 @@ class _TrianglePainter extends CustomPainter {
       old.color != color || old.open != open;
 }
 
-/// Il fondo di una riga: la capsula alternata sulle righe dispari, o la selezione. Le righe
-/// scelte contigue formano un blocco con gli angoli esterni arrotondati e una linea di 1 pt fra
-/// una riga e l'altra (R3.8).
+/// The background of a row: the alternating capsule on odd rows, or the selection. Contiguous
+/// selected rows form a block with rounded outer corners and a 1 pt line between rows (R3.8).
 class ListRowBackground extends StatelessWidget {
   const ListRowBackground({
     super.key,
@@ -512,20 +510,20 @@ class ListRowBackground extends StatelessWidget {
 
   final int index;
 
-  /// Fin dove arriva la riga (la fine della tabella o della vista).
+  /// How far the row reaches (the end of the table or of the view).
   final double width;
   final ListColors colors;
   final bool selected;
   final bool selectedAbove;
   final bool selectedBelow;
 
-  /// Finestra attiva: selezione in accento, altrimenti grigia.
+  /// Active window: selection in the accent color, otherwise gray.
   final bool active;
 
-  /// La cartella sotto un trascinamento: colorata come la selezione.
+  /// The folder under a drag: colored like the selection.
   final bool dropTarget;
 
-  /// L'anello di 2 pt del clic destro su una riga non scelta (R3.9).
+  /// The 2 pt ring of a right click on an unselected row (R3.9).
   final bool ring;
 
   @override

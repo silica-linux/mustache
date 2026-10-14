@@ -1,4 +1,4 @@
-// Mustache, il gestore dei file di Silica.
+// Mustache, the file manager of Silica.
 
 import 'dart:io';
 
@@ -17,7 +17,7 @@ void main(List<String> args) {
   final userDirs = File(
     '${env['XDG_CONFIG_HOME'] ?? '$home/.config'}/user-dirs.dirs',
   );
-  // Un dialogo Apri o Salva per il portale (--dialog=open|save).
+  // An Open or Save dialog for the portal (--dialog=open|save).
   final dialog = DialogOptions.parse(args);
   final folders = [
     for (final a in args)
@@ -34,7 +34,7 @@ void main(List<String> args) {
   );
   final trash = trashPlace(home: home, dataHome: env['XDG_DATA_HOME']);
   final settings = Settings.forUser(env);
-  // La barra degli strumenti è unificata con la finestra: Ossido disegna solo i pulsanti.
+  // The toolbar is unified with the window: Ossido draws only the window buttons.
   WidgetsFlutterBinding.ensureInitialized();
   SilicaWindow.setFullSizeContent(toolbarHeight).ignore();
   if (dialog != null) {
@@ -56,7 +56,7 @@ void main(List<String> args) {
   runApp(
     Directionality(
       textDirection: TextDirection.ltr,
-      // Una finestra per scheda (⌘T).
+      // One window per tab (⌘T).
       child: TabsHost(
         start: start,
         build: (tab, tabBar, onLocation, active) => MustacheWindow(

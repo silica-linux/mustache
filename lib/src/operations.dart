@@ -1,24 +1,23 @@
-// Le operazioni sui file di MU.4 (mustache-spec 8, 9.3, 9.4): nuova cartella, duplica, rinomina,
-// Cestino (specifica freedesktop Trash), ripristino, eliminazione, e la pila per annullare.
+// The file operations of MU.4 (mustache-spec 8, 9.3, 9.4): new folder, duplicate, rename, Trash
+// (freedesktop Trash specification), put back, delete, and the undo stack.
 //
-// Mai eccezioni verso l'interfaccia: ogni operazione restituisce il risultato o un messaggio
-// (un file sparito, un permesso mancante, un disco pieno sono casi normali).
+// Never exceptions towards the UI: every operation returns the result or a message (a vanished
+// file, a missing permission, a full disk are normal cases).
 
 import 'dart:io';
 
 import 'model.dart';
 
-/// Il nome di una cartella nuova (⇧⌘N).
+/// The name of a new folder (⇧⌘N).
 const String newFolderName = 'cartella senza nome';
 
-/// Il risultato di un'operazione: il percorso prodotto, o un errore da mostrare.
+/// The result of an operation: the path produced, or an error to show.
 typedef OpResult = ({String? path, String? error});
 
 OpResult _ok(String path) => (path: path, error: null);
 OpResult _fail(String message) => (path: null, error: message);
 
-/// Nome e estensione ("appunti", ".txt"); le cartelle e i nomi che iniziano con il punto non
-/// hanno estensione.
+/// Name and extension ("appunti", ".txt"); folders and names starting with a dot have no extension.
 (String, String) splitExtension(String name, {bool isDirectory = false}) {
   if (isDirectory) return (name, '');
   final dot = name.lastIndexOf('.');
@@ -26,7 +25,7 @@ OpResult _fail(String message) => (path: null, error: message);
   return (name.substring(0, dot), name.substring(dot));
 }
 
-/// Un nome libero in `dir`: `base` + `ext`, poi `base 2` + `ext`, `base 3`…
+/// A free name in `dir`: `base` + `ext`, then `base 2` + `ext`, `base 3`…
 String uniqueName(String dir, String base, [String ext = '']) {
   bool taken(String name) =>
       FileSystemEntity.typeSync('$dir/$name', followLinks: false) !=
@@ -38,13 +37,13 @@ String uniqueName(String dir, String base, [String ext = '']) {
   return name;
 }
 
-/// Il nome della copia (⌘D): "nome copia.ext", poi "nome copia 2.ext"; cartelle "Alfa copia".
+/// The name of the copy (⌘D): "nome copia.ext", then "nome copia 2.ext"; folders "Alfa copia".
 String copyName(String dir, String name, {bool isDirectory = false}) {
   final (base, ext) = splitExtension(name, isDirectory: isDirectory);
   return uniqueName(dir, '$base copia', ext);
 }
 
-/// Crea "cartella senza nome" (o "… 2") in `dir`.
+/// Creates "cartella senza nome" (or "… 2") in `dir`.
 OpResult createFolder(String dir) {
   final path = '$dir/${uniqueName(dir, newFolderName)}';
   try {
@@ -55,7 +54,7 @@ OpResult createFolder(String dir) {
   }
 }
 
-/// Duplica un file o una cartella (ricorsivamente; i link restano link).
+/// Duplicates a file or a folder (recursively; links stay links).
 OpResult duplicate(String path) {
   final type = FileSystemEntity.typeSync(path, followLinks: false);
   if (type == FileSystemEntityType.notFound) {
@@ -68,7 +67,7 @@ OpResult duplicate(String path) {
     _copy(path, target);
     return _ok(target);
   } on FileSystemException catch (e) {
-    // Una copia a metà non resta.
+    // A half-made copy does not stay.
     _deleteQuietly(target);
     return _fail(_describe(e));
   }
@@ -97,11 +96,11 @@ void _deleteQuietly(String path) {
       File(path).deleteSync();
     }
   } on FileSystemException {
-    // Resta: meglio un file in più che un errore sopra un errore.
+    // It stays: better one extra file than an error on top of an error.
   }
 }
 
-/// Elimina subito, senza Cestino (⌥⌘⌫ dopo la conferma).
+/// Deletes right away, without the Trash (⌥⌘⌫ after confirmation).
 OpResult deletePermanently(String path) {
   try {
     final type = FileSystemEntity.typeSync(path, followLinks: false);
@@ -117,8 +116,8 @@ OpResult deletePermanently(String path) {
   }
 }
 
-/// Perché un nome nuovo non va: vuoto, `.` o `..`, con `/` (su Linux non può stare in un nome),
-/// o già usato nella stessa cartella. Null se va bene.
+/// Why a new name is not valid: empty, `.` or `..`, with `/` (it cannot be in a name on Linux), or
+/// already used in the same folder. Null if valid.
 String? invalidName(String dir, String oldName, String newName) {
   if (newName.trim().isEmpty || newName == '.' || newName == '..') {
     return 'Il nome «$newName» non può essere utilizzato. Scegli un altro nome.';
@@ -130,14 +129,14 @@ String? invalidName(String dir, String oldName, String newName) {
   if (newName != oldName &&
       FileSystemEntity.typeSync('$dir/$newName', followLinks: false) !=
           FileSystemEntityType.notFound &&
-      // Solo maiuscole e minuscole diverse sullo stesso file: si può.
+      // Only a case change on the same file: allowed.
       newName.toLowerCase() != oldName.toLowerCase()) {
     return 'Il nome «$newName» è già stato assegnato. Scegline un altro.';
   }
   return null;
 }
 
-/// L'estensione cambia rinominando un file (R8.4: si chiede conferma)?
+/// Does renaming a file change its extension (R8.4: confirmation is asked)?
 bool extensionChanges(
   String oldName,
   String newName, {
@@ -149,7 +148,7 @@ bool extensionChanges(
   return a.isNotEmpty && a != b;
 }
 
-/// Rinomina dentro la stessa cartella.
+/// Renames within the same folder.
 OpResult renameEntry(String path, String newName) {
   final dir = parentOf(path) ?? '/';
   final problem = invalidName(dir, displayName(path), newName);
@@ -174,7 +173,7 @@ OpResult renameEntry(String path, String newName) {
   }
 }
 
-/// Il Cestino dell'utente (specifica freedesktop Trash): `files/` e `info/`.
+/// The user's Trash (freedesktop Trash specification): `files/` and `info/`.
 class Trash {
   Trash(this.root);
 
@@ -191,10 +190,10 @@ class Trash {
   String get files => '$root/files';
   String get info => '$root/info';
 
-  /// Il percorso è dentro il Cestino?
+  /// Is the path inside the Trash?
   bool contains(String path) => path == files || path.startsWith('$files/');
 
-  /// Sposta nel Cestino; il risultato è il percorso dentro `files/`.
+  /// Moves to the Trash; the result is the path inside `files/`.
   OpResult put(String path, {DateTime? now}) {
     final type = FileSystemEntity.typeSync(path, followLinks: false);
     if (type == FileSystemEntityType.notFound) {
@@ -203,8 +202,8 @@ class Trash {
     try {
       Directory(files).createSync(recursive: true);
       Directory(info).createSync(recursive: true);
-      // Un nome libero sia in files/ sia in info/ (la specifica: il file .trashinfo si crea
-      // per primo, in modo esclusivo).
+      // A name free both in files/ and info/ (the specification: the .trashinfo file is created
+      // first, exclusively).
       final (base, ext) = splitExtension(
         displayName(path),
         isDirectory: type == FileSystemEntityType.directory,
@@ -242,7 +241,7 @@ class Trash {
     }
   }
 
-  /// La posizione d'origine di un elemento del Cestino (dal suo .trashinfo).
+  /// The original location of a Trash item (from its .trashinfo).
   String? originOf(String trashed) {
     try {
       final text = File(
@@ -254,14 +253,14 @@ class Trash {
         }
       }
     } on FileSystemException {
-      // Senza info non si sa dove tornare.
+      // Without info it is unknown where to go back.
     } on ArgumentError {
-      // Percorso codificato male.
+      // Badly encoded path.
     }
     return null;
   }
 
-  /// Rimette un elemento del Cestino dov'era (R9.10).
+  /// Puts a Trash item back where it was (R9.10).
   OpResult restore(String trashed) {
     final origin = originOf(trashed);
     if (origin == null) {
@@ -298,7 +297,7 @@ class Trash {
   }
 }
 
-/// Sposta; fra dischi diversi (rename impossibile) copia e poi cancella.
+/// Moves; across disks (rename impossible) it copies and then deletes.
 void _move(String from, String to, FileSystemEntityType type) {
   try {
     switch (type) {
@@ -310,7 +309,7 @@ void _move(String from, String to, FileSystemEntityType type) {
         File(from).renameSync(to);
     }
   } on FileSystemException catch (e) {
-    // EXDEV: un altro file system.
+    // EXDEV: another file system.
     if (e.osError?.errorCode != 18) rethrow;
     _copy(from, to);
     _deleteQuietly(from);
@@ -328,17 +327,17 @@ String _describe(FileSystemException e) {
   };
 }
 
-/// Un'operazione che si può annullare e ripetere.
+/// An operation that can be undone and redone.
 abstract class Undoable {
   const Undoable();
 
-  /// L'etichetta del menu Modifica ("Annulla Rinomina").
+  /// The label of the Edit menu ("Annulla Rinomina").
   String get label;
 
-  /// Annulla; un errore se non si può più.
+  /// Undo; an error if no longer possible.
   String? undo(Trash trash);
 
-  /// Rifà; un errore se non si può più.
+  /// Redo; an error if no longer possible.
   String? redo(Trash trash);
 }
 
@@ -357,7 +356,7 @@ class RenameOp extends Undoable {
   String? redo(Trash trash) => renameEntry(from, displayName(to)).error;
 }
 
-/// Elementi creati (cartella nuova, duplicati): annullare li elimina (non nel Cestino).
+/// Created items (new folder, duplicates): undo deletes them (not to the Trash).
 class CreateOp extends Undoable {
   CreateOp(this.paths, this.label, this._recreate);
   final List<String> paths;
@@ -385,11 +384,11 @@ class CreateOp extends Undoable {
   }
 }
 
-/// Elementi spostati nel Cestino: annullare li rimette dov'erano.
+/// Items moved to the Trash: undo puts them back where they were.
 class TrashOp extends Undoable {
   TrashOp(this.moves);
 
-  /// (origine, percorso nel Cestino).
+  /// (source, path in the Trash).
   final List<(String, String)> moves;
 
   @override
@@ -416,7 +415,7 @@ class TrashOp extends Undoable {
   }
 }
 
-/// La pila di annulla/ripeti della finestra.
+/// The undo/redo stack of the window.
 class UndoStack {
   final List<Undoable> _done = [];
   final List<Undoable> _undone = [];
@@ -430,7 +429,7 @@ class UndoStack {
   String? get redoLabel =>
       _undone.isEmpty ? null : 'Ripeti ${_undone.last.label}';
 
-  /// Annulla l'ultima operazione; null se riuscito o se non c'era niente.
+  /// Undoes the last operation; null if it succeeded or there was nothing.
   String? undo(Trash trash) {
     if (_done.isEmpty) return null;
     final op = _done.removeLast();

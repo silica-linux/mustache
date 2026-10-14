@@ -9,16 +9,16 @@ import 'package:mustache/src/settings.dart';
 import 'package:mustache/src/window.dart';
 
 void main() {
-  test('dimensioni del pannello per le immagini (spec 12)', () {
+  test('panel sizes for images (spec 12)', () {
     expect(imagePanelSize(const Size(800, 600)), const Size(810, 643));
     expect(imagePanelSize(const Size(600, 900)), const Size(610, 943));
-    // Piccola: larghezza minima.
+    // Small: minimum width.
     expect(imagePanelSize(const Size(320, 240)).width, quickLookMinWidth);
-    // Grande: adattata all'altezza massima.
+    // Large: fitted to the maximum height.
     final big = imagePanelSize(const Size(4000, 3000));
     expect(big.height, quickLookMaxHeight);
     expect(big.width, closeTo(1628, 2));
-    // In una finestra più piccola si riduce in proporzione.
+    // In a smaller window it shrinks proportionally.
     expect(
       fitPanel(const Size(800, 400), const Size(400, 400)),
       const Size(400, 200),
@@ -27,7 +27,7 @@ void main() {
     expect(isTextPreview('foto.png'), isFalse);
   });
 
-  testWidgets('Spazio apre e chiude; Esc chiude; il testo si vede', (
+  testWidgets('Space opens and closes; Esc closes; the text shows', (
     tester,
   ) async {
     final home = Directory.systemTemp.createTempSync('mustache-anteprima');
@@ -48,7 +48,7 @@ void main() {
         ),
       ),
     );
-    final panel = find.byKey(const ValueKey('visualizzazione rapida'));
+    final panel = find.byKey(const ValueKey('quick look'));
     await tester.tap(find.text('nota.txt'));
     await tester.pump(const Duration(milliseconds: 310));
     await tester.sendKeyEvent(LogicalKeyboardKey.space);
@@ -56,12 +56,12 @@ void main() {
     expect(panel, findsOneWidget);
     expect(find.text('riga di prova'), findsOneWidget);
     expect(tester.getSize(panel), quickLookText);
-    // ↑: la cartella, con il pannello generico.
+    // ↑: the folder, with the generic panel.
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
     await tester.pump();
     expect(tester.getSize(panel), quickLookGeneric);
     expect(
-      // Nella barra e accanto all'icona grande.
+      // In the bar and beside the large icon.
       find.descendant(of: panel, matching: find.text('Cartella')),
       findsNWidgets(2),
     );

@@ -1,7 +1,7 @@
-// Data e dimensione di un collegamento simbolico, non della sua destinazione (la vista a elenco
-// mostra quelle del collegamento, R3.2): `lstat` di libc via FFI. Su Linux x86_64 e aarch64
-// `struct stat` ha la dimensione a +48 e `st_mtim` (secondi, nanosecondi) a +88. Fuori da
-// queste architetture, o se la chiamata fallisce, null: si usa la destinazione.
+// Date and size of a symbolic link, not of its target (the list view shows the link's own, R3.2):
+// libc `lstat` via FFI. On Linux x86_64 and aarch64 `struct stat` has the size at +48 and `st_mtim`
+// (seconds, nanoseconds) at +88. Outside these architectures, or if the call fails, null: the
+// target is used.
 
 import 'dart:ffi';
 import 'dart:io';
@@ -31,7 +31,7 @@ _LstatDart? _lookup() {
   }
 }
 
-/// La dimensione in byte e la data di modifica del collegamento stesso.
+/// The size in bytes and the modification date of the link itself.
 ({int size, DateTime modified})? linkStat(String path) {
   final lstat = _lstat;
   if (lstat == null) return null;

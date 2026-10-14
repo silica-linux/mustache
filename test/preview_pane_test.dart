@@ -5,9 +5,7 @@ import 'package:mustache/src/model.dart';
 import 'package:mustache/src/preview_pane.dart';
 
 void main() {
-  testWidgets('pannello della galleria: intestazione, date, tag, azioni', (
-    tester,
-  ) async {
+  testWidgets('gallery pane: header, dates, tags, actions', (tester) async {
     final entry = Entry(
       name: 'Alfa',
       path: '/prova/Alfa',
@@ -40,26 +38,24 @@ void main() {
         ),
       ),
     );
-    // Nome accanto all'icona di 50, con la linea di base a 39 (mu23-gallery-folder).
+    // Name beside the 50 pt icon, with the baseline at 39 (mu23-gallery-folder).
     expect(tester.getTopLeft(find.text('Alfa')).dx, 69);
-    // "oggi, 16:01" sul bordo destro, a 10 pt.
+    // "oggi, 16:01" on the right edge, at 10 pt.
     final date = find.text('oggi, 16:01');
     expect(date, findsOneWidget);
     expect(tester.getTopRight(date).dx, closeTo(240, 0.5));
-    // Il campo dei tag: Invio aggiunge.
+    // The tags field: Return adds.
     await tester.tap(find.text('Aggiungi un tag…'));
     await tester.pump();
     await tester.enterText(find.byType(EditableText), 'Lavoro');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump();
     expect(added, ['Lavoro']);
-    // La barra delle azioni in fondo, alta 70.
-    final bar = tester.getRect(
-      find.byKey(const ValueKey('azioni del pannello')),
-    );
+    // The actions bar at the bottom, 70 tall.
+    final bar = tester.getRect(find.byKey(const ValueKey('pane actions')));
     expect(bar.height, paneActionsHeight);
     expect(bar.bottom, 600);
-    await tester.tap(find.byKey(const ValueKey('azione Altro')));
+    await tester.tap(find.byKey(const ValueKey('action Altro')));
     expect(more, isNotNull);
   });
 }

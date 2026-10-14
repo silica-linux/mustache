@@ -1,28 +1,28 @@
-// I menu contestuali (MU-50, mustache-spec 10.1) e l'apertura con le app (R10.1): Apri, Apri con
-// (la predefinita in cima, poi le altre in ordine di nome), Sposta nel Cestino, Rinomina,
-// Duplica; nel vuoto Nuova cartella, Vista e Ordina per. Le voci di funzioni non ancora fatte
-// restano visibili e disattivate, per la struttura.
+// Context menus (MU-50, mustache-spec 10.1) and opening with apps (R10.1): Open, Open With (the
+// default on top, then the others by name), Move to Trash, Rename, Duplicate; on the background New
+// Folder, View and Sort By. Entries for features not done yet stay visible and disabled, for the
+// structure.
 
 part of 'window.dart';
 
-/// Il menu si apre con l'angolo in alto a sinistra sul puntatore (+1, −6) (spec 10.1).
+/// The menu opens with its top-left corner at the pointer (+1, −6) (spec 10.1).
 const Offset contextMenuOffset = Offset(1, -6);
 
 extension _Context on _MustacheWindowState {
   AppRegistry get _registry =>
       _apps ??= AppRegistry.load(env: widget.iconsEnv, mime: systemMime);
 
-  /// Il tipo MIME di un elemento, calcolato una volta per percorso e data.
+  /// The MIME type of an item, computed once per path and date.
   String _typeOf(Entry entry) {
     if (entry.isDirectory) return 'inode/directory';
     final key = '${entry.path}\u0000${entry.modified.microsecondsSinceEpoch}';
     return _types[key] ??= systemMime.typeOf(entry.path);
   }
 
-  /// La colonna Tipo: il nome della famiglia del tipo (R3.3).
+  /// The Kind column: the name of the type's family (R3.3).
   String _kind(Entry entry) => kindLabel(entry, _typeOf(entry));
 
-  /// Apre dei file con un'app (o la predefinita del primo), con un avviso se non si può.
+  /// Opens files with an app (or the default one of the first), with an alert when it cannot.
   Future<void> _openWith(List<Entry> files, [DesktopApp? app]) async {
     if (files.isEmpty) return;
     final custom = widget.open;
@@ -34,7 +34,7 @@ extension _Context on _MustacheWindowState {
     }
     final chosen = app ?? _registry.defaultFor(_typeOf(files.first));
     if (chosen == null) {
-      // Nessuna app dichiara il tipo: il resto lo decide il sistema.
+      // No app declares the type: the system decides the rest.
       for (final f in files) {
         _MustacheWindowState._xdgOpen(f.path);
       }
@@ -46,8 +46,8 @@ extension _Context on _MustacheWindowState {
 
   void _openContextMenu(Entry? entry, Offset position) {
     _slowClick?.cancel();
-    // Nell'elenco il clic destro su una riga non scelta non cambia la selezione: la riga
-    // riceve l'anello e il menu vale per lei sola (R3.9).
+    // In the list a right click on an unselected row does not change the selection: the row gets
+    // the ring and the menu applies to it alone (R3.9).
     final ring =
         entry != null &&
         !_selected.contains(entry.path) &&
@@ -67,7 +67,7 @@ extension _Context on _MustacheWindowState {
     });
   }
 
-  /// Apre le finestre Informazioni (al più 5).
+  /// Opens the Get Info windows (at most 5).
   void _openInfo(List<String> paths) => _update(() {
     for (final p in paths.take(5)) {
       if (!_infos.contains(p)) _infos.add(p);
@@ -130,8 +130,8 @@ extension _Context on _MustacheWindowState {
     ];
   }
 
-  /// "Apri con ›": la predefinita in cima con "(predefinita)", poi le altre in ordine di nome,
-  /// poi "Altro…" (R10.1).
+  /// "Open With ›": the default on top with "(default)", then the others by name, then "Other…"
+  /// (R10.1).
   MenuAction _openWithMenu(List<Entry> files) {
     final type = _typeOf(files.first);
     final preferred = _registry.defaultFor(type);

@@ -1,5 +1,5 @@
-// Le zone di clic della finestra: ogni controllo riceve i clic su tutta la sua area, fino ai
-// bordi, e niente passa a quello che c'è dietro o accanto.
+// The click areas of the window: every control receives clicks over its whole area, up to the
+// edges, and nothing goes through to what is behind or beside it.
 
 import 'dart:io';
 
@@ -62,25 +62,25 @@ void main() {
   Color nameColor(WidgetTester tester, String name) => tester
       .widget<Text>(
         find.descendant(
-          of: find.byKey(const ValueKey('elenco')),
+          of: find.byKey(const ValueKey('list')),
           matching: find.text(name),
         ),
       )
       .style!
       .color!;
 
-  testWidgets('segmenti della barra: tutto il segmento, fino ai bordi', (
+  testWidgets('toolbar segments: the whole segment, up to the edges', (
     tester,
   ) async {
     await pump(tester);
     for (final (key, mode) in [
-      ('vista icons', 'icons'),
-      ('vista gallery', 'gallery'),
-      ('vista columns', 'columns'),
-      ('vista list', 'list'),
+      ('view icons', 'icons'),
+      ('view gallery', 'gallery'),
+      ('view columns', 'columns'),
+      ('view list', 'list'),
     ]) {
       final rect = tester.getRect(find.byKey(ValueKey(key)));
-      // A 1 pt dal bordo sinistro e dal destro, in alto e in basso.
+      // 1 pt from the left and right edges, at the top and at the bottom.
       for (final p in [
         rect.topLeft + const Offset(1, 1),
         rect.bottomRight - const Offset(1, 1),
@@ -88,13 +88,13 @@ void main() {
         await tester.tapAt(p);
         await tester.pump(const Duration(milliseconds: 400));
         expect(
-          find.byKey(const ValueKey('intestazione delle colonne')),
+          find.byKey(const ValueKey('column header')),
           mode == 'list' ? findsOneWidget : findsNothing,
-          reason: '$key a $p',
+          reason: '$key at $p',
         );
       }
     }
-    // Il clic su un segmento non sposta la finestra.
+    // A click on a segment does not move the window.
     expect(calls, isNot(contains('startMove')));
     Future<void> drag(Offset from) async {
       final gesture = await tester.startGesture(
@@ -106,30 +106,28 @@ void main() {
       await tester.pump();
     }
 
-    // MU-08: dal titolo no; dal vuoto accanto, dalla cima della barra laterale e dalla
-    // barra di stato sì.
-    final title = tester.getRect(find.byKey(const ValueKey('titolo')));
+    // MU-08: not from the title; from the empty space beside it, from the top of the sidebar and
+    // from the status bar, yes.
+    final title = tester.getRect(find.byKey(const ValueKey('title')));
     await drag(Offset(title.right - 4, title.center.dy));
     expect(calls, isNot(contains('startMove')));
     await drag(Offset(title.right + 20, title.center.dy));
     expect(calls.where((c) => c == 'startMove'), hasLength(1));
     await drag(const Offset(100, 30));
     expect(calls.where((c) => c == 'startMove'), hasLength(2));
-    final status = tester.getRect(find.byKey(const ValueKey('barra di stato')));
+    final status = tester.getRect(find.byKey(const ValueKey('status bar')));
     await drag(status.center + const Offset(-200, 0));
     expect(calls.where((c) => c == 'startMove'), hasLength(3));
   });
 
-  testWidgets('la barra di stato non passa i clic all\'elenco dietro', (
+  testWidgets('the status bar does not pass clicks to the list behind', (
     tester,
   ) async {
     await pump(tester);
-    final bar = tester.getRect(find.byKey(const ValueKey('barra di stato')));
-    final path = tester.getRect(
-      find.byKey(const ValueKey('barra del percorso')),
-    );
-    // Scelgo una riga, poi clic sulla barra di stato e su quella del percorso (fuori dai
-    // segmenti): la scelta resta.
+    final bar = tester.getRect(find.byKey(const ValueKey('status bar')));
+    final path = tester.getRect(find.byKey(const ValueKey('path bar')));
+    // I choose a row, then click on the status bar and on the path bar (outside the segments): the
+    // choice stays.
     await tester.tap(find.text('file 0.txt'));
     await tester.pump(const Duration(milliseconds: 400));
     expect(nameColor(tester, 'file 0.txt'), ListColors.light.selectionName);
@@ -138,19 +136,15 @@ void main() {
     await tester.tapAt(Offset(path.right - 20, path.center.dy));
     await tester.pump(const Duration(milliseconds: 400));
     expect(nameColor(tester, 'file 0.txt'), ListColors.light.selectionName);
-    // L'elenco finisce sopra la barra del percorso: l'ultima riga visibile non ci finisce sotto.
-    final list = tester.getRect(find.byKey(const ValueKey('elenco')));
+    // The list ends above the path bar: the last visible row does not end up under it.
+    final list = tester.getRect(find.byKey(const ValueKey('list')));
     expect(list.bottom, lessThanOrEqualTo(path.top));
     expect(path.bottom, lessThanOrEqualTo(bar.top));
   });
 
-  testWidgets('cursore delle icone: tutta la barra del cursore', (
-    tester,
-  ) async {
+  testWidgets('icon slider: the whole slider bar', (tester) async {
     final settings = await pump(tester, view: 'icons');
-    final slider = tester.getRect(
-      find.byKey(const ValueKey('cursore delle icone')),
-    );
+    final slider = tester.getRect(find.byKey(const ValueKey('icon slider')));
     await tester.tapAt(Offset(slider.right - 2, slider.center.dy));
     await tester.pump();
     expect(settings.iconSide, iconSideFor(112));
@@ -159,54 +153,43 @@ void main() {
     expect(settings.iconSide, lessThan(20));
   });
 
-  testWidgets(
-    'bordo della barra laterale: 3 pt per parte, l\'elenco subito dopo',
-    (tester) async {
-      await pump(tester);
-      final header = tester.getRect(
-        find.byKey(const ValueKey('intestazione delle colonne')),
-      );
-      final edge = header.left;
-      // Trascinando a 2 pt dal bordo, dentro il contenuto, la barra si allarga.
-      await tester.dragFrom(
-        Offset(edge + 2, 300),
-        const Offset(40, 0),
-        kind: PointerDeviceKind.mouse,
-      );
-      await tester.pumpAndSettle();
-      final wider = tester.getRect(
-        find.byKey(const ValueKey('intestazione delle colonne')),
-      );
-      expect(wider.left, greaterThan(edge + 30));
-      // A 4 pt dal bordo è già l'elenco: la riga di Alfa (il triangolo parte da x 11).
-      await tester.tapAt(Offset(wider.left + 4, wider.bottom + 14));
-      await tester.pump(const Duration(milliseconds: 400));
-      expect(nameColor(tester, 'Alfa'), ListColors.light.selectionName);
-      await tester.tapAt(Offset(wider.left + 60, wider.bottom + 34));
-      await tester.pump(const Duration(milliseconds: 400));
-      expect(nameColor(tester, 'file 0.txt'), ListColors.light.selectionName);
-    },
-  );
-
-  testWidgets('intestazione: l\'etichetta fino al separatore, poi la presa', (
+  testWidgets('sidebar edge: 3 pt per side, the list right after', (
     tester,
   ) async {
     await pump(tester);
-    final date = tester.getRect(
-      find.byKey(const ValueKey('intestazione modified')),
+    final header = tester.getRect(find.byKey(const ValueKey('column header')));
+    final edge = header.left;
+    // Dragging 2 pt from the edge, inside the content, widens the sidebar.
+    await tester.dragFrom(
+      Offset(edge + 2, 300),
+      const Offset(40, 0),
+      kind: PointerDeviceKind.mouse,
     );
-    // A 5 pt dalla fine della colonna Data ordina per data (la presa è di 4 pt).
+    await tester.pumpAndSettle();
+    final wider = tester.getRect(find.byKey(const ValueKey('column header')));
+    expect(wider.left, greaterThan(edge + 30));
+    // 4 pt from the edge it is already the list: the Alfa row (the triangle starts at x 11).
+    await tester.tapAt(Offset(wider.left + 4, wider.bottom + 14));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(nameColor(tester, 'Alfa'), ListColors.light.selectionName);
+    await tester.tapAt(Offset(wider.left + 60, wider.bottom + 34));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(nameColor(tester, 'file 0.txt'), ListColors.light.selectionName);
+  });
+
+  testWidgets('header: the label up to the separator, then the grip', (
+    tester,
+  ) async {
+    await pump(tester);
+    final date = tester.getRect(find.byKey(const ValueKey('header modified')));
+    // 5 pt from the end of the Date column it sorts by date (the grip is 4 pt).
     await tester.tapAt(Offset(date.right - 5, date.center.dy));
     await tester.pump();
     expect(
-      tester.widget<CustomPaint>(
-        find.byKey(const ValueKey('freccia di ordinamento')),
-      ),
+      tester.widget<CustomPaint>(find.byKey(const ValueKey('sort arrow'))),
       isNotNull,
     );
-    final arrow = tester.getRect(
-      find.byKey(const ValueKey('freccia di ordinamento')),
-    );
+    final arrow = tester.getRect(find.byKey(const ValueKey('sort arrow')));
     expect(arrow.right, closeTo(date.right - 7, 0.5));
   });
 }

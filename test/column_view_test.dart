@@ -10,7 +10,7 @@ import 'package:mustache/src/tags.dart';
 import 'package:mustache/src/window.dart';
 
 void main() {
-  test('catena delle colonne dalla radice alla cartella aperta', () {
+  test('chain of columns from the root to the open folder', () {
     expect(columnChain('/home/io', '/home/io/Documenti/Lettere'), [
       '/home/io',
       '/home/io/Documenti',
@@ -18,13 +18,13 @@ void main() {
     ]);
     expect(columnChain('/home/io', '/home/io'), ['/home/io']);
     expect(columnChain('/', '/etc'), ['/', '/etc']);
-    // Fuori dalla radice: la sola cartella.
+    // Outside the root: the folder alone.
     expect(columnChain('/home/io', '/tmp'), ['/tmp']);
-    // Un prefisso che non è una cartella madre non conta.
+    // A prefix that is not a parent folder does not count.
     expect(columnChain('/home/io', '/home/ionico'), ['/home/ionico']);
   });
 
-  group('nella finestra', () {
+  group('in the window', () {
     late Directory home;
 
     setUp(() {
@@ -58,7 +58,7 @@ void main() {
       );
     }
 
-    Finder column(String dir) => find.byKey(ValueKey('colonna $dir'));
+    Finder column(String dir) => find.byKey(ValueKey('column $dir'));
 
     Color? fillOf(WidgetTester tester, String path) {
       final boxes = tester
@@ -74,8 +74,8 @@ void main() {
           : (boxes.first.decoration as BoxDecoration).color;
     }
 
-    testWidgets('una cartella scelta apre la sua colonna; selezione attenuata a '
-        'sinistra; frecce', (tester) async {
+    testWidgets('a chosen folder opens its column; dimmed selection on the '
+        'left; arrows', (tester) async {
       await pump(tester);
       expect(column(home.path), findsOneWidget);
       final docs = '${home.path}/Documenti';
@@ -83,32 +83,32 @@ void main() {
       await tester.pump();
       expect(column(docs), findsOneWidget);
       expect(fillOf(tester, docs), const Color(0xFF0064E1));
-      // La colonna è a 245 pt dalla prima.
+      // The column is 245 pt from the first one.
       expect(
         tester.getTopLeft(column(docs)).dx -
             tester.getTopLeft(column(home.path)).dx,
         columnPitch,
       );
-      // → entra: la prima voce della cartella (Lettere), e Documenti diventa grigio.
+      // → enters: the first entry of the folder (Lettere), and Documenti turns gray.
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
       await tester.pump();
       final letters = '$docs/Lettere';
       expect(fillOf(tester, letters), const Color(0xFF0064E1));
       expect(fillOf(tester, docs), const Color(0xFFDCDCDC));
       expect(column(letters), findsOneWidget);
-      // ↓ passa a nota.txt (stessa colonna): la colonna di Lettere sparisce.
+      // ↓ moves to nota.txt (same column): the column of Lettere disappears.
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
       await tester.pump();
       expect(fillOf(tester, '$docs/nota.txt'), const Color(0xFF0064E1));
       expect(column(letters), findsNothing);
-      // ← torna alla cartella a sinistra.
+      // ← goes back to the folder on the left.
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
       await tester.pump();
       expect(fillOf(tester, docs), const Color(0xFF0064E1));
       await tester.pump(const Duration(milliseconds: 400));
     });
 
-    testWidgets('⌘3 passa alle colonne', (tester) async {
+    testWidgets('⌘3 switches to columns', (tester) async {
       await pump(tester);
       await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
       await tester.sendKeyEvent(LogicalKeyboardKey.digit2);
@@ -123,7 +123,7 @@ void main() {
     });
   });
 
-  testWidgets('nomi troncati al centro e punti delle etichette (mu22-root)', (
+  testWidgets('names truncated in the middle and tag dots (mu22-root)', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1000, 700);
@@ -163,9 +163,7 @@ void main() {
     expect(find.byType(TagDots), findsOneWidget);
   });
 
-  testWidgets('la cartella aperta resta in vista in una colonna lunga', (
-    tester,
-  ) async {
+  testWidgets('the open folder stays in view in a long column', (tester) async {
     tester.view.physicalSize = const Size(1000, 400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);

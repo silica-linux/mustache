@@ -1,11 +1,11 @@
-// La vista a colonne nella finestra (MU-22): la radice, il contenuto delle colonne, la scelta
-// con il clic e con le frecce (R5.3).
+// The column view in the window (MU-22): the root, the column contents, choosing with a click and
+// with the arrows (R5.3).
 
 part of 'window.dart';
 
 extension _Columns on _MustacheWindowState {
-  /// La radice: la voce della barra laterale che contiene la cartella aperta (la più
-  /// specifica), altrimenti `/` (R5.6).
+  /// The root: the sidebar entry that contains the open folder (the most specific one), otherwise
+  /// `/` (R5.6).
   String get _columnRoot {
     var best = '/';
     for (final place in [...widget.places, widget.trash]) {
@@ -18,7 +18,7 @@ extension _Columns on _MustacheWindowState {
     return best;
   }
 
-  /// Il contenuto ordinato di una colonna, letto una volta per caricamento.
+  /// The sorted contents of a column, read once per load.
   List<Entry> _columnList(String dir) => _columnCache[dir] ??= sortEntries(
     listDirectory(dir, showHidden: _showHidden).entries,
     _sort,
@@ -26,12 +26,12 @@ extension _Columns on _MustacheWindowState {
     kindOf: _kind,
   );
 
-  /// L'elemento scelto delle colonne: quello selezionato, o la cartella aperta.
+  /// The chosen item of the columns: the selected one, or the open folder.
   String get _leaf =>
       _selected.length == 1 ? _selected.first : _history.current;
 
-  /// Clic su un elemento della colonna di `dir`: una cartella diventa quella aperta (la sua
-  /// colonna compare a destra), un file resta scelto nella sua.
+  /// Click on an item in the column of `dir`: a folder becomes the open one (its column appears on
+  /// the right), a file stays chosen in its own.
   void _selectInColumn(Entry entry, String dir) {
     final target = entry.isDirectory ? entry.path : dir;
     if (target != _history.current) _history.go(target);
@@ -55,13 +55,13 @@ extension _Columns on _MustacheWindowState {
         final entry = siblings[next];
         _selectInColumn(entry, parentOf(entry.path) ?? '/');
       case Move.right:
-        // Dentro la cartella scelta: la sua prima voce.
+        // Into the chosen folder: its first entry.
         final entry = entryAt(leaf);
         if (entry == null || !entry.isDirectory) return;
         final children = _columnList(leaf);
         if (children.isNotEmpty) _selectInColumn(children.first, leaf);
       case Move.left:
-        // La cartella che contiene la scelta, nella colonna a sinistra.
+        // The folder containing the choice, in the column on the left.
         final dir = leaf == _history.current ? parent : _history.current;
         if (dir == _columnRoot || dir == '/') return;
         final entry = entryAt(dir);

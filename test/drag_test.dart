@@ -11,7 +11,7 @@ import 'package:mustache/src/window.dart';
 import 'package:silica_ui/silica_ui.dart';
 
 void main() {
-  test('destinazioni valide e dischi diversi', () {
+  test('valid destinations and different disks', () {
     const payload = DragPayload(['/c/a.txt', '/c/Cartella'], '/c');
     expect(canDrop(payload, '/c/Altra'), isTrue);
     expect(canDrop(payload, '/c'), isFalse);
@@ -36,7 +36,7 @@ void main() {
     expect(mountOf('/media/chiaveX/f', mounts), '/');
   });
 
-  group('nella finestra', () {
+  group('in the window', () {
     late Directory home;
 
     setUp(() {
@@ -88,13 +88,13 @@ void main() {
       await tester.pump();
       await mouse.moveTo(to);
       await tester.pump();
-      // L'immagine in volo: la pillola con il nome.
+      // The image in flight: the pill with the name.
       expect(find.byType(DragImage), findsOneWidget);
       await mouse.up();
       await tester.pump();
     }
 
-    testWidgets('su una cartella sposta; con ⌥ copia', (tester) async {
+    testWidgets('onto a folder it moves; with ⌥ it copies', (tester) async {
       await pump(tester);
       await drag(
         tester,
@@ -105,7 +105,7 @@ void main() {
       expect(File('${home.path}/Doc/Dentro/nota.txt').existsSync(), isTrue);
       expect(File('${home.path}/Doc/nota.txt').existsSync(), isFalse);
 
-      // Di nuovo fuori, sulla casa nella barra laterale, con ⌥: copia.
+      // Out again, onto home in the sidebar, with ⌥: copy.
       await tester.tap(find.text('Dentro'));
       await tester.pump(const Duration(milliseconds: 50));
       await tester.tap(find.text('Dentro'));
@@ -122,9 +122,7 @@ void main() {
       expect(File('${home.path}/Doc/Dentro/nota.txt').existsSync(), isTrue);
     });
 
-    testWidgets('fuori dalla finestra il trascinamento passa a Ossido', (
-      tester,
-    ) async {
+    testWidgets('outside the window the drag passes to Ossido', (tester) async {
       final calls = <MethodCall>[];
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(SilicaDrag.channel, (call) async {
@@ -139,7 +137,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 20));
       await mouse.moveBy(const Offset(6, 0));
       await tester.pump();
-      // Dentro la finestra resta di Flutter.
+      // Inside the window it stays a Flutter drag.
       await mouse.moveTo(const Offset(500, 300));
       await tester.pump();
       expect(calls, isEmpty);
@@ -155,7 +153,7 @@ void main() {
       final args = calls.single.arguments as Map;
       expect(args['uris'], [Uri.file('${home.path}/Doc/nota.txt').toString()]);
       expect(args['icon'], isA<Map<Object?, Object?>>());
-      // Uscire e rientrare non lo ricomincia.
+      // Leaving and coming back does not start it again.
       await mouse.moveTo(const Offset(1200, 300));
       await tester.pump();
       expect(calls, hasLength(1));
@@ -164,7 +162,7 @@ void main() {
     });
 
     testWidgets(
-      'un rilascio da un\'altra app va nella cartella sotto il puntatore',
+      'a drop from another app goes into the folder under the pointer',
       (tester) async {
         final outside = Directory.systemTemp.createTempSync('mustache-fuori');
         addTearDown(() => outside.deleteSync(recursive: true));
@@ -190,7 +188,7 @@ void main() {
           File('${home.path}/Doc/Dentro/arrivato.txt').existsSync(),
           isTrue,
         );
-        // Sul vuoto: nella cartella aperta.
+        // On the background: into the open folder.
         File('${outside.path}/secondo.txt').writeAsStringSync('ancora');
         await drop(const Offset(600, 600), ['${outside.path}/secondo.txt']);
         await settle(tester);
@@ -198,7 +196,7 @@ void main() {
       },
     );
 
-    testWidgets('cartella a molla: la sosta la apre', (tester) async {
+    testWidgets('spring-loaded folder: hovering opens it', (tester) async {
       await pump(tester);
       final mouse = await tester.startGesture(
         tester.getCenter(find.text('nota.txt')),
@@ -209,10 +207,10 @@ void main() {
       await mouse.moveTo(tester.getCenter(find.text('Dentro')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 800));
-      // Ora la finestra mostra Dentro (vuota).
-      // Una cartella vuota non scrive niente (R3.10): lo dice il titolo.
+      // Now the window shows Dentro (empty).
+      // An empty folder shows no text (R3.10): the title says it.
       expect(
-        tester.widget<Text>(find.byKey(const ValueKey('titolo'))).data,
+        tester.widget<Text>(find.byKey(const ValueKey('title'))).data,
         'Dentro',
       );
       await mouse.cancel();

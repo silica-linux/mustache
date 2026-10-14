@@ -50,27 +50,23 @@ void main() {
   Rect row(WidgetTester tester, String name) =>
       tester.getRect(find.byKey(ValueKey('${root.path}/$name')));
 
-  testWidgets('geometria misurata: intestazione, righe da 20, colonne', (
-    tester,
-  ) async {
+  testWidgets('measured geometry: header, 20 pt rows, columns', (tester) async {
     await pump(tester);
-    final header = tester.getRect(
-      find.byKey(const ValueKey('intestazione delle colonne')),
-    );
+    final header = tester.getRect(find.byKey(const ValueKey('column header')));
     expect(header.top, 52);
     expect(header.height, listHeaderHeight + listHeaderLine);
-    // La prima riga a y 85, poi passo 20.
+    // The first row at y 85, then a 20 pitch.
     final first = row(tester, 'Annidata');
     expect(first.top, 85);
     expect(first.height, listRowHeight);
     expect(row(tester, 'appunti.txt').top, 105);
-    // Il nome a x 47 dal bordo del contenuto.
+    // The name at x 47 from the edge of the content.
     final content = header.left;
     expect(tester.getTopLeft(find.text('Annidata')).dx - content, listNameLeft);
   });
 
   testWidgets(
-    'il triangolo apre senza scegliere; ⌥ apre tutto il sottoalbero',
+    'the triangle expands without choosing; ⌥ expands the whole subtree',
     (tester) async {
       await pump(tester);
       final r = row(tester, 'Annidata');
@@ -78,10 +74,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.text('Livello 2'), findsOneWidget);
       expect(find.text('Livello 3'), findsNothing);
-      // La riga non è stata scelta: il nome resta scuro.
+      // The row was not chosen: the name stays dark.
       final name = tester.widget<Text>(find.text('Annidata'));
       expect(name.style?.color, ListColors.light.name);
-      // ⌥clic chiude; ⌥clic di nuovo apre tutto.
+      // ⌥-click collapses; ⌥-click again expands everything.
       await tester.tapAt(Offset(r.left + 19, r.center.dy));
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.text('Livello 2'), findsNothing);
@@ -91,47 +87,48 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.text('Livello 3'), findsOneWidget);
       expect(find.text('profondo.txt'), findsOneWidget);
-      // Rientro di 15 pt per livello.
+      // 15 pt indent per level.
       final x2 = tester.getTopLeft(find.text('Livello 2')).dx;
       final x3 = tester.getTopLeft(find.text('Livello 3')).dx;
       expect(x3 - x2, listIndent);
     },
   );
 
-  testWidgets('clic sulla riga sceglie; sulle righe vuote toglie la scelta', (
-    tester,
-  ) async {
-    await pump(tester);
-    final r = row(tester, 'appunti.txt');
-    await tester.tapAt(r.center);
-    await tester.pump(const Duration(milliseconds: 400));
-    expect(
-      tester.widget<Text>(find.text('appunti.txt')).style?.color,
-      ListColors.light.selectionName,
-    );
-    await tester.tap(find.byKey(const ValueKey('riga vuota 10')));
-    await tester.pump(const Duration(milliseconds: 400));
-    expect(
-      tester.widget<Text>(find.text('appunti.txt')).style?.color,
-      ListColors.light.name,
-    );
-  });
+  testWidgets(
+    'a click on the row chooses; on the empty rows it clears the choice',
+    (tester) async {
+      await pump(tester);
+      final r = row(tester, 'appunti.txt');
+      await tester.tapAt(r.center);
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(
+        tester.widget<Text>(find.text('appunti.txt')).style?.color,
+        ListColors.light.selectionName,
+      );
+      await tester.tap(find.byKey(const ValueKey('empty row 10')));
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(
+        tester.widget<Text>(find.text('appunti.txt')).style?.color,
+        ListColors.light.name,
+      );
+    },
+  );
 
-  testWidgets('intestazioni: Dimensioni parte dal più grande, poi si inverte', (
+  testWidgets('headers: Size starts from the largest, then reverses', (
     tester,
   ) async {
     await pump(tester);
     double y(String name) => tester.getTopLeft(find.text(name)).dy;
-    await tester.tap(find.byKey(const ValueKey('intestazione size')));
+    await tester.tap(find.byKey(const ValueKey('header size')));
     await tester.pump();
     expect(y('grande.bin'), lessThan(y('appunti.txt')));
-    await tester.tap(find.byKey(const ValueKey('intestazione size')));
+    await tester.tap(find.byKey(const ValueKey('header size')));
     await tester.pump();
     expect(y('grande.bin'), greaterThan(y('appunti.txt')));
-    // Trascinando il bordo di Nome la colonna si allarga.
+    // Dragging the edge of Name widens the column.
     final before = tester.getTopLeft(find.textContaining('oggi, ').first).dx;
     await tester.drag(
-      find.byKey(const ValueKey('bordo name')),
+      find.byKey(const ValueKey('edge name')),
       const Offset(40, 0),
     );
     await tester.pump();
@@ -139,42 +136,40 @@ void main() {
     expect(after - before, closeTo(40, 1));
   });
 
-  testWidgets(
-    'pressioni (MU-25): la riga e il triangolo agiscono al rilascio',
-    (tester) async {
-      await pump(tester);
-      Color? name() =>
-          tester.widget<Text>(find.text('appunti.txt')).style?.color;
-      final press = await tester.startGesture(
-        row(tester, 'appunti.txt').center,
-        kind: PointerDeviceKind.mouse,
-      );
-      await tester.pump();
-      expect(name(), ListColors.light.name);
-      await press.up();
-      await tester.pump(const Duration(milliseconds: 400));
-      expect(name(), ListColors.light.selectionName);
-      final triangle = find.byKey(ValueKey('triangolo ${root.path}/Annidata'));
-      final hold = await tester.startGesture(
-        tester.getCenter(triangle),
-        kind: PointerDeviceKind.mouse,
-      );
-      await tester.pump();
-      expect(find.text('Livello 2'), findsNothing);
-      await hold.up();
-      await tester.pump();
-      expect(find.text('Livello 2'), findsOneWidget);
-      await tester.pump(const Duration(seconds: 5));
-    },
-  );
+  testWidgets('presses (MU-25): the row and the triangle act on release', (
+    tester,
+  ) async {
+    await pump(tester);
+    Color? name() => tester.widget<Text>(find.text('appunti.txt')).style?.color;
+    final press = await tester.startGesture(
+      row(tester, 'appunti.txt').center,
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+    expect(name(), ListColors.light.name);
+    await press.up();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(name(), ListColors.light.selectionName);
+    final triangle = find.byKey(ValueKey('triangle ${root.path}/Annidata'));
+    final hold = await tester.startGesture(
+      tester.getCenter(triangle),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+    expect(find.text('Livello 2'), findsNothing);
+    await hold.up();
+    await tester.pump();
+    expect(find.text('Livello 2'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+  });
 
-  testWidgets('intestazione premuta piena; tenuta a lungo non ordina', (
+  testWidgets('pressed header is filled; held long it does not sort', (
     tester,
   ) async {
     await pump(tester);
     double y(String name) => tester.getTopLeft(find.text(name)).dy;
     final before = y('grande.bin') < y('appunti.txt');
-    final cell = find.byKey(const ValueKey('intestazione size'));
+    final cell = find.byKey(const ValueKey('header size'));
     final hold = await tester.startGesture(tester.getCenter(cell));
     await tester.pump(const Duration(milliseconds: 150));
     final fill = tester.widget<ColoredBox>(
@@ -185,8 +180,8 @@ void main() {
     await hold.up();
     await tester.pump();
     expect(y('grande.bin') < y('appunti.txt'), before);
-    // La presa del separatore: 5 pt, 3 a sinistra della linea e 1 a destra.
-    final grip = tester.getRect(find.byKey(const ValueKey('bordo name')));
+    // The separator grip: 5 pt, 3 left of the line and 1 to the right.
+    final grip = tester.getRect(find.byKey(const ValueKey('edge name')));
     expect(grip.width, 5);
     await tester.pump(const Duration(seconds: 5));
   });

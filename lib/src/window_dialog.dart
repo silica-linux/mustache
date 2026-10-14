@@ -1,12 +1,12 @@
-// La finestra in modalità dialogo (Apri e Salva per il portale, mustache-spec 14): in alto per
-// Salva il campo del nome, in basso Annulla e il pulsante d'accettazione (in accento,
-// disattivato senza una scelta valida). Doppio clic su un file e Invio accettano; Esc annulla.
+// The window in dialog mode (Open and Save for the portal, mustache-spec 14): at the top, for Save,
+// the name field; at the bottom Cancel and the accept button (accent colored, disabled without a
+// valid choice). Double click on a file and Return accept; Esc cancels.
 
 part of 'window.dart';
 
-/// I colori del dialogo; in scuro da mu95-open-dark e mu95-save-compact-dark (pulsante
-/// `#373737` con il testo `#e0e0e0`, il primario disattivato `#2f2f30` / `#626263`, campo
-/// `#191919` con il bordo `#313131`, linea `#3c3c3d`).
+/// Dialog colors; in dark from mu95-open-dark and mu95-save-compact-dark (button `#373737` with
+/// text `#e0e0e0`, disabled primary `#2f2f30` / `#626263`, field `#191919` with border `#313131`,
+/// line `#3c3c3d`).
 @immutable
 class DialogColors {
   const DialogColors({
@@ -64,7 +64,7 @@ class DialogColors {
 extension _Dialog on _MustacheWindowState {
   DialogOptions get _dialogOptions => widget.dialog!;
 
-  /// Gli elementi che il dialogo restituirebbe adesso.
+  /// The items the dialog would return now.
   List<String> get _dialogChoice {
     final d = _dialogOptions;
     if (d.save) {
@@ -76,7 +76,7 @@ extension _Dialog on _MustacheWindowState {
       for (final e in _selection)
         if (d.directory == e.isDirectory) e.path,
     ];
-    // Per le cartelle, senza scelta vale quella aperta.
+    // For folders, without a choice the open one counts.
     if (chosen.isEmpty && d.directory) return [_history.current];
     return d.multiple ? chosen : chosen.take(1).toList();
   }
@@ -88,7 +88,7 @@ extension _Dialog on _MustacheWindowState {
     final paths = _dialogChoice;
     if (paths.isEmpty) return;
     if (_dialogOptions.save && entryAt(paths.single) != null) {
-      // Un file con lo stesso nome: si chiede prima di sostituirlo.
+      // A file with the same name: ask before replacing it.
       _update(
         () => _alert = SilicaAlert(
           opaque: true,
@@ -118,11 +118,11 @@ extension _Dialog on _MustacheWindowState {
     _finish(paths);
   }
 
-  /// La riga del nome per Salva.
+  /// The name row for Save.
   Widget _saveBar() => _saveBarWith(DialogColors.of(context));
 
   Widget _saveBarWith(DialogColors colors) => SizedBox(
-    key: const ValueKey('riga del nome'),
+    key: const ValueKey('name row'),
     height: 44,
     child: Row(
       children: [
@@ -148,7 +148,7 @@ extension _Dialog on _MustacheWindowState {
           ),
           child: DefaultTextEditingShortcuts(
             child: EditableText(
-              key: const ValueKey('campo del nome del dialogo'),
+              key: const ValueKey('dialog name field'),
               controller: _saveName,
               focusNode: _saveFocus,
               style: text(13, color: WindowColors.of(context).text),
@@ -166,13 +166,13 @@ extension _Dialog on _MustacheWindowState {
     ),
   );
 
-  /// In basso: Annulla e il pulsante d'accettazione (81 × 26).
+  /// At the bottom: Cancel and the accept button (81 × 26).
   Widget _dialogButtons() {
     final enabled = _dialogChoice.isNotEmpty;
     final colors = DialogColors.of(context);
     Widget button(String label, {required bool primary, VoidCallback? onTap}) =>
         GestureDetector(
-          key: ValueKey('dialogo $label'),
+          key: ValueKey('dialog $label'),
           onTap: onTap,
           child: Container(
             width: 81,
@@ -198,7 +198,7 @@ extension _Dialog on _MustacheWindowState {
           ),
         );
     return Container(
-      key: const ValueKey('pulsanti del dialogo'),
+      key: const ValueKey('dialog buttons'),
       height: 52,
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: colors.line)),
