@@ -12,3 +12,7 @@ files live in `silica-icons`, not in this repository.
 | `docs/spec/diagrams/tabs.svg` | Silica project | MIT OR Apache-2.0 | original, drawn from the numbers in `docs/spec/tabs.md` |
 | `docs/spec/diagrams/preview-pane.svg` | Silica project | MIT OR Apache-2.0 | original, drawn from the numbers in `docs/spec/preview-pane.md` |
 | `docs/spec/diagrams/sidebar.svg` | Silica project | MIT OR Apache-2.0 | original, drawn from the numbers in `docs/spec/sidebar.md` |
+| `docs/spec/diagrams/list-view.svg` | Silica project | MIT OR Apache-2.0 | original, drawn from the numbers in `docs/spec/list-view.md` |
+| `docs/spec/diagrams/icon-view.svg` | Silica project | MIT OR Apache-2.0 | original, drawn from the numbers in `docs/spec/icon-view.md` |
+| `docs/spec/diagrams/column-view.svg` | Silica project | MIT OR Apache-2.0 | original, drawn from the numbers in `docs/spec/column-view.md` |
+| `docs/spec/diagrams/gallery.svg` | Silica project | MIT OR Apache-2.0 | original, drawn from the numbers in `docs/spec/gallery.md` |

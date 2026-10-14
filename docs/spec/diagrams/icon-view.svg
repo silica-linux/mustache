@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="260" viewBox="0 0 560 260" font-family="Inter, sans-serif" font-size="10">
+  <title>Icon view at 64/12 (MU-21): pitch x ~126.8 (fills the width), pitch y 116, first icon 24 pt from the top; selection 72 × 72 radius 6, name capsule 17 pt per line</title>
+  <rect width="560" height="260" fill="#ffffff"/>
+  <rect x="38" y="20" width="72" height="72" rx="6" fill="#e6e6e6"/>
+  <rect x="42" y="24" width="64" height="64" rx="8" fill="#9cc6f5"/>
+  <rect x="40" y="94" width="68" height="17" rx="5" fill="#0064e1"/>
+  <text x="50" y="106" fill="#ffffff">Selected</text>
+  <rect x="169" y="24" width="64" height="64" rx="8" fill="#9cc6f5"/>
+  <text x="181" y="106">Folder</text>
+  <rect x="296" y="24" width="64" height="64" rx="8" fill="#e8e8e8" stroke="#ccc"/>
+  <text x="300" y="106">two-line label</text>
+  <text x="308" y="120">trunc…ated</text>
+  <line x1="74" y1="140" x2="201" y2="140" stroke="#0a64e1"/>
+  <text x="104" y="152" fill="#0a64e1">pitch x 126.8</text>
+  <line x1="430" y1="24" x2="430" y2="140" stroke="#0a64e1"/>
+  <text x="436" y="86" fill="#0a64e1">pitch y 116</text>
+  <line x1="20" y1="0" x2="20" y2="24" stroke="#c0281f"/>
+  <text x="24" y="14" fill="#c0281f">24</text>
+  <text x="10" y="190" fill="#333">first icon 24 pt from the top · first cell center ~74 pt from the edge</text>
+  <text x="10" y="206" fill="#333">selection: background 72 × 72 (4 pt around the icon), radius ~6; name capsule 17 pt per line, radius ~5, 2 pt below</text>
+  <text x="10" y="222" fill="#333">labels: at most 2 lines, truncated in the middle of the second line</text>
+</svg>

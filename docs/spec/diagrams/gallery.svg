@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="440" height="380" viewBox="0 0 440 380" font-family="Inter, sans-serif" font-size="10">
+  <title>Gallery (MU-23), scale 0.5: content 558 + pane 250; preview 494 × 525 at 32 pt margins; thumbnails 48 at a 59 pitch, selected 54 × 54</title>
+  <rect width="440" height="380" fill="#ffffff"/>
+  <g transform="scale(0.5)">
+    <rect x="0" y="0" width="558" height="700" fill="#ffffff" stroke="#ddd"/>
+    <rect x="32" y="32" width="494" height="525" fill="#f6f6f6" stroke="#f2f2f2"/>
+    <text x="200" y="300" font-size="20" fill="#888">494 × 525</text>
+    <rect x="558" y="0" width="250" height="700" fill="#ececec"/>
+    <rect x="200" y="597" width="54" height="54" rx="6" fill="#bdbdbd"/>
+    <rect x="144" y="600" width="48" height="48" fill="#9cc6f5"/>
+    <rect x="203" y="600" width="48" height="48" fill="#9cc6f5"/>
+    <rect x="262" y="600" width="48" height="48" fill="#9cc6f5"/>
+    <rect x="321" y="600" width="48" height="48" fill="#9cc6f5"/>
+  </g>
+  <text x="10" y="366" fill="#333">margins 32 · strip bottom at y 678 · pane 250 on the right</text>
+</svg>

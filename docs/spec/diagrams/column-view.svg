@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="200" viewBox="0 0 560 200" font-family="Inter, sans-serif" font-size="10">
+  <title>Column view (MU-22): pitch 245, 11 pt separator band, rows 24, selection 208 × 24 at x +10 radius 7</title>
+  <rect width="560" height="200" fill="#ffffff"/>
+  <rect x="234" y="0" width="11" height="140" fill="#f3f3f3"/>
+  <line x1="238" y1="128" x2="238" y2="133" stroke="#888"/>
+  <line x1="242" y1="128" x2="242" y2="133" stroke="#888"/>
+  <rect x="10" y="30" width="208" height="24" rx="7" fill="#dcdcdc"/>
+  <rect x="27" y="34" width="16" height="16" fill="#9cc6f5"/>
+  <text x="49" y="46">Documents</text>
+  <path d="M208 38 l4 4 l-4 4" fill="none" stroke="#555"/>
+  <rect x="255" y="6" width="208" height="24" rx="7" fill="#0064e1"/>
+  <text x="294" y="22" fill="#ffffff">Selected</text>
+  <text x="10" y="166" fill="#333">column pitch 245 (list 230 + overlaid scroller) · separator band 11 pt with the ‖ handle at the bottom</text>
+  <text x="10" y="182" fill="#333">rows 24, first 6 pt from the top · icon 16 at x +17 · text 13 pt from x +39 · arrow at x +208</text>
+</svg>
