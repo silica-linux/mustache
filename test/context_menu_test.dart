@@ -83,7 +83,7 @@ void main() {
     // The menu opens with its corner at the pointer (+1, −6).
     final panel = tester.getRect(find.byType(MenuPanel));
     expect(panel.topLeft, at + const Offset(1, -6));
-    // The "Apri con" submenu.
+    // The Open With submenu.
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
     await mouse.addPointer(location: at);
     await mouse.moveTo(tester.getCenter(find.text('Open With')));

@@ -57,7 +57,7 @@ void main() {
     expect(word.join(), 'abcdefghijklmno');
   });
 
-  testWidgets('labels as in mu21-sel3: wrapping at spaces, ~104 wide', (
+  testWidgets('labels as in MU-21: wrapping at spaces, ~104 wide', (
     tester,
   ) async {
     const style = TextStyle(
@@ -205,7 +205,7 @@ void main() {
       expect(find.byType(IconView), findsOneWidget);
     });
 
-    testWidgets('the long label shows whole, tail included (mu21-sel3)', (
+    testWidgets('the long label shows whole, tail included (MU-21)', (
       tester,
     ) async {
       await pump(tester);

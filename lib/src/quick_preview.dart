@@ -1,5 +1,5 @@
-// Quick Look (Space, MU-61, mustache-spec 12): a centered panel with a 38 pt top bar (×, name,
-// "Apri con <app>") and a 5 pt frame around the content. The size follows the content: an image at
+// Quick preview (Space, MU-61, mustache-spec 12): a centered panel with a 38 pt top bar (×, name,
+// the open-with-app capsule) and a 5 pt frame around the content. The size follows the content: an image at
 // its natural size plus 10 × 43 (at least ~370 wide, at most 1256 tall), text 816 × 849, the rest
 // (folders, code, archives, files without a preview) 575 × 328 with the large icon, the name and
 // the details.
@@ -17,12 +17,12 @@ import 'l10n.dart';
 import 'icon_view.dart' show EntryIcon, hasThumbnail;
 import 'model.dart';
 
-const double quickLookBar = 38;
-const double quickLookFrame = 5;
-const double quickLookMaxHeight = 1256;
-const double quickLookMinWidth = 370;
-const Size quickLookGeneric = Size(575, 328);
-const Size quickLookText = Size(816, 849);
+const double quickPreviewBar = 38;
+const double quickPreviewFrame = 5;
+const double quickPreviewMaxHeight = 1256;
+const double quickPreviewMinWidth = 370;
+const Size quickPreviewGeneric = Size(575, 328);
+const Size quickPreviewText = Size(816, 849);
 
 /// The extensions shown as text.
 const Set<String> textExtensions = {
@@ -61,16 +61,17 @@ bool isTextPreview(String name) {
 
 /// The panel size for an image of `natural` pt (spec 12).
 Size imagePanelSize(Size natural) {
-  var w = natural.width + 2 * quickLookFrame;
-  var h = natural.height + quickLookBar + quickLookFrame;
-  if (h > quickLookMaxHeight) {
+  var w = natural.width + 2 * quickPreviewFrame;
+  var h = natural.height + quickPreviewBar + quickPreviewFrame;
+  if (h > quickPreviewMaxHeight) {
     // Fitted to the maximum height, proportionally.
     final scale =
-        (quickLookMaxHeight - quickLookBar - quickLookFrame) / natural.height;
-    w = natural.width * scale + 2 * quickLookFrame;
-    h = quickLookMaxHeight;
+        (quickPreviewMaxHeight - quickPreviewBar - quickPreviewFrame) /
+        natural.height;
+    w = natural.width * scale + 2 * quickPreviewFrame;
+    h = quickPreviewMaxHeight;
   }
-  return Size(math.max(w, quickLookMinWidth), h);
+  return Size(math.max(w, quickPreviewMinWidth), h);
 }
 
 /// Shrinks the panel to fit in `room` (the window), proportionally.
@@ -82,8 +83,8 @@ Size fitPanel(Size panel, Size room) {
   return Size(panel.width * scale, panel.height * scale);
 }
 
-class QuickLookPanel extends StatefulWidget {
-  const QuickLookPanel({
+class QuickPreviewPanel extends StatefulWidget {
+  const QuickPreviewPanel({
     super.key,
     required this.entry,
     required this.onClose,
@@ -96,19 +97,19 @@ class QuickLookPanel extends StatefulWidget {
   final Entry entry;
   final VoidCallback onClose;
 
-  /// The name of the default app, for the "Apri con …" capsule.
+  /// The name of the default app, for the open-with capsule.
   final String? openWith;
   final VoidCallback? onOpenWith;
 
-  /// "N di M" when the selection has several items.
+  /// "N of M" when the selection has several items.
   final (int, int)? position;
   final Map<String, String>? env;
 
   @override
-  State<QuickLookPanel> createState() => _QuickLookPanelState();
+  State<QuickPreviewPanel> createState() => _QuickPreviewPanelState();
 }
 
-class _QuickLookPanelState extends State<QuickLookPanel> {
+class _QuickPreviewPanelState extends State<QuickPreviewPanel> {
   Size? _imageSize;
   String? _text;
   String? _sized;
@@ -162,8 +163,8 @@ class _QuickLookPanelState extends State<QuickLookPanel> {
         : 'generic';
     final natural = switch (kind) {
       'image' => imagePanelSize(image!),
-      'text' => quickLookText,
-      _ => quickLookGeneric,
+      'text' => quickPreviewText,
+      _ => quickPreviewGeneric,
     };
     return LayoutBuilder(
       builder: (context, room) {
@@ -173,7 +174,7 @@ class _QuickLookPanelState extends State<QuickLookPanel> {
         );
         return Center(
           child: Container(
-            key: const ValueKey('quick look'),
+            key: const ValueKey('quick preview'),
             width: size.width,
             height: size.height,
             decoration: BoxDecoration(
@@ -195,10 +196,10 @@ class _QuickLookPanelState extends State<QuickLookPanel> {
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(
-                      quickLookFrame,
+                      quickPreviewFrame,
                       0,
-                      quickLookFrame,
-                      quickLookFrame,
+                      quickPreviewFrame,
+                      quickPreviewFrame,
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(11),
@@ -241,12 +242,12 @@ class _QuickLookPanelState extends State<QuickLookPanel> {
   Widget _bar(Entry entry) {
     final position = widget.position;
     return SizedBox(
-      height: quickLookBar,
+      height: quickPreviewBar,
       child: Row(
         children: [
           const SizedBox(width: 12),
           GestureDetector(
-            key: const ValueKey('close quick look'),
+            key: const ValueKey('close quick preview'),
             onTap: widget.onClose,
             child: Container(
               width: 14,
@@ -287,7 +288,7 @@ class _QuickLookPanelState extends State<QuickLookPanel> {
           ),
           if (widget.openWith != null)
             GestureDetector(
-              key: const ValueKey('open with from quick look'),
+              key: const ValueKey('open with from quick preview'),
               onTap: widget.onOpenWith,
               child: Container(
                 height: 24,

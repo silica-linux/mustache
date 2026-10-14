@@ -9,7 +9,7 @@
 
 <p align="center">
   <b>The file manager of Silica.</b><br>
-  List, icon, column and gallery views, sidebar places, Quick Look, tags and search, in Flutter.
+  List, icon, column and gallery views, sidebar places, quick preview, tags and search, in Flutter.
 </p>
 
 <p align="center">

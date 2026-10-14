@@ -38,7 +38,7 @@ void main() {
         ),
       ),
     );
-    // Name beside the 50 pt icon, with the baseline at 39 (mu23-gallery-folder).
+    // Name beside the 50 pt icon, with the baseline at 39 (MU-23).
     expect(tester.getTopLeft(find.text('Alfa')).dx, 69);
     // "Today, 16:01" on the right edge, at 10 pt.
     final date = find.text('Today, 16:01');

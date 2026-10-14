@@ -103,7 +103,7 @@ class ColumnView extends StatefulWidget {
   /// scrolls under it.
   final double topInset;
 
-  /// The tags of an item: the dots before the arrow (mu22-root).
+  /// The tags of an item: the dots before the arrow (MU-22).
   final List<String> Function(Entry entry)? tagsOf;
 
   /// The root (first column) and the open folder (last column).
@@ -248,7 +248,7 @@ class _ColumnViewState extends State<ColumnView> {
                             env: widget.env,
                           ),
                         ),
-                        // The name truncated in the middle (mu22-root: "Beta con un…nella
+                        // The name truncated in the middle (MU-22: "Beta con un…nella
                         // colonna"); the tag dots before the arrow.
                         Positioned(
                           left: columnTextLeft,

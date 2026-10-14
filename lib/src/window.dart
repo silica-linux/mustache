@@ -26,7 +26,7 @@ import 'list_view.dart';
 import 'operations.dart';
 import 'path_bar.dart';
 import 'preview_pane.dart';
-import 'quick_look.dart';
+import 'quick_preview.dart';
 import 'status_bar.dart';
 import 'rename_field.dart';
 import 'transfer.dart';
@@ -145,8 +145,8 @@ class InfoIntent extends Intent {
   const InfoIntent();
 }
 
-class QuickLookIntent extends Intent {
-  const QuickLookIntent();
+class QuickPreviewIntent extends Intent {
+  const QuickPreviewIntent();
 }
 
 class CloseIntent extends Intent {
@@ -373,8 +373,8 @@ class _MustacheWindowState extends State<MustacheWindow>
   );
   final FocusNode _saveFocus = FocusNode();
 
-  /// Quick Look open (Space).
-  bool _quickLook = false;
+  /// Quick preview open (Space).
+  bool _quickPreview = false;
 
   /// The arrangement of the open folder in the icon view (free or sorted, Snap to Grid, positions),
   /// how long icons take to move (Clean Up), the pending Clean Up and where the last press on an
@@ -832,7 +832,7 @@ class _MustacheWindowState extends State<MustacheWindow>
         ),
         SingleActivator(LogicalKeyboardKey.keyP, meta: true, alt: true):
             TogglePathBarIntent(),
-        SingleActivator(LogicalKeyboardKey.space): QuickLookIntent(),
+        SingleActivator(LogicalKeyboardKey.space): QuickPreviewIntent(),
         SingleActivator(LogicalKeyboardKey.keyI, meta: true): InfoIntent(),
         SingleActivator(LogicalKeyboardKey.keyF, meta: true): SearchIntent(),
         SingleActivator(LogicalKeyboardKey.keyN, meta: true): NewWindowIntent(),
@@ -840,7 +840,8 @@ class _MustacheWindowState extends State<MustacheWindow>
             TogglePartIntent(WindowPart.statusBar),
         SingleActivator(LogicalKeyboardKey.keyP, meta: true, shift: true):
             TogglePartIntent(WindowPart.previewPane),
-        SingleActivator(LogicalKeyboardKey.keyY, meta: true): QuickLookIntent(),
+        SingleActivator(LogicalKeyboardKey.keyY, meta: true):
+            QuickPreviewIntent(),
         SingleActivator(LogicalKeyboardKey.escape): CloseIntent(),
         // Clean Up By (arrangeByDigit).
         SingleActivator(LogicalKeyboardKey.digit1, meta: true, alt: true):
@@ -969,17 +970,19 @@ class _MustacheWindowState extends State<MustacheWindow>
               return null;
             },
           ),
-          QuickLookIntent: CallbackAction<QuickLookIntent>(
+          QuickPreviewIntent: CallbackAction<QuickPreviewIntent>(
             onInvoke: (_) {
               if (_renaming != null || _alert != null) return null;
-              setState(() => _quickLook = !_quickLook && _selected.isNotEmpty);
+              setState(
+                () => _quickPreview = !_quickPreview && _selected.isNotEmpty,
+              );
               return null;
             },
           ),
           CloseIntent: CallbackAction<CloseIntent>(
             onInvoke: (_) {
-              if (_quickLook) {
-                setState(() => _quickLook = false);
+              if (_quickPreview) {
+                setState(() => _quickPreview = false);
               } else if (widget.dialog != null && _alert == null) {
                 // Esc in the dialog: cancel.
                 _finish(const []);
@@ -1178,9 +1181,9 @@ class _MustacheWindowState extends State<MustacheWindow>
                         onDismissed: _closeContextMenu,
                       ),
                     ),
-                  // Quick Look: the last chosen item; the arrows change it.
-                  if (_quickLook && _selection.isNotEmpty)
-                    Positioned.fill(child: _quickLookPanel()),
+                  // Quick preview: the last chosen item; the arrows change it.
+                  if (_quickPreview && _selection.isNotEmpty)
+                    Positioned.fill(child: _quickPreviewPanel()),
                   // The Get Info windows, side by side at +285 pt.
                   for (var i = 0; i < _infos.length; i++)
                     if (entryAt(_infos[i]) case final entry?)
@@ -1416,14 +1419,14 @@ class _MustacheWindowState extends State<MustacheWindow>
     onCancel: _endRename,
   );
 
-  Widget _quickLookPanel() {
+  Widget _quickPreviewPanel() {
     final items = _selection;
     final shown = items.firstWhere(
       (e) => e.path == _cursor,
       orElse: () => items.last,
     );
     final app = shown.isDirectory ? null : _registry.defaultFor(_typeOf(shown));
-    return QuickLookPanel(
+    return QuickPreviewPanel(
       entry: shown,
       env: widget.iconsEnv,
       position: items.length > 1
@@ -1431,10 +1434,10 @@ class _MustacheWindowState extends State<MustacheWindow>
           : null,
       openWith: app?.name,
       onOpenWith: () {
-        setState(() => _quickLook = false);
+        setState(() => _quickPreview = false);
         _openWith([shown], app);
       },
-      onClose: () => setState(() => _quickLook = false),
+      onClose: () => setState(() => _quickPreview = false),
     );
   }
 

@@ -74,7 +74,7 @@ class Transfer extends ChangeNotifier {
         if (_cancelled) break;
         final name = displayName(source);
         var target = '$destination/$name';
-        // Pasting into the same folder: the copy gets "name copia".
+        // Pasting into the same folder: the copy gets "name copy".
         if (target == source) {
           if (kind == TransferKind.move) continue;
           target =

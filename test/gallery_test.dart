@@ -83,7 +83,7 @@ void main() {
         ),
       );
       await tester.pump();
-      // The pane describes the chosen folder (mu23-gallery-folder).
+      // The pane describes the chosen folder (MU-23).
       expect(
         find.descendant(
           of: find.byKey(const ValueKey('preview pane')),

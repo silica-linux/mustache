@@ -113,7 +113,7 @@ int withPrivilege(int mode, int shift, Privilege p) {
 
 String _date(DateTime? t) => t == null ? '--' : longDate(t);
 
-/// Window colors (MU-60); in dark from mu60-info-file-dark: background `#272728`, white text,
+/// Window colors (MU-60); in dark: background `#272728`, white text,
 /// secondary `#9e9e9e`, title `#a1a1a1`, lines `#3c3c3d`; the link in dark is *estimated*.
 @immutable
 class InfoColors {

@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mustache/src/model.dart';
-import 'package:mustache/src/quick_look.dart';
+import 'package:mustache/src/quick_preview.dart';
 import 'package:mustache/src/settings.dart';
 import 'package:mustache/src/window.dart';
 
@@ -13,10 +13,10 @@ void main() {
     expect(imagePanelSize(const Size(800, 600)), const Size(810, 643));
     expect(imagePanelSize(const Size(600, 900)), const Size(610, 943));
     // Small: minimum width.
-    expect(imagePanelSize(const Size(320, 240)).width, quickLookMinWidth);
+    expect(imagePanelSize(const Size(320, 240)).width, quickPreviewMinWidth);
     // Large: fitted to the maximum height.
     final big = imagePanelSize(const Size(4000, 3000));
-    expect(big.height, quickLookMaxHeight);
+    expect(big.height, quickPreviewMaxHeight);
     expect(big.width, closeTo(1628, 2));
     // In a smaller window it shrinks proportionally.
     expect(
@@ -48,18 +48,18 @@ void main() {
         ),
       ),
     );
-    final panel = find.byKey(const ValueKey('quick look'));
+    final panel = find.byKey(const ValueKey('quick preview'));
     await tester.tap(find.text('nota.txt'));
     await tester.pump(const Duration(milliseconds: 310));
     await tester.sendKeyEvent(LogicalKeyboardKey.space);
     await tester.pump();
     expect(panel, findsOneWidget);
     expect(find.text('riga di prova'), findsOneWidget);
-    expect(tester.getSize(panel), quickLookText);
+    expect(tester.getSize(panel), quickPreviewText);
     // ↑: the folder, with the generic panel.
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
     await tester.pump();
-    expect(tester.getSize(panel), quickLookGeneric);
+    expect(tester.getSize(panel), quickPreviewGeneric);
     expect(
       // In the bar and beside the large icon.
       find.descendant(of: panel, matching: find.text('Cartella')),

@@ -19,7 +19,7 @@ provisional and says so.
   undone with ⌘Z while possible; an interrupted copy leaves the destination clean.
 
 The interface texts are localized (`lib/l10n`): English is the source language, Italian the first
-translation. The texts quoted below are the Italian ones, as measured on the reference.
+translation. The texts quoted below are our English ones.
 
 ## Window
 
@@ -59,9 +59,9 @@ translation. The texts quoted below are the Italian ones, as measured on the ref
 | Gallery | `mustache.view.gallery` | ⌘4 | large preview (icons at 0.94 of the box), thumbnail strip, always a chosen item, pane with 50 pt icon, name and kind, Information, tags field and actions (Edit, More) (MU-23). To do: Rotate, Show More, folder sizes |
 
 - Natural sort (`file 2` before `file 10`), case insensitive; ties by name.
-- Dates: "oggi, 10:22", "ieri, 18:05", then day, abbreviated month, year and time (R3.1).
-- Sizes in decimal units: "N byte", KB and MB as integers, GB with two decimals ("2,15 GB"),
-  "Zero byte", "--" for folders (R3.2). For a link, its own date and size.
+- Dates: "Today, 10:22", "Yesterday, 18:05", then abbreviated month, day, year and time (R3.1).
+- Sizes in decimal units: "N bytes", KB and MB as integers, GB with two decimals ("2.15 GB"),
+  "Zero bytes", "--" for folders (R3.2). For a link, its own date and size.
 - Kind: a short name per family, in our own words: folder, link, text, Markdown, JSON, PDF,
   image and audio with the format, archive with the extension, video, document (R3.3).
 - Folders with tens of thousands of items: the content appears right away and completes while
@@ -103,7 +103,7 @@ folders.
 | Rename | `mustache.rename` | Return |
 | Go to folder | `mustache.go.to` | ⌘⇧G |
 | Get Info | `mustache.info` | ⌘I |
-| Quick Look | `mustache.quicklook` | Space |
+| Quick preview | `mustache.preview` | Space |
 | New folder | `mustache.new.folder` | ⌘⇧N |
 | Duplicate | `mustache.duplicate` | ⌘D |
 | Move to Trash (inside the Trash: Put Back) | `mustache.trash` | ⌘⌫ |
@@ -129,7 +129,7 @@ Done today: click, ⌘-click, ⇧-click, arrows, rubber band.
 ## More
 
 - **Get Info** (⌘I) and an inspector that follows the selection (MU-60).
-- **Quick Look** (Space): images, PDFs, texts, audio and video, folders (MU-61).
+- **Quick preview** (Space): images, PDFs, texts, audio and video, folders (MU-61).
 - **Tags** with color and name, in extended attributes; rows in the sidebar (MU-62).
 - **Search** in the folder and in the whole user disk, with criteria (MU-70).
 - **Thumbnails** of images, PDFs and videos in place of the icons (MU-80).

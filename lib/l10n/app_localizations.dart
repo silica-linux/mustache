@@ -1028,19 +1028,19 @@ abstract class AppLocalizations {
   /// **'{owner} (me)'**
   String ownerMe(String owner);
 
-  /// Quick Look title with several items.
+  /// Quick preview title with several items.
   ///
   /// In en, this message translates to:
   /// **'{name}  ({index} of {count})'**
   String positionOf(String name, int index, int count);
 
-  /// Quick Look button.
+  /// Quick preview button.
   ///
   /// In en, this message translates to:
   /// **'Open with {app}'**
   String openWithApp(String app);
 
-  /// Quick Look detail.
+  /// Quick preview detail.
   ///
   /// In en, this message translates to:
   /// **'Last modified: {date}'**

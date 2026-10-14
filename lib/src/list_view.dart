@@ -1,4 +1,4 @@
-// The list view (⌘2, MU-20, mustache-spec 3), measured on mu20-list-*: header from y 52 to 79 with
+// The list view (⌘2, MU-20, mustache-spec 3), measured on MU-20: header from y 52 to 79 with
 // the 2 pt line below (79–81), first row at y 85, 20 pt rows at a 20 pitch; columns from x 10: Name
 // 364, Date Modified 181, Size 97, Kind 121, 1 × 16 separators (y 58–73 of the window). Alternating
 // rows: rectangles with radius 8 on odd rows, from x 10 to the end of the table, also after the
@@ -43,7 +43,7 @@ const double listCellRight = 7;
 /// The minimum width of a column (Date, observed).
 const double listColumnMin = 75;
 
-/// Radii measured on mu20-list-light and mu20-list-sel-light by comparing the corner profile with
+/// Radii measured in MU-20 (rows plain and selected) by comparing the corner profile with
 /// simulated pixel coverage: alternating rows 8; selection (single row and outer corners of a
 /// block) 7.5. The specification says 10 for the capsules, but the rounding spans 4 rows.
 const double listStripeRadius = 8;
@@ -85,7 +85,7 @@ const List<ListColumn> listColumns = [
 double listTableWidth(List<double> widths) =>
     listInset + widths.fold(0.0, (a, b) => a + b);
 
-/// List colors (light and dark base, mustache-spec 3.1; in light measured on mu20-list-light).
+/// List colors (light and dark base, mustache-spec 3.1; in light measured on MU-20).
 @immutable
 class ListColors {
   const ListColors({
@@ -238,7 +238,7 @@ String middleEllipsis(String text, TextStyle style, double width) {
     final keep = (lo + hi) ~/ 2;
     final head = (keep + 1) ~/ 2;
     final tail = keep - head;
-    // No spaces around the "…" (mu22-root: "Beta con un…nella colonna").
+    // No spaces around the "…" (MU-22: "Beta con un…nella colonna").
     final candidate =
         '${String.fromCharCodes(runes.take(head)).trimRight()}…'
         '${String.fromCharCodes(runes.skip(runes.length - tail)).trimLeft()}';

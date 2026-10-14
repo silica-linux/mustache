@@ -3,12 +3,12 @@
 //
 // At the top of the pane: the 244 × 320 preview with a 10 pt margin, then the name in semibold and
 // "Kind - size". In the gallery (`compact`) the large preview is already on the left: at the top
-// there is the 50 pt icon with the name and "Kind - size" beside it (mu23-gallery-folder-light).
+// there is the 50 pt icon with the name and "Kind - size" beside it (MU-23).
 //
-// Then, the same in both (measured on mu23-gallery-folder-light, y from the top of the pane):
+// Then, the same in both (measured on MU-23, y from the top of the pane):
 // Information in bold 13 (baseline 100), 23 pt rows with an 11 pt `#858787` label on the left and
 // an 11 pt `#353537` value on the right, 1 pt `#d5d5d5` lines below (130, 153); Tags in bold
-// (baseline 180) and the white "Aggiungi un tag…" field 33 tall from y 190; at the bottom the
+// (baseline 180) and the white add-a-tag field 33 tall from y 190; at the bottom the
 // actions bar, white, 70 tall.
 
 import 'dart:io';
@@ -21,7 +21,7 @@ import 'l10n.dart';
 import 'icon_view.dart' show EntryIcon, hasThumbnail;
 import 'info.dart' show StatDetails;
 import 'model.dart';
-import 'quick_look.dart' show isTextPreview;
+import 'quick_preview.dart' show isTextPreview;
 
 const double previewPaneWidth = 264;
 const Size previewBox = Size(244, 320);
@@ -40,7 +40,7 @@ const Color paneHeading = Color(0xFF1A1A1A);
 const Color panePlaceholder = Color(0xFFB4B4B4);
 
 /// Pane colors (MU-05), light and dark (dark texts from the lightest pixels of
-/// mu05-list-image-dark).
+/// MU-05).
 @immutable
 class PaneColors {
   const PaneColors({
@@ -159,7 +159,7 @@ class PreviewPane extends StatelessWidget {
   final String Function(Entry entry) kindOf;
   final Map<String, String>? env;
 
-  /// For "oggi" and "ieri" in dates (tests fix the time).
+  /// For "today" and "yesterday" in dates (tests fix the time).
   final DateTime? now;
 
   /// The tags of an item and adding one from the field.
@@ -390,7 +390,7 @@ class PreviewPane extends StatelessWidget {
   }
 
   /// A 23 pt row: label on the left, value on the right, baseline at 15; a 1 pt line separates it
-  /// from the next row (none below the last, mu23-gallery-folder).
+  /// from the next row (none below the last, MU-23).
   Widget _row(PaneColors c, String label, String value, {bool last = false}) =>
       Container(
         height: paneRow,
@@ -559,7 +559,7 @@ class _TagFieldState extends State<_TagField> {
       child: Container(
         height: paneTagField,
         color: c.field,
-        // Text at the top left (mu23-gallery-folder: baseline ~12 from the top of the field).
+        // Text at the top left (MU-23: baseline ~12 from the top of the field).
         padding: const EdgeInsets.fromLTRB(4, 3, 4, 0),
         alignment: Alignment.topLeft,
         child: Stack(

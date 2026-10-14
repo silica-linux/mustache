@@ -144,7 +144,7 @@ IconGrid iconGrid(
   );
 }
 
-/// The maximum width of a label: ~104 pt at text 12 (mu21-sel3: "Beta con un nome" fits,
+/// The maximum width of a label: ~104 pt at text 12 (MU-21: "Beta con un nome" fits,
 /// "configurazione.jso" does not), proportional to the text size.
 double labelMaxWidth(double text) => 104 * text / defaultLabelSize;
 
@@ -164,7 +164,7 @@ List<String> labelLines(String name, double maxWidth, TextStyle style) {
 
   if (widthOf(name) <= maxWidth) return [name];
   // The first line: how many characters fit; it breaks at the last space that fits, and inside a
-  // word only if the first word alone does not fit (mu21-sel3: "barre / colorate.mov",
+  // word only if the first word alone does not fit (MU-21: "barre / colorate.mov",
   // "configurazione.js / on").
   var cut = 1;
   while (cut < name.length && widthOf(name.substring(0, cut + 1)) <= maxWidth) {
@@ -181,7 +181,7 @@ List<String> labelLines(String name, double maxWidth, TextStyle style) {
     String middle(int n) {
       final head = (n + 1) ~/ 2;
       final tail = n - head;
-      // No spaces around the "…" (mu21-sel3: "molto lu…colonna").
+      // No spaces around the "…" (MU-21: "molto lu…colonna").
       return '${rest.substring(0, head).trimRight()}…'
           '${rest.substring(rest.length - tail).trimLeft()}';
     }
@@ -675,7 +675,7 @@ class EntryIcon extends StatelessWidget {
       return _Thumbnail(entry.path, side);
     }
     // Folders and documents: the silica-icons canvas is the whole size (silica-icons 0.2, measured
-    // on mu21-size-56: folder 0.922 × 0.734, sheet 0.668 × 0.883 of the canvas).
+    // on MU-21: folder 0.922 × 0.734, sheet 0.668 × 0.883 of the canvas).
     return _icon(side);
   }
 

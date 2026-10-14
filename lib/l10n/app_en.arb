@@ -868,7 +868,7 @@
   },
   "positionOf": "{name}  ({index} of {count})",
   "@positionOf": {
-    "description": "Quick Look title with several items.",
+    "description": "Quick preview title with several items.",
     "placeholders": {
       "name": {
         "type": "String"
@@ -883,7 +883,7 @@
   },
   "openWithApp": "Open with {app}",
   "@openWithApp": {
-    "description": "Quick Look button.",
+    "description": "Quick preview button.",
     "placeholders": {
       "app": {
         "type": "String"
@@ -892,7 +892,7 @@
   },
   "lastModified": "Last modified: {date}",
   "@lastModified": {
-    "description": "Quick Look detail.",
+    "description": "Quick preview detail.",
     "placeholders": {
       "date": {
         "type": "String"

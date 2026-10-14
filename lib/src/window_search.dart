@@ -1,6 +1,6 @@
-// Search (⌘F, MU-70, mustache-spec 13): the field in the toolbar, the scope bar below ("Cerca in:"
-// This computer / the folder), the results in the list titled "Ricerca in …". Without tokens it
-// searches name and content (R13.2): the name right away, the content only of small text files. Esc
+// Search (⌘F, MU-70, mustache-spec 13): the field in the toolbar, the scope bar below (search in
+// this computer or the folder), the results in the list titled after the search. Without tokens
+// it searches name and content (R13.2): the name right away, the content only of small text files. Esc
 // clears the field but stays in search (R13.4); Back leaves.
 
 part of 'window.dart';
@@ -112,7 +112,7 @@ extension _Search on _MustacheWindowState {
       MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark;
 
   /// The search field in the toolbar: 242 × 38 with the focus ring (spec 13); in dark background
-  /// `#4b4b4b` and ring `#3a6996` (mu70-empty-dark).
+  /// `#4b4b4b` and ring `#3a6996` (MU-70).
   Widget _searchField() => Container(
     key: const ValueKey('search field'),
     width: 242,
@@ -151,8 +151,8 @@ extension _Search on _MustacheWindowState {
     ),
   );
 
-  /// The scope bar: 32 pt, "Cerca in:" and the two 22 pt capsules; the chosen one on a gray
-  /// background with dark text, the other in gray (mu70-empty: light `#222222` / `#808080`, dark
+  /// The scope bar: 32 pt, a "search in" label and the two 22 pt capsules; the chosen one on a gray
+  /// background with dark text, the other in gray (MU-70: light `#222222` / `#808080`, dark
   /// `#e3e3e3` / `#a1a1a1` on `#494949`; the bar `#2f2f2f`).
   Widget _scopeBar() {
     final dark = _dark;

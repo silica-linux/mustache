@@ -6,12 +6,12 @@ the request the reference comes from.
 
 | Area | Metric | Value | Request | Measured on |
 | --- | --- | --- | --- | --- |
-| List | header labels (Name, Date): ink box | pixel-identical | MU-20 · mu20-list-light | 2026-10-14 |
+| List | header labels (Name, Date): ink box | pixel-identical | MU-20 | 2026-10-14 |
 | List | column separators (content x) | pixel-identical: 373, 554, 651, 772 | MU-20 | 2026-10-14 |
-| Icons | folder at 64: box and center | 59 × 48 against 58 × 46, same vertical center (y 107.5) | MU-21 · mu21-sel3-light | 2026-10-14 |
-| Icons | label wrapping: "barre / colorate.mov", "grande / 4000x3000.png", "configurazione.js / on", "molto lu…colonna" | identical | MU-21 · mu21-sel3-light | 2026-10-14 |
-| Gallery | large icon of a folder (x, y) | 307–734 × 221–564 against 308–733 × 221–561 | MU-23 · mu23-gallery-folder-light | 2026-10-14 |
-| Gallery | pane: 50 pt icon, name, Information, Created, Tags (ink boxes) | within 1–3 pt | MU-23 · mu23-gallery-folder-light | 2026-10-14 |
+| Icons | folder at 64: box and center | 59 × 48 against 58 × 46, same vertical center (y 107.5) | MU-21 | 2026-10-14 |
+| Icons | label wrapping: "barre / colorate.mov", "grande / 4000x3000.png", "configurazione.js / on", "molto lu…colonna" | identical | MU-21 | 2026-10-14 |
+| Gallery | large icon of a folder (x, y) | 307–734 × 221–564 against 308–733 × 221–561 | MU-23 | 2026-10-14 |
+| Gallery | pane: 50 pt icon, name, Information, Created, Tags (ink boxes) | within 1–3 pt | MU-23 | 2026-10-14 |
 | List | sort arrow | same x, y +1 px at the top (64–67 against 63–67) | MU-20 | 2026-10-14 |
 | List | line below the header, start and pitch of the alternating rows | pixel-identical (79–81; stripes 105–125, pitch 40) | MU-20 | 2026-10-14 |
 | List | triangle, icon, name of the first row | same x; text y +1 px at the top | MU-20 | 2026-10-14 |

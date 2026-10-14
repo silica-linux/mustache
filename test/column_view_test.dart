@@ -123,7 +123,7 @@ void main() {
     });
   });
 
-  testWidgets('names truncated in the middle and tag dots (mu22-root)', (
+  testWidgets('names truncated in the middle and tag dots (MU-22)', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1000, 700);

@@ -1,5 +1,5 @@
-// The status bar (⌘', MU-04, mustache-spec 1.5): 28 pt below the content, the text centered ("N
-// elementi, X disponibili", "K di N selezionati, X disponibili", R1.21) and, in the icon view, the
+// The status bar (⌘', MU-04, mustache-spec 1.5): 28 pt below the content, the text
+// centered (item count and free space, or selected count of the total and free space, R1.21) and, in the icon view, the
 // size slider (80 × 4 track, 18 × 14 knob, 17 pt from the right edge).
 
 import 'dart:io';

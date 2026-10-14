@@ -67,7 +67,7 @@ void main() {
     // The dot before the name.
     expect(find.byType(TagDots), findsOneWidget);
 
-    // The sidebar: "Verde" shows the items with the tag.
+    // The sidebar: "Green" shows the items with the tag.
     await tester.tap(
       find.descendant(of: find.byType(Sidebar), matching: find.text('Green')),
     );

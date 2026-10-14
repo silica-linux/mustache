@@ -53,7 +53,7 @@ void main() {
     expect(formatSize(file('x', size: 12)), '12 bytes');
     expect(formatSize(file('x', size: 1)), '1 byte');
     expect(formatSize(file('x', size: 3400000)), '3 MB');
-    // Like the rows of mu20-list-rows (R3.2).
+    // Like the rows of MU-20 (R3.2).
     expect(formatSize(file('x', size: 2967)), '3 KB');
     expect(formatSize(file('x', size: 461000)), '461 KB');
     expect(formatSize(file('x', size: 2150000000)), '2.15 GB');

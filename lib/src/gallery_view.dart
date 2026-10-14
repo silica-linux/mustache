@@ -18,11 +18,11 @@ const double galleryStrip = 54;
 const Color galleryOutline = Color(0xFFF2F2F2);
 const Color galleryOutlineDark = Color(0xFF313132);
 
-/// The large icon relative to the short side of the preview (mu23-gallery-folder-light).
+/// The large icon relative to the short side of the preview (MU-23).
 const double galleryIconRatio = 0.94;
 const Color galleryChosen = Color(0xFFBDBDBD);
 
-/// The choice in dark (mu23-gallery-image-dark).
+/// The choice in dark (MU-23).
 const Color galleryChosenDark = Color(0xFF5C5C5D);
 
 bool _dark(BuildContext context) =>
@@ -178,7 +178,7 @@ class _GalleryViewState extends State<GalleryView> {
         ),
       );
     }
-    // The icon takes ~0.94 of the preview square (mu23-gallery-folder: box 494 × 525, folder 427
+    // The icon takes ~0.94 of the preview square (MU-23: box 494 × 525, folder 427
     // wide, i.e. an icon of ~464; images fill it instead).
     return LayoutBuilder(
       builder: (context, box) {
