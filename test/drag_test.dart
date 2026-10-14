@@ -122,6 +122,82 @@ void main() {
       expect(File('${home.path}/Doc/Dentro/nota.txt').existsSync(), isTrue);
     });
 
+    testWidgets('fuori dalla finestra il trascinamento passa a Ossido', (
+      tester,
+    ) async {
+      final calls = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SilicaDrag.channel, (call) async {
+            calls.add(call);
+            return true;
+          });
+      await pump(tester);
+      final mouse = await tester.startGesture(
+        tester.getCenter(find.text('nota.txt')),
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pump(const Duration(milliseconds: 20));
+      await mouse.moveBy(const Offset(6, 0));
+      await tester.pump();
+      // Dentro la finestra resta di Flutter.
+      await mouse.moveTo(const Offset(500, 300));
+      await tester.pump();
+      expect(calls, isEmpty);
+      await mouse.moveTo(const Offset(1100, 300));
+      await tester.pump();
+      for (var i = 0; i < 10 && calls.isEmpty; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        await tester.pump();
+      }
+      expect(calls.single.method, 'start');
+      final args = calls.single.arguments as Map;
+      expect(args['uris'], [Uri.file('${home.path}/Doc/nota.txt').toString()]);
+      expect(args['icon'], isA<Map<Object?, Object?>>());
+      // Uscire e rientrare non lo ricomincia.
+      await mouse.moveTo(const Offset(1200, 300));
+      await tester.pump();
+      expect(calls, hasLength(1));
+      await mouse.cancel();
+      await tester.pump(const Duration(seconds: 1));
+    });
+
+    testWidgets(
+      'un rilascio da un\'altra app va nella cartella sotto il puntatore',
+      (tester) async {
+        final outside = Directory.systemTemp.createTempSync('mustache-fuori');
+        addTearDown(() => outside.deleteSync(recursive: true));
+        File('${outside.path}/arrivato.txt').writeAsStringSync('da fuori');
+        await pump(tester);
+        Future<void> drop(Offset at, List<String> paths) =>
+            tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+              SilicaDrag.channel.name,
+              const JSONMethodCodec().encodeMethodCall(
+                MethodCall('drop', {
+                  'x': at.dx,
+                  'y': at.dy,
+                  'uris': [for (final p in paths) Uri.file(p).toString()],
+                }),
+              ),
+              (_) {},
+            );
+        await drop(tester.getCenter(find.text('Dentro')), [
+          '${outside.path}/arrivato.txt',
+        ]);
+        await settle(tester);
+        expect(
+          File('${home.path}/Doc/Dentro/arrivato.txt').existsSync(),
+          isTrue,
+        );
+        // Sul vuoto: nella cartella aperta.
+        File('${outside.path}/secondo.txt').writeAsStringSync('ancora');
+        await drop(const Offset(600, 600), ['${outside.path}/secondo.txt']);
+        await settle(tester);
+        expect(File('${home.path}/Doc/secondo.txt').existsSync(), isTrue);
+      },
+    );
+
     testWidgets('cartella a molla: la sosta la apre', (tester) async {
       await pump(tester);
       final mouse = await tester.startGesture(
@@ -140,7 +216,7 @@ void main() {
         'Dentro',
       );
       await mouse.cancel();
-      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
     });
   });
 }

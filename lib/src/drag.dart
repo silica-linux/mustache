@@ -7,6 +7,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
@@ -178,6 +179,27 @@ class DragImage extends StatelessWidget {
   );
 }
 
+/// Il segno di una cartella destinazione nell'albero dei render: un rilascio da un'altra app
+/// (che non passa da `DragTarget`) la trova con [folderAt].
+@immutable
+class FolderDropMeta {
+  const FolderDropMeta(this.path);
+  final String path;
+}
+
+/// La cartella destinazione più interna sotto `position` (coordinate della vista).
+String? folderAt(Offset position, int viewId) {
+  final result = HitTestResult();
+  WidgetsBinding.instance.hitTestInView(result, position, viewId);
+  for (final entry in result.path) {
+    final target = entry.target;
+    if (target is RenderMetaData && target.metaData is FolderDropMeta) {
+      return (target.metaData as FolderDropMeta).path;
+    }
+  }
+  return null;
+}
+
 /// Una destinazione per gli elementi trascinati: `builder` riceve se è sotto il puntatore con
 /// un carico accettabile; dopo una sosta di `springOpen` chiama `onSpring` (cartella a molla).
 class FolderDropTarget extends StatefulWidget {
@@ -222,7 +244,10 @@ class _FolderDropTargetState extends State<FolderDropTarget> {
       _spring?.cancel();
       widget.onDrop(details.data, widget.path);
     },
-    builder: (context, candidates, rejected) =>
-        widget.builder(context, candidates.isNotEmpty),
+    builder: (context, candidates, rejected) => MetaData(
+      metaData: FolderDropMeta(widget.path),
+      behavior: HitTestBehavior.translucent,
+      child: widget.builder(context, candidates.isNotEmpty),
+    ),
   );
 }

@@ -6,6 +6,7 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart' show kPrimaryButton;
+import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
@@ -268,6 +269,11 @@ class _MustacheWindowState extends State<MustacheWindow>
   /// Attiva per Ossido e, con le schede, la scheda in primo piano.
   bool get _active => widget.active && _windowActive;
 
+  /// Il trascinamento fra app: l'immagine da dare a Ossido, se è già uscito, e i rilasci.
+  final GlobalKey _dragImageKey = GlobalKey();
+  bool _draggedOut = false;
+  StreamSubscription<SilicaDragEvent>? _externalDrags;
+
   /// La larghezza della barra laterale quando si vede; le finestre nuove prendono l'ultima.
   late double _sidebarWidth =
       widget.settings?.sidebarWidth ?? sidebarDefaultWidth;
@@ -390,12 +396,16 @@ class _MustacheWindowState extends State<MustacheWindow>
   void initState() {
     super.initState();
     _lifecycle;
+    _externalDrags = SilicaDrag.events.listen((event) {
+      if (event is SilicaDrop && mounted) _externalDrop(event);
+    });
     _load();
   }
 
   @override
   void dispose() {
     _lifecycle.dispose();
+    _externalDrags?.cancel();
     _focus.dispose();
     _sidebarShown.dispose();
     _slowClick?.cancel();
