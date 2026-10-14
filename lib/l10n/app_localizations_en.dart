@@ -115,6 +115,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sortNone => 'None';
 
   @override
+  String get snapToGrid => 'Snap to Grid';
+
+  @override
+  String get cleanUp => 'Clean Up';
+
+  @override
+  String get cleanUpSelection => 'Clean Up Selection';
+
+  @override
+  String get cleanUpBy => 'Clean Up By';
+
+  @override
   String get columnName => 'Name';
 
   @override

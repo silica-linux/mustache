@@ -10,24 +10,43 @@ extension _Drag on _MustacheWindowState {
       ? [for (final e in _selection) e.path]
       : [entry.path];
 
-  /// Makes an item of the view draggable (threshold: 1 pt for the mouse, as in the list).
-  /// Leaving the window, the drag passes to Ossido (`SilicaDrag`) with the same image: other apps
-  /// and the Dock receive the files.
-  Widget _draggable(Entry entry, Widget child) => Draggable<DragPayload>(
-    data: DragPayload(_dragPaths(entry), _history.current),
-    dragAnchorStrategy: pointerDragAnchorStrategy,
-    feedback: RepaintBoundary(
+  /// Makes an item of the view draggable (threshold: 1 pt for the mouse, as in the list; the icon
+  /// view passes its own, MU-34). Leaving the window, the drag passes to Ossido (`SilicaDrag`)
+  /// with the same image: other apps and the Dock receive the files.
+  Widget _draggable(Entry entry, Widget child, {double? threshold}) {
+    final data = DragPayload(_dragPaths(entry), _history.current);
+    final feedback = RepaintBoundary(
       key: _dragImageKey,
       child: DragImage(paths: _dragPaths(entry), env: widget.iconsEnv),
-    ),
-    onDragStarted: () {
+    );
+    void started() {
       _slowClick?.cancel();
       _rowDragged = true;
       _draggedOut = false;
-    },
-    onDragUpdate: (details) => _maybeDragOut(entry, details.globalPosition),
-    child: child,
-  );
+    }
+
+    void update(DragUpdateDetails details) =>
+        _maybeDragOut(entry, details.globalPosition);
+    if (threshold != null) {
+      return ThresholdDraggable<DragPayload>(
+        threshold: threshold,
+        data: data,
+        dragAnchorStrategy: pointerDragAnchorStrategy,
+        feedback: feedback,
+        onDragStarted: started,
+        onDragUpdate: update,
+        child: child,
+      );
+    }
+    return Draggable<DragPayload>(
+      data: data,
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      feedback: feedback,
+      onDragStarted: started,
+      onDragUpdate: update,
+      child: child,
+    );
+  }
 
   void _maybeDragOut(Entry entry, Offset position) {
     if (_draggedOut) return;

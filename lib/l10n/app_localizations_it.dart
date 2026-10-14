@@ -115,6 +115,18 @@ class AppLocalizationsIt extends AppLocalizations {
   String get sortNone => 'Nessuno';
 
   @override
+  String get snapToGrid => 'Allinea alla griglia';
+
+  @override
+  String get cleanUp => 'Allinea';
+
+  @override
+  String get cleanUpSelection => 'Allinea selezione';
+
+  @override
+  String get cleanUpBy => 'Disponi per';
+
+  @override
   String get columnName => 'Nome';
 
   @override

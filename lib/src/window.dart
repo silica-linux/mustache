@@ -158,6 +158,12 @@ class SetViewIntent extends Intent {
   final ViewMode view;
 }
 
+/// Clean Up By an order (⌥⌘1…7, `mustache.view.arrange_by`).
+class ArrangeByIntent extends Intent {
+  const ArrangeByIntent(this.key);
+  final SortKey key;
+}
+
 /// Arrow directions: up and down in the list, also left and right in the grid.
 enum Move { up, down, left, right }
 
@@ -366,8 +372,13 @@ class _MustacheWindowState extends State<MustacheWindow>
   /// Quick Look open (Space).
   bool _quickLook = false;
 
-  /// The arrangement of the open folder in the icon view (free or sorted, positions).
+  /// The arrangement of the open folder in the icon view (free or sorted, Snap to Grid, positions),
+  /// how long icons take to move (Clean Up), the pending Clean Up and where the last press on an
+  /// icon was (a drop moves the icons by the pointer's movement from there).
   FolderArrangement _arrangement = FolderArrangement();
+  Duration _moveDuration = Duration.zero;
+  Timer? _cleanUpTimer;
+  Offset? _pressAt;
 
   /// The path bar (⌥⌘P), remembered for new windows.
   late bool _pathBar =
@@ -422,6 +433,7 @@ class _MustacheWindowState extends State<MustacheWindow>
     _focus.dispose();
     _sidebarShown.dispose();
     _slowClick?.cancel();
+    _cleanUpTimer?.cancel();
     _searchTimer?.cancel();
     _searchQuery.dispose();
     _searchFocus.dispose();
@@ -598,6 +610,7 @@ class _MustacheWindowState extends State<MustacheWindow>
       _moveInColumns(move);
       return;
     }
+    if (_moveSpatially(move, extend: extend)) return;
     final columns = _view == ViewMode.icons
         ? iconGrid(_contentWidth, side: _iconSide).columns
         : 1;
@@ -817,6 +830,15 @@ class _MustacheWindowState extends State<MustacheWindow>
             TogglePartIntent(WindowPart.previewPane),
         SingleActivator(LogicalKeyboardKey.keyY, meta: true): QuickLookIntent(),
         SingleActivator(LogicalKeyboardKey.escape): CloseIntent(),
+        // Clean Up By (arrangeByDigit).
+        SingleActivator(LogicalKeyboardKey.digit1, meta: true, alt: true):
+            ArrangeByIntent(SortKey.name),
+        SingleActivator(LogicalKeyboardKey.digit2, meta: true, alt: true):
+            ArrangeByIntent(SortKey.kind),
+        SingleActivator(LogicalKeyboardKey.digit5, meta: true, alt: true):
+            ArrangeByIntent(SortKey.modified),
+        SingleActivator(LogicalKeyboardKey.digit6, meta: true, alt: true):
+            ArrangeByIntent(SortKey.size),
       },
       child: Actions(
         actions: {
@@ -957,6 +979,12 @@ class _MustacheWindowState extends State<MustacheWindow>
             onInvoke: (_) {
               setState(() => _pathBar = !_pathBar);
               widget.settings?.pathBar = _pathBar;
+              return null;
+            },
+          ),
+          ArrangeByIntent: CallbackAction<ArrangeByIntent>(
+            onInvoke: (intent) {
+              _arrangeBy(intent.key);
               return null;
             },
           ),
@@ -1379,9 +1407,11 @@ class _MustacheWindowState extends State<MustacheWindow>
 
   Widget _icons() {
     if (_error != null) return _listView();
-    return IconView(
+    final positions = _freePositions;
+    final view = IconView(
       side: _iconSide,
-      positions: _freePositions,
+      positions: positions,
+      moveDuration: _moveDuration,
       entries: _entries,
       selected: _selected,
       active: _active,
@@ -1394,25 +1424,37 @@ class _MustacheWindowState extends State<MustacheWindow>
       onContext: _openContextMenu,
       onRubberBand: _rubberBand,
       tagsOf: _tagsOf,
-      wrapItem: (entry, child) => _draggable(
-        entry,
-        _folderTarget(
+      wrapItem: (entry, child) => Listener(
+        onPointerDown: (event) => _pressAt = event.position,
+        child: _draggable(
           entry,
-          (context, active) => active
-              ? Container(
-                  foregroundDecoration: BoxDecoration(
-                    color: const Color(0x400064E1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: child,
-                )
-              : child,
+          threshold: iconDragThreshold,
+          _folderTarget(
+            entry,
+            (context, active) => active
+                ? Container(
+                    foregroundDecoration: BoxDecoration(
+                      color: const Color(0x400064E1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: child,
+                  )
+                : child,
+          ),
         ),
       ),
       onBackground: () => setState(() {
         _selected.clear();
         _anchor = null;
       }),
+    );
+    if (positions == null) return view;
+    // With free positions a drop in the folder's own view moves the icons (R4.7).
+    return DragTarget<DragPayload>(
+      onWillAcceptWithDetails: (details) => _acceptsMove(details.data),
+      onAcceptWithDetails: (details) =>
+          _moveDropped(details.data, details.offset),
+      builder: (context, candidates, rejected) => view,
     );
   }
 }

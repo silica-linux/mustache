@@ -7,6 +7,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -250,4 +251,68 @@ class _FolderDropTargetState extends State<FolderDropTarget> {
       child: widget.builder(context, candidates.isNotEmpty),
     ),
   );
+}
+
+/// A `Draggable` that starts only after the pointer has moved more than `threshold` pt (the icon
+/// view, MU-34); the drag still starts from the press point, so a drop moves the item by the whole
+/// movement of the pointer (R7.7).
+class ThresholdDraggable<T extends Object> extends Draggable<T> {
+  const ThresholdDraggable({
+    super.key,
+    required super.child,
+    required super.feedback,
+    required this.threshold,
+    super.data,
+    super.dragAnchorStrategy,
+    super.onDragStarted,
+    super.onDragUpdate,
+  });
+
+  final double threshold;
+
+  @override
+  MultiDragGestureRecognizer createRecognizer(
+    GestureMultiDragStartCallback onStart,
+  ) => _ThresholdDragRecognizer(threshold)..onStart = onStart;
+}
+
+class _ThresholdDragRecognizer extends MultiDragGestureRecognizer {
+  _ThresholdDragRecognizer(this.threshold) : super(debugOwner: null);
+
+  final double threshold;
+
+  @override
+  MultiDragPointerState createNewPointerState(PointerDownEvent event) =>
+      _ThresholdPointerState(
+        event.position,
+        event.kind,
+        gestureSettings,
+        threshold,
+      );
+
+  @override
+  String get debugDescription => 'threshold drag';
+}
+
+class _ThresholdPointerState extends MultiDragPointerState {
+  _ThresholdPointerState(
+    super.initialPosition,
+    super.kind,
+    super.gestureSettings,
+    this.threshold,
+  );
+
+  final double threshold;
+
+  @override
+  void checkForResolutionAfterMove() {
+    if ((pendingDelta ?? Offset.zero).distance > threshold) {
+      resolve(GestureDisposition.accepted);
+    }
+  }
+
+  @override
+  void accepted(GestureMultiDragStartCallback starter) {
+    starter(initialPosition);
+  }
 }

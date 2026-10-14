@@ -67,7 +67,7 @@ translation. The texts quoted below are the Italian ones, as measured on the ref
 - Folders with tens of thousands of items: the content appears right away and completes while
   it is read (MU-24).
 
-### Icon arrangement (R4.7, MU-21)
+### Icon arrangement (R4.7, R4.8, MU-21)
 
 With a sort order the icon grid stretches to the width and reflows when the window is resized.
 With Sort By › None each folder keeps free icon positions: they start where the sorted grid had
@@ -79,10 +79,17 @@ folders.
 | Action | Command | Shortcut |
 | --- | --- | --- |
 | Sort By › None (free positions) | `mustache.view.sort_by` (`none`) | — |
+| Snap to Grid (drops land on the nearest free cell) | `mustache.view.snap_to_grid` | — |
+| Clean Up (off-grid icons to the nearest free cell, ~350 ms after the release, ~290 ms decelerating) | `mustache.view.clean_up` | — |
+| Clean Up Selection | `mustache.view.clean_up_selection` | — |
+| Clean Up By › Name, Kind, Modified, Size (all icons on the grid in that order, no animation) | `mustache.view.arrange_by` | ⌥⌘1, ⌥⌘2, ⌥⌘5, ⌥⌘6 |
 
-- Sort By › None is in the context menu of the empty area, in the icon view only, until the app
-  has a menu bar.
-- Provisional: the free grid's spacing (the minimum pitch of the stretched grid).
+- Dragging an icon (threshold ~8 pt, MU-34) moves it, and the selection with it, by the pointer's
+  movement; it stays where it is dropped. Arrows move to the nearest icon on that side.
+- The commands are in the context menu of the empty area (Sort By › None and Snap to Grid in the
+  icon view only), until the app has a menu bar.
+- Provisional: the free grid's spacing (the minimum pitch of the stretched grid), the Clean Up
+  curve, the order in which several off-grid icons choose their cell.
 
 ## Selection and keyboard
 

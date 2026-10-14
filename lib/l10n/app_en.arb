@@ -139,6 +139,22 @@
   "@sortNone": {
     "description": "Icon view sort order: no order, icons stay where the user puts them."
   },
+  "snapToGrid": "Snap to Grid",
+  "@snapToGrid": {
+    "description": "Icon view option: dropped icons land on the nearest free grid cell."
+  },
+  "cleanUp": "Clean Up",
+  "@cleanUp": {
+    "description": "Icon view: moves icons that are off the grid to the nearest free cell."
+  },
+  "cleanUpSelection": "Clean Up Selection",
+  "@cleanUpSelection": {
+    "description": "Icon view: like Clean Up, only for the selected icons."
+  },
+  "cleanUpBy": "Clean Up By",
+  "@cleanUpBy": {
+    "description": "Icon view submenu: lays out all icons on the grid in an order, once."
+  },
   "columnName": "Name",
   "@columnName": {
     "description": "List column header."

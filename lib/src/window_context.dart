@@ -191,12 +191,17 @@ extension _Context on _MustacheWindowState {
     MenuAction(
       l10n.sortBy,
       submenu: [
-        // In the icon view also "None" (free positions).
+        // In the icon view also "None" (free positions) and Snap to Grid.
         if (_view == ViewMode.icons) ...[
           MenuAction(
             l10n.sortNone,
             checked: _arrangement.free,
             onSelected: _sortNone,
+          ),
+          MenuAction(
+            l10n.snapToGrid,
+            checked: _arrangement.snap,
+            onSelected: _toggleSnap,
           ),
           const MenuDivider(),
         ],
@@ -209,6 +214,31 @@ extension _Context on _MustacheWindowState {
           ),
       ],
     ),
+    // Clean Up works on free positions; Clean Up By also turns a sorted folder into a free one.
+    if (_view == ViewMode.icons) ...[
+      const MenuDivider(),
+      MenuAction(
+        l10n.cleanUp,
+        enabled: _arrangement.free,
+        onSelected: _cleanUp,
+      ),
+      MenuAction(
+        l10n.cleanUpSelection,
+        enabled: _arrangement.free && _selected.isNotEmpty,
+        onSelected: () => _cleanUp(selection: true),
+      ),
+      MenuAction(
+        l10n.cleanUpBy,
+        submenu: [
+          for (final (key, label) in _sortChoices)
+            MenuAction(
+              label,
+              shortcut: '⌥⌘${arrangeByDigit[key]}',
+              onSelected: () => _arrangeBy(key),
+            ),
+        ],
+      ),
+    ],
   ];
 
   List<(SortKey, String)> get _sortChoices => [

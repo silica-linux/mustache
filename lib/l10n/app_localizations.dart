@@ -284,6 +284,30 @@ abstract class AppLocalizations {
   /// **'None'**
   String get sortNone;
 
+  /// Icon view option: dropped icons land on the nearest free grid cell.
+  ///
+  /// In en, this message translates to:
+  /// **'Snap to Grid'**
+  String get snapToGrid;
+
+  /// Icon view: moves icons that are off the grid to the nearest free cell.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean Up'**
+  String get cleanUp;
+
+  /// Icon view: like Clean Up, only for the selected icons.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean Up Selection'**
+  String get cleanUpSelection;
+
+  /// Icon view submenu: lays out all icons on the grid in an order, once.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean Up By'**
+  String get cleanUpBy;
+
   /// List column header.
   ///
   /// In en, this message translates to:

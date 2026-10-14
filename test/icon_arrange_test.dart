@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mustache/src/icon_arrange.dart';
@@ -29,6 +30,38 @@ void main() {
       expect(grid.cellOf(grid.cell(4, 1) + const Offset(20, -20)), (4, 1));
     });
 
+    test(
+      'Clean Up: off-grid icons go to the nearest free cell, the others stay',
+      () {
+        final positions = {
+          'a': grid.cell(0, 0),
+          'b': grid.cell(1, 0),
+          // Near cell (1, 0), which is taken: the nearest free one is (2, 0) or (1, 1).
+          'c': grid.cell(1, 0) + const Offset(30, 10),
+          // Near cell (3, 2), free.
+          'd': grid.cell(3, 2) + const Offset(-12, 15),
+        };
+        final cleaned = cleanUp(positions, grid);
+        expect(cleaned['a'], positions['a']);
+        expect(cleaned['b'], positions['b']);
+        expect(cleaned['d'], grid.cell(3, 2));
+        expect(cleaned['c'], grid.cell(2, 0));
+        // Only the selection.
+        final some = cleanUp(positions, grid, only: {'d'});
+        expect(some['c'], positions['c']);
+        expect(some['d'], grid.cell(3, 2));
+      },
+    );
+
+    test('Clean Up never puts two icons in one cell', () {
+      final positions = {
+        for (var i = 0; i < 6; i++) 'i$i': grid.cell(2, 2) + Offset(i * 3, 5),
+      };
+      final cleaned = cleanUp(positions, grid);
+      expect(cleaned.values.toSet(), hasLength(6));
+      expect(cleaned.values.every(grid.onGrid), isTrue);
+    });
+
     test('new items take the first free cells', () {
       final placed = placeNew(
         ['a', 'b', 'c'],
@@ -39,6 +72,51 @@ void main() {
       expect(placed.keys, unorderedEquals(['a', 'b', 'c']));
       expect(placed['b'], grid.cell(1, 0));
       expect(placed['c'], grid.cell(2, 0));
+    });
+
+    test('moving keeps the offsets; Snap to Grid lands on free cells', () {
+      final positions = {
+        'a': grid.cell(0, 0),
+        'b': grid.cell(1, 0),
+        'c': grid.cell(2, 0),
+      };
+      const delta = Offset(37, 140);
+      final moved = moveIcons(positions, ['a', 'b'], delta, grid);
+      expect(moved['a'], positions['a']! + delta);
+      expect(moved['b']! - moved['a']!, positions['b']! - positions['a']!);
+      expect(moved['c'], positions['c']);
+      // With snap: each one on the cell nearest to where it fell.
+      final snapped = moveIcons(
+        positions,
+        ['a'],
+        const Offset(5, 120),
+        grid,
+        snap: true,
+      );
+      expect(snapped['a'], grid.cell(0, 1));
+      // A taken cell is skipped.
+      final taken = moveIcons(
+        positions,
+        ['a'],
+        positions['c']! - positions['a']!,
+        grid,
+        snap: true,
+      );
+      expect(taken['a'], isNot(positions['c']));
+      expect(grid.onGrid(taken['a']!), isTrue);
+    });
+
+    test('arrows move to the nearest icon on that side', () {
+      final positions = {
+        'a': grid.cell(0, 0),
+        'b': grid.cell(3, 0) + const Offset(0, 20),
+        'c': grid.cell(1, 2),
+        'd': grid.cell(0, 1),
+      };
+      expect(spatialNeighbour(positions, 'a', const Offset(1, 0)), 'b');
+      expect(spatialNeighbour(positions, 'a', const Offset(0, 1)), 'd');
+      expect(spatialNeighbour(positions, 'a', const Offset(-1, 0)), isNull);
+      expect(spatialNeighbour(positions, 'd', const Offset(0, 1)), 'c');
     });
   });
 
@@ -51,10 +129,15 @@ void main() {
       final store = IconPositions('${dir.path}/state/p.json');
       store.put(
         '/x',
-        FolderArrangement(free: true, icons: {'a': const Offset(10, 20)}),
+        FolderArrangement(
+          free: true,
+          snap: true,
+          icons: {'a': const Offset(10, 20)},
+        ),
       );
       final again = IconPositions('${dir.path}/state/p.json');
       expect(again.of('/x').free, isTrue);
+      expect(again.of('/x').snap, isTrue);
       expect(again.of('/x').icons['a'], const Offset(10, 20));
       expect(again.of('/y').free, isFalse);
     });
@@ -281,6 +364,176 @@ void main() {
         expect(IconPositions(store.path).of(root.path).free, isTrue);
       },
     );
+
+    testWidgets(
+      'a dragged icon stays where it is dropped; the threshold is ~8 pt',
+      (tester) async {
+        final g = FreeGrid.of();
+        store.put(
+          root.path,
+          FolderArrangement(
+            free: true,
+            icons: arrangeOnGrid(
+              ['alfa.txt', 'bravo.txt', 'charlie.txt', 'delta.txt'],
+              g,
+              4,
+            ),
+          ),
+        );
+        await pump(tester);
+        final start = cellOf(tester, 'alfa.txt');
+        final at = tester.getCenter(
+          find.byKey(ValueKey('${root.path}/alfa.txt')),
+        );
+        // 6 pt: no drag.
+        var gesture = await tester.startGesture(
+          at,
+          kind: PointerDeviceKind.mouse,
+        );
+        await gesture.moveBy(const Offset(6, 0));
+        await gesture.up();
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(cellOf(tester, 'alfa.txt'), start);
+        // A real drag: 60 to the right and 250 down.
+        gesture = await tester.startGesture(at, kind: PointerDeviceKind.mouse);
+        for (var i = 0; i < 10; i++) {
+          await gesture.moveBy(const Offset(6, 25));
+          await tester.pump();
+        }
+        await gesture.up();
+        await tester.pump();
+        expect(cellOf(tester, 'alfa.txt'), start + const Offset(60, 250));
+        expect(
+          IconPositions(store.path).of(root.path).icons['alfa.txt'],
+          g.cell(0, 0) + const Offset(60, 250),
+        );
+        await tester.pump(const Duration(milliseconds: 400));
+      },
+    );
+
+    testWidgets(
+      'Clean Up: after ~350 ms the icon slides to the nearest free cell',
+      (tester) async {
+        final g = FreeGrid.of();
+        store.put(
+          root.path,
+          FolderArrangement(
+            free: true,
+            icons: {
+              'alfa.txt': g.cell(0, 0),
+              'bravo.txt': g.cell(1, 0),
+              'charlie.txt': g.cell(2, 0),
+              'delta.txt': g.cell(3, 1) + const Offset(17, -12),
+            },
+          ),
+        );
+        await pump(tester);
+        final off = cellOf(tester, 'delta.txt');
+        await backgroundMenu(tester);
+        await tester.tap(find.text('Clean Up'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(cellOf(tester, 'delta.txt'), off);
+        await tester.pump(const Duration(milliseconds: 60));
+        final target = off - const Offset(17, -12);
+        final animated = tester.widget<AnimatedPositioned>(
+          find.byKey(ValueKey('cell ${root.path}/delta.txt')),
+        );
+        expect(animated.duration, cleanUpDuration);
+        expect(Offset(animated.left!, animated.top!), target);
+        // Half-way it is between the two; at the end on the cell.
+        await tester.pump(const Duration(milliseconds: 100));
+        final mid = tester.getTopLeft(
+          find.byKey(ValueKey('cell ${root.path}/delta.txt')),
+        );
+        await tester.pump(const Duration(milliseconds: 300));
+        final end = tester.getTopLeft(
+          find.byKey(ValueKey('cell ${root.path}/delta.txt')),
+        );
+        expect(mid, isNot(end));
+        expect(store.of(root.path).icons['delta.txt'], g.cell(3, 1));
+        expect(store.of(root.path).icons['alfa.txt'], g.cell(0, 0));
+      },
+    );
+
+    testWidgets('⌥⌘1 lays out every icon by name at once', (tester) async {
+      final g = FreeGrid.of();
+      store.put(
+        root.path,
+        FolderArrangement(
+          free: true,
+          icons: {
+            'delta.txt': g.cell(0, 0),
+            'charlie.txt': g.cell(1, 0),
+            'bravo.txt': g.cell(2, 2) + const Offset(5, 5),
+            'alfa.txt': g.cell(4, 1),
+          },
+        ),
+      );
+      await pump(tester);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.digit1);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+      await tester.pump();
+      final icons = store.of(root.path).icons;
+      final columns = g.columnsFor(tester.getSize(find.byType(IconView)).width);
+      expect(
+        icons,
+        arrangeOnGrid(
+          ['alfa.txt', 'bravo.txt', 'charlie.txt', 'delta.txt'],
+          g,
+          columns,
+        ),
+      );
+      expect(store.of(root.path).free, isTrue);
+      // No animation.
+      expect(
+        tester
+            .widget<AnimatedPositioned>(
+              find.byKey(ValueKey('cell ${root.path}/alfa.txt')),
+            )
+            .duration,
+        Duration.zero,
+      );
+      expect(cellOf(tester, 'alfa.txt').dy, cellOf(tester, 'delta.txt').dy);
+    });
+
+    testWidgets('arrows move spatially among free icons', (tester) async {
+      final g = FreeGrid.of();
+      store.put(
+        root.path,
+        FolderArrangement(
+          free: true,
+          icons: {
+            'alfa.txt': g.cell(0, 0),
+            'bravo.txt': g.cell(0, 2),
+            'charlie.txt': g.cell(3, 0),
+            'delta.txt': g.cell(5, 3),
+          },
+        ),
+      );
+      await pump(tester);
+      Color? capsule(String name) =>
+          (tester
+                      .widget<DecoratedBox>(
+                        find.byKey(ValueKey('name ${root.path}/$name 0')),
+                      )
+                      .decoration
+                  as BoxDecoration)
+              .color;
+      await tester.tap(find.byKey(ValueKey('${root.path}/alfa.txt')));
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+      expect(capsule('bravo.txt'), isNotNull);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pump();
+      expect(capsule('charlie.txt'), isNotNull);
+      expect(capsule('alfa.txt'), isNull);
+    });
 
     testWidgets('a new file takes the first free cell', (tester) async {
       final g = FreeGrid.of();
