@@ -158,7 +158,10 @@ void main() {
       home.deleteSync(recursive: true);
     });
 
-    Future<DesktopViewState> pump(WidgetTester tester) async {
+    Future<DesktopViewState> pump(
+      WidgetTester tester, {
+      Map<String, String>? env,
+    }) async {
       tester.view.physicalSize = screen;
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
@@ -170,7 +173,7 @@ void main() {
               folder: folder.path,
               positions: IconPositions('${home.path}/positions.json'),
               choices: DesktopChoices('${home.path}/desktop.json'),
-              env: {'HOME': home.path},
+              env: env ?? {'HOME': home.path},
               kindOf: (e) => 'Text',
               watch: false,
               readTags: (p) => tags[p] ?? const [],
@@ -342,8 +345,38 @@ void main() {
       expect(launches(), hasLength(1));
       expect(
         launches().single,
-        contains("'--customize=${folder.path}/Progetti'"),
+        startsWith("'mustache' '--customize=${folder.path}/Progetti'"),
       );
+    });
+
+    testWidgets('Customize Folder… passes --customize after --dart-arg to the '
+        'embedder', (tester) async {
+      Directory('${folder.path}/Progetti').createSync();
+      File('${home.path}/share/applications/dev.frascella.Mustache.desktop')
+        ..createSync(recursive: true)
+        ..writeAsStringSync(
+          '[Desktop Entry]\nType=Application\nName=Mustache\n'
+          'Exec=silica-app --id x /opt/mustache bundle\n',
+        );
+      final state = await pump(
+        tester,
+        env: {
+          'HOME': home.path,
+          'XDG_DATA_HOME': '${home.path}/share',
+          'XDG_DATA_DIRS': '${home.path}/none',
+        },
+      );
+      await tester.tapAt(state.positions['Progetti']! + const Offset(0, 40));
+      await tester.pump(const Duration(milliseconds: 600));
+      state.runAction('customize');
+      final launches = [
+        for (final c in shell)
+          if (c.method == 'launch') (c.arguments as Map)['command'] as String,
+      ];
+      expect(launches, [
+        "'silica-app' '--id' 'x' '/opt/mustache' 'bundle' '--dart-arg' "
+            "'--customize=${folder.path}/Progetti'",
+      ]);
     });
 
     test('--customize=<folder> among the arguments', () {

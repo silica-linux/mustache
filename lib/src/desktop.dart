@@ -675,9 +675,11 @@ class DesktopViewState extends State<DesktopView>
       mime: systemMime,
     ).apps['dev.frascella.Mustache.desktop'];
     final args = app == null ? const <String>[] : execArguments(app, const []);
+    // The Exec line runs the embedder (silica-app), which rejects unknown arguments: those for the
+    // Dart app go after `--dart-arg`. The plain `mustache` fallback reads them directly.
     _launch(
       [
-        ...(args.isEmpty ? const ['mustache'] : args),
+        ...(args.isEmpty ? const ['mustache'] : [...args, '--dart-arg']),
         '--customize=${items.single.path}',
       ].map(shellQuote).join(' '),
     );
