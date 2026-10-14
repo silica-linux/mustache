@@ -109,12 +109,11 @@ extension _Search on _MustacheWindowState {
   Widget _searchField() => Container(
     key: const ValueKey('campo di ricerca'),
     width: 242,
-    height: 30,
-    margin: const EdgeInsets.only(right: 12),
-    padding: const EdgeInsets.symmetric(horizontal: 10),
+    height: toolbarCapsuleHeight,
+    padding: const EdgeInsets.symmetric(horizontal: 14),
     decoration: BoxDecoration(
       color: const Color(0xFFF2F2F7),
-      borderRadius: BorderRadius.circular(15),
+      borderRadius: BorderRadius.circular(toolbarCapsuleHeight / 2),
       border: Border.all(color: const Color(0xFF8FB4FB), width: 2),
     ),
     alignment: Alignment.centerLeft,

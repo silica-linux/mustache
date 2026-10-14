@@ -1,7 +1,5 @@
-// La finestra di Mustache: barra laterale a sinistra (sidebar.dart), a destra l'intestazione con
-// la navigazione e la vista a elenco. Intestazione e vista a elenco sono provvisorie (MU-02,
-// MU-20): l'intestazione vera sarà la barra degli strumenti unificata con quella della finestra
-// (docs/spec.md, "Aperto").
+// La finestra di Mustache: barra laterale a sinistra (sidebar.dart) dalla cima al fondo, a destra
+// la barra degli strumenti unificata con la finestra (toolbar.dart) e la vista dei contenuti.
 
 import 'dart:async';
 import 'dart:io';
@@ -30,6 +28,7 @@ import 'transfer_ui.dart';
 import 'xattr.dart';
 import 'sidebar.dart';
 import 'tags.dart';
+import 'toolbar.dart';
 
 part 'window_columns.dart';
 part 'window_context.dart';
@@ -48,7 +47,6 @@ const Color contentFill = Color(0xFFFFFFFF);
 /// Provvisori (MU-20): righe da 24 pt, intestazione delle colonne da 28.
 const double listRow = 24;
 const double listHeader = 28;
-const double headerHeight = 38;
 const Color selectionFill = accent;
 const Color selectionText = Color(0xFFFFFFFF);
 
@@ -155,9 +153,6 @@ class MoveSelectionIntent extends Intent {
 
 /// La voce .desktop di Mustache (per aprire altre finestre).
 const String mustacheDesktopId = 'dev.frascella.Mustache.desktop';
-
-/// La vista dei contenuti (spec 3–6): a icone (⌘1), a elenco (⌘2), a colonne (⌘3).
-enum ViewMode { icons, list, columns, gallery }
 
 class MustacheWindow extends StatefulWidget {
   const MustacheWindow({
@@ -930,7 +925,7 @@ class _MustacheWindowState extends State<MustacheWindow>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _header(),
+                          _toolbar(visible),
                           if (widget.dialog?.save ?? false) _saveBar(),
                           ?widget.tabBar,
                           if (_searching) _scopeBar(),
@@ -1026,6 +1021,15 @@ class _MustacheWindowState extends State<MustacheWindow>
                         ],
                       ),
                     ),
+                  ),
+                  // La cima della barra laterale, sotto i pulsanti della finestra, sposta la
+                  // finestra come la barra degli strumenti.
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    width: visible,
+                    height: toolbarHeight,
+                    child: const WindowDragArea(child: SizedBox.expand()),
                   ),
                   // Il bordo trascinabile, anche a barra nascosta (la si riapre tirandola).
                   Positioned(
@@ -1146,57 +1150,35 @@ class _MustacheWindowState extends State<MustacheWindow>
     );
   }
 
-  Widget _header() {
-    Widget button(String label, bool enabled, VoidCallback onTap) =>
-        GestureDetector(
-          onTap: enabled ? onTap : null,
-          behavior: HitTestBehavior.opaque,
-          child: SizedBox(
-            width: 28,
-            child: Center(
-              child: Text(
-                label,
-                style: text(
-                  20,
-                  color: enabled ? textColor : const Color(0xFFABABAB),
-                ),
-              ),
-            ),
-          ),
-        );
-    return SizedBox(
-      height: headerHeight,
-      child: Row(
-        children: [
-          const SizedBox(width: 8),
-          button('‹', _history.canGoBack, () {
-            if (_history.back()) _load();
-          }),
-          button('›', _history.canGoForward, () {
-            if (_history.forward()) _load();
-          }),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              widget.dialog != null && widget.dialog!.title.isNotEmpty
-                  ? widget.dialog!.title
-                  : _searching
-                  ? 'Ricerca in «${_searchScope == SearchScope.computer ? 'Questo computer' : displayName(_searchFolder)}»'
-                  : _tagView ?? displayName(_history.current),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: text(
-                15,
-                color: const Color(0xFF4D4D4D),
-                weight: FontWeight.w600,
-              ),
-            ),
-          ),
-          if (_searching) _searchField(),
-        ],
-      ),
-    );
-  }
+  /// La barra degli strumenti (spec 1.2); `visible` è la parte visibile della barra laterale.
+  Widget _toolbar(double visible) => MustacheToolbar(
+    // A barra laterale nascosta la barra lascia il posto ai pulsanti della finestra.
+    leading: visible < windowButtonsEnd ? windowButtonsEnd - visible + 7 : 7,
+    title: widget.dialog != null && widget.dialog!.title.isNotEmpty
+        ? widget.dialog!.title
+        : _searching
+        ? 'Ricerca in «${_searchScope == SearchScope.computer ? 'Questo computer' : displayName(_searchFolder)}»'
+        : _tagView ?? displayName(_history.current),
+    active: widget.active,
+    canGoBack: _history.canGoBack || _searching,
+    canGoForward: _history.canGoForward,
+    onBack: () {
+      // Dalla ricerca, Indietro torna alla cartella (R13.4).
+      if (_searching) {
+        _endSearch();
+      } else if (_history.back()) {
+        _load();
+      }
+    },
+    onForward: () {
+      if (_history.forward()) _load();
+    },
+    view: _searching ? null : _view,
+    onView: _setView,
+    onSearch: _startSearch,
+    searchField: _searching ? _searchField() : null,
+    iconsDir: widget.iconsDir,
+  );
 
   static const List<(SortKey, String, int)> _columns = [
     (SortKey.name, 'Nome', 5),

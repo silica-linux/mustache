@@ -3,6 +3,7 @@
 import 'dart:io';
 
 import 'package:flutter/widgets.dart';
+import 'package:silica_ui/silica_ui.dart';
 
 import 'src/dialog.dart';
 import 'src/model.dart';
@@ -33,6 +34,9 @@ void main(List<String> args) {
   );
   final trash = trashPlace(home: home, dataHome: env['XDG_DATA_HOME']);
   final settings = Settings.forUser(env);
+  // La barra degli strumenti è unificata con la finestra: Ossido disegna solo i pulsanti.
+  WidgetsFlutterBinding.ensureInitialized();
+  SilicaWindow.setFullSizeContent(toolbarHeight).ignore();
   if (dialog != null) {
     runApp(
       Directionality(

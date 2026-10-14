@@ -20,9 +20,12 @@ provvisorio e lo dice.
 
 ## Finestra
 
-- Barra laterale a sinistra, contenuto a destra, barra degli strumenti in alto unificata con la
-  barra della finestra (Aperto: serve che Ossido disegni i pulsanti della finestra sopra la barra
-  dell'app). Opzionali: barra del percorso, barra di stato, pannello di anteprima (MU-03,
+- Barra laterale a sinistra dalla cima al fondo, contenuto a destra, barra degli strumenti
+  unificata con la finestra (52 pt, `silica-window-v1`: Ossido disegna solo i pulsanti della
+  finestra sopra la barra laterale): capsula Indietro/Avanti, titolo, gruppo delle viste
+  (⌘1–⌘4), Cerca. Trascinando il vuoto della barra o la cima della barra laterale si sposta la
+  finestra (MU-02). Da fare: Raggruppa, Condividi, Etichette, Azione, il menu » e il velo sotto
+  la barra (MU-99). Opzionali: barra del percorso, barra di stato, pannello di anteprima (MU-03,
   MU-04, MU-05).
 - Schede: ⌘T apre una scheda nella cartella corrente; la barra delle schede compare con la
   seconda scheda (MU-01).
@@ -110,9 +113,6 @@ Fatto oggi: clic, ⌘clic, ⇧clic, frecce.
 
 ## Aperto
 
-- Barra degli strumenti unificata con la finestra: Ossido oggi disegna la barra del titolo
-  (decorazioni lato server). Serve un modo per far disegnare a Ossido solo i pulsanti della
-  finestra e lasciare la barra all'app (estensione di `silica-shell` o protocollo nuovo).
 - Menu dell'app nella barra dei menu: arriva con `silica-menu-v1` (M7 di Silica).
 - Comandi dell'app raggiungibili da CLI e MCP: serve il canale dei comandi delle app (da
   progettare in Silica).

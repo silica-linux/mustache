@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mustache/src/model.dart';
 import 'package:mustache/src/settings.dart';
 import 'package:mustache/src/sidebar.dart';
+import 'package:mustache/src/toolbar.dart';
 import 'package:mustache/src/window.dart';
 
 void main() {
@@ -103,5 +104,48 @@ void main() {
     await tester.tap(find.text('Nome ↑'));
     await tester.pump();
     expect(y('Alfa/'), greaterThan(y('nota.txt')));
+  });
+
+  testWidgets('la barra degli strumenti unificata: capsule, viste, Indietro', (
+    tester,
+  ) async {
+    await pump(tester);
+    // Indietro/Avanti a 7 pt dalla barra laterale, alta 38 con 7 pt sopra; titolo 12 pt dopo.
+    final nav = tester.getRect(find.byKey(const ValueKey('indietro e avanti')));
+    expect(nav, const Rect.fromLTWH(199, 7, 75, 38));
+    expect(tester.getTopLeft(find.byKey(const ValueKey('titolo'))).dx, 286);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('gruppo delle viste'))).width,
+      162,
+    );
+    expect(tester.getTopRight(find.byKey(const ValueKey('cerca'))).dx, 993);
+
+    await tester.tap(find.text('Alfa/'));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+    await tester.pump();
+    expect(find.text('dentro.txt'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('indietro')));
+    await tester.pump();
+    expect(find.text('nota.txt'), findsOneWidget);
+
+    // Il gruppo delle viste: la griglia toglie l'intestazione delle colonne.
+    await tester.tap(find.byKey(const ValueKey('vista icons')));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('Nome ↑'), findsNothing);
+
+    // A barra laterale nascosta la barra lascia il posto ai pulsanti della finestra.
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyS);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('indietro e avanti'))).dx,
+      windowButtonsEnd + 7,
+    );
   });
 }

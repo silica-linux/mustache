@@ -327,3 +327,6 @@ Entry? entryAt(String path) {
     return null;
   }
 }
+
+/// La vista dei contenuti (spec 3–6): a icone (⌘1), a elenco (⌘2), a colonne (⌘3).
+enum ViewMode { icons, list, columns, gallery }
