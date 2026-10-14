@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mustache/src/column_view.dart';
 import 'package:mustache/src/model.dart';
 import 'package:mustache/src/settings.dart';
+import 'package:mustache/src/tags.dart';
 import 'package:mustache/src/window.dart';
 
 void main() {
@@ -120,5 +121,81 @@ void main() {
       await tester.pump();
       expect(find.byType(ColumnView), findsOneWidget);
     });
+  });
+
+  testWidgets('nomi troncati al centro e punti delle etichette (mu22-root)', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1000, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    Entry entry(String name, {bool dir = false}) => Entry(
+      name: name,
+      path: '/prova/$name',
+      isDirectory: dir,
+      size: 1,
+      modified: DateTime(2026),
+    );
+    final entries = [
+      entry(
+        'Beta con un nome molto lungo che non entra nella colonna',
+        dir: true,
+      ),
+      entry('etichettato.txt'),
+    ];
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: ColumnView(
+          root: '/prova',
+          current: '/prova',
+          leaf: '/prova',
+          list: (_) => entries,
+          onSelect: (_, _) {},
+          onOpen: (_) {},
+          tagsOf: (e) => e.name == 'etichettato.txt' ? ['Blu', 'Rosso'] : [],
+        ),
+      ),
+    );
+    final beta = tester.widget<Text>(find.textContaining('Beta con un'));
+    expect(beta.data, contains('…'));
+    expect(beta.data, endsWith('colonna'));
+    expect(find.byType(TagDots), findsOneWidget);
+  });
+
+  testWidgets('la cartella aperta resta in vista in una colonna lunga', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1000, 400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    Entry entry(String path, {bool dir = false}) => Entry(
+      name: path.split('/').last,
+      path: path,
+      isDirectory: dir,
+      size: 1,
+      modified: DateTime(2026),
+    );
+    final parent = [
+      for (var i = 0; i < 60; i++) entry('/r/file $i'),
+      entry('/r/zeta', dir: true),
+    ];
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: ColumnView(
+          root: '/r',
+          current: '/r/zeta',
+          leaf: '/r/zeta',
+          list: (dir) => dir == '/r' ? parent : [entry('/r/zeta/dentro')],
+          onSelect: (_, _) {},
+          onOpen: (_) {},
+        ),
+      ),
+    );
+    await tester.pump();
+    final zeta = find.byKey(const ValueKey('/r/zeta'));
+    expect(zeta, findsOneWidget);
+    expect(tester.getRect(zeta).bottom, lessThanOrEqualTo(400));
   });
 }

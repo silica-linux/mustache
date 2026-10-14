@@ -232,9 +232,10 @@ String middleEllipsis(String text, TextStyle style, double width) {
     final keep = (lo + hi) ~/ 2;
     final head = (keep + 1) ~/ 2;
     final tail = keep - head;
+    // Niente spazi attorno al "…" (mu22-root: "Beta con un…nella colonna").
     final candidate =
-        '${String.fromCharCodes(runes.take(head))}…'
-        '${String.fromCharCodes(runes.skip(runes.length - tail))}';
+        '${String.fromCharCodes(runes.take(head)).trimRight()}…'
+        '${String.fromCharCodes(runes.skip(runes.length - tail)).trimLeft()}';
     if (measure(candidate) <= width) {
       best = candidate;
       lo = keep + 1;

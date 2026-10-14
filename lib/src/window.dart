@@ -1244,6 +1244,7 @@ class _MustacheWindowState extends State<MustacheWindow>
     onOpen: _openEntry,
     active: widget.active,
     env: widget.iconsEnv,
+    tagsOf: _tagsOf,
   );
 
   Widget _icons() {
