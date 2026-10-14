@@ -1,4 +1,4 @@
-// The in-place rename field (MU-32, mustache-spec 8): as wide as the text (grows and shrinks while
+// The in-place rename field (MU-32, docs/spec/rename.md): as wide as the text (grows and shrinks while
 // typing), 21 tall with the 3 pt focus ring, 1 pt inner border, 13 pt text 4 pt from the edge. On
 // opening the name without the extension is selected (R8.1); Return confirms, Esc cancels, losing
 // focus (a click elsewhere) confirms.

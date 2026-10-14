@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="380" viewBox="0 0 420 380" font-family="Inter, sans-serif" font-size="10">
+  <title>Desktop icons (MU-90), top-right corner of the screen, scale 1: icons 96, first icon right edge 18 pt from the screen edge and 40 pt from the top, pitch 148 vertical and 124 horizontal</title>
+  <rect width="420" height="380" fill="#7a7b80"/>
+  <rect x="0" y="0" width="420" height="24" fill="#9a9ba0"/>
+  <text x="8" y="16" fill="#222">menu bar</text>
+  <!-- first column: right edge at 402 (420 - 18) -->
+  <rect x="300" y="34" width="108" height="107" rx="8" fill="#545559" stroke="#88898c" stroke-width="2"/>
+  <rect x="306" y="40" width="96" height="96" rx="10" fill="#9cc6f5"/>
+  <rect x="318" y="146" width="72" height="17" rx="5" fill="#0064e1"/>
+  <text x="330" y="158" fill="#ffffff" font-weight="700">Selected</text>
+  <rect x="306" y="188" width="96" height="96" rx="10" fill="#e8e8e8"/>
+  <text x="330" y="306" fill="#ffffff" font-weight="700">Second</text>
+  <rect x="182" y="40" width="96" height="96" rx="10" fill="#e8e8e8"/>
+  <line x1="402" y1="10" x2="420" y2="10" stroke="#ffd60a"/>
+  <text x="372" y="34" fill="#ffd60a">18</text>
+  <line x1="354" y1="136" x2="354" y2="188" stroke="#ffd60a"/>
+  <text x="250" y="180" fill="#ffd60a">pitch y 148</text>
+  <line x1="230" y1="350" x2="354" y2="350" stroke="#ffd60a"/>
+  <text x="260" y="344" fill="#ffd60a">pitch x 124</text>
+  <text x="8" y="370" fill="#ffffff">fill: top to bottom, then toward the left · selection 108 × 107, 2 pt outline</text>
+</svg>

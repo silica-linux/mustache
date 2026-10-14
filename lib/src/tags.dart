@@ -1,4 +1,4 @@
-// Tags (MU-62, mustache-spec 2.8, 10.1, "Questions › Tags"): the 7 colors with a name each, stored
+// Tags (MU-62, docs/spec/sidebar.md, menus-and-settings.md, open-questions.md): the 7 colors with a name each, stored
 // in the file attribute `user.xdg.tags`. Two palettes: saturated in the sidebar (13 pt filled
 // circle, no outline), light in the menu (14 pt, 20 on hover with + / ✓ / ×) and in the list (10
 // pt, with a 1 pt ring of the same darker hue; several tags overlap at a 5 pt pitch with a ring in
@@ -57,7 +57,7 @@ Color sidebarTagColor(TagColor c, {required bool dark}) => switch (c) {
   TagColor.gray => const Color(0xFF8E8E93),
 };
 
-/// The palette of the menu and the list (sRGB, mustache-spec 10.1).
+/// The palette of the menu and the list (sRGB, docs/spec/menus-and-settings.md).
 Color menuTagColor(TagColor c) => switch (c) {
   TagColor.red => const Color(0xFFFF6663),
   TagColor.orange => const Color(0xFFFFA356),

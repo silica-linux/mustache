@@ -9,7 +9,7 @@ import 'package:mustache/src/settings.dart';
 import 'package:mustache/src/window.dart';
 
 void main() {
-  test('panel sizes for images (spec 12)', () {
+  test('panel sizes for images (spec/quick-look.md)', () {
     expect(imagePanelSize(const Size(800, 600)), const Size(810, 643));
     expect(imagePanelSize(const Size(600, 900)), const Size(610, 943));
     // Small: minimum width.

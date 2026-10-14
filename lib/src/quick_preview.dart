@@ -1,4 +1,4 @@
-// Quick preview (Space, MU-61, mustache-spec 12): a centered panel with a 38 pt top bar (×, name,
+// Quick preview (Space, MU-61, docs/spec/quick-look.md): a centered panel with a 38 pt top bar (×, name,
 // the open-with-app capsule) and a 5 pt frame around the content. The size follows the content: an image at
 // its natural size plus 10 × 43 (at least ~370 wide, at most 1256 tall), text 816 × 849, the rest
 // (folders, code, archives, files without a preview) 575 × 328 with the large icon, the name and
@@ -59,7 +59,7 @@ bool isTextPreview(String name) {
       textExtensions.contains(name.substring(dot + 1).toLowerCase());
 }
 
-/// The panel size for an image of `natural` pt (spec 12).
+/// The panel size for an image of `natural` pt (spec/quick-look.md).
 Size imagePanelSize(Size natural) {
   var w = natural.width + 2 * quickPreviewFrame;
   var h = natural.height + quickPreviewBar + quickPreviewFrame;

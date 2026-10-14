@@ -1,4 +1,4 @@
-// The column view (MU-22, mustache-spec 5): one column for each folder from the root (the sidebar
+// The column view (MU-22, docs/spec/column-view.md): one column for each folder from the root (the sidebar
 // entry it starts from, R5.6) down to the open one; the chosen item is highlighted in its column
 // (blue in the active column, gray in those on the left, R5.1). Columns do not shrink: the view
 // scrolls horizontally and jumps to the end right away when a new one opens (R5.4, R5.5).

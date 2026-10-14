@@ -1,4 +1,4 @@
-// The file operations of MU.4 (mustache-spec 8, 9.3, 9.4): new folder, duplicate, rename, Trash
+// The file operations of MU.4 (docs/spec/rename.md, operations.md): new folder, duplicate, rename, Trash
 // (freedesktop Trash specification), put back, delete, and the undo stack.
 //
 // Never exceptions towards the UI: every operation returns the result or a message (a vanished

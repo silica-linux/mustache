@@ -1,4 +1,4 @@
-// Copy views (mustache-spec 9.2): the progress pie next to the name in the list, the progress
+// Copy views (docs/spec/operations.md): the progress pie next to the name in the list, the progress
 // window (404 × 88: 34 pt icon, a "Copying …" line, 309 × 20 accent bar, × on the right, "done of total"
 // line) and the conflict window (404 × 106, three small buttons 22 tall: Keep Both 117, Stop 88,
 // Replace 88).

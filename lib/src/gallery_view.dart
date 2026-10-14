@@ -1,4 +1,4 @@
-// The gallery (⌘4, MU-23, mustache-spec 6): the large preview of the chosen item (32 pt from the
+// The gallery (⌘4, MU-23, docs/spec/gallery.md): the large preview of the chosen item (32 pt from the
 // edges, 1 pt outline, no shadow) and below it the strip of thumbnails (48 pt at a 59 pitch, 54
 // tall; the choice in a 54 × 54 rounded square). The strip scrolls to keep the choice visible
 // (R6.1); the preview changes without a transition.

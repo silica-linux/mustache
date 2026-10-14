@@ -1,4 +1,4 @@
-// Background copies and moves (MU-41, MU-43, mustache-spec 9.2): in chunks, with progress in bytes,
+// Background copies and moves (MU-41, MU-43, docs/spec/operations.md): in chunks, with progress in bytes,
 // cancellation that leaves nothing in the destination (R9.6) and name conflicts asked to the user
 // (Keep Both → "name 2.ext", Replace, Stop; R9.7). A move on the same disk is a rename; across
 // disks it is a copy followed by deletion. The modification date stays the original's (R9.8).

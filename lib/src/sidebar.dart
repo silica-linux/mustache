@@ -38,7 +38,7 @@ const double sidebarHeadingToRow = 24;
 /// Between the center of the last row and that of the next heading.
 const double sidebarRowToHeading = 40;
 
-/// The width of new windows (spec 2.1: 192; 200 is only where it snaps).
+/// The width of new windows (spec/sidebar.md: 192; 200 is only where it snaps).
 const double sidebarDefaultWidth = 192;
 
 /// Where the sidebar snaps when released between 191 and 209 (MU-11).
@@ -69,8 +69,8 @@ const Duration sidebarHide = Duration(milliseconds: 240);
 const Duration sidebarShow = Duration(milliseconds: 270);
 const double sidebarShowDelay = 40 / 270;
 
-/// Sidebar colors by theme and window state (mustache-spec 2.1, 2.2: M3/M4 values chosen among the
-/// sources; the background is a material and depends on what is behind it).
+/// Sidebar colors by theme and window state (docs/spec/sidebar.md; values chosen among the measurements, open-questions.md 2–3: the
+/// background is a material and depends on what is behind it).
 @immutable
 class SidebarColors {
   const SidebarColors({
@@ -91,7 +91,7 @@ class SidebarColors {
   final Color heading;
   final Color accentIcon;
 
-  /// The gray icon at rest and under the selection (two different measurements, spec 2.1).
+  /// The gray icon at rest and under the selection (two different measurements, spec/sidebar.md).
   final Color plainIcon;
   final Color plainIconSelected;
 

@@ -1,4 +1,4 @@
-// The path bar (⌥⌘P, MU-03, mustache-spec 1.4): below the content, 28 pt tall (2 px line and
+// The path bar (⌥⌘P, MU-03, docs/spec/bars.md): below the content, 28 pt tall (2 px line and
 // background), one segment per folder from the disk to the open one (or to the chosen item, R1.17):
 // 16 pt icon, text 5 pt after it, 5 × 7 chevron. A click opens the folder (R1.18). When space runs
 // out, all the middle segments shrink equally down to 29 pt, then the first, then the second to

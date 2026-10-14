@@ -1,4 +1,4 @@
-// The content scrolls under the glass toolbar (mustache#3, mustache-spec R1.9 / R4.9).
+// The content scrolls under the glass toolbar (mustache#3, docs/spec R1.9 / R4.9).
 
 import 'dart:io';
 

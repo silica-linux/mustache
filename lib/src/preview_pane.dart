@@ -1,4 +1,4 @@
-// The preview pane (⇧⌘P, MU-05, mustache-spec 1.6) and the gallery one (MU-23, spec 6): right of
+// The preview pane (⇧⌘P, MU-05, docs/spec/preview-pane.md) and the gallery one (MU-23, docs/spec/gallery.md): right of
 // the content, 264 wide (250 in the gallery), background `#ececec` without a separator line.
 //
 // At the top of the pane: the 244 × 320 preview with a 10 pt margin, then the name in semibold and

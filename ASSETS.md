@@ -16,3 +16,4 @@ files live in `silica-icons`, not in this repository.
 | `docs/spec/diagrams/icon-view.svg` | Silica project | MIT OR Apache-2.0 | original, drawn from the numbers in `docs/spec/icon-view.md` |
 | `docs/spec/diagrams/column-view.svg` | Silica project | MIT OR Apache-2.0 | original, drawn from the numbers in `docs/spec/column-view.md` |
 | `docs/spec/diagrams/gallery.svg` | Silica project | MIT OR Apache-2.0 | original, drawn from the numbers in `docs/spec/gallery.md` |
+| `docs/spec/diagrams/desktop.svg` | Silica project | MIT OR Apache-2.0 | original, drawn from the numbers in `docs/spec/desktop.md` |

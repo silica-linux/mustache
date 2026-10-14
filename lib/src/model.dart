@@ -387,5 +387,5 @@ Entry? entryAt(String path) {
   }
 }
 
-/// The content view (spec 3–6): icons (⌘1), list (⌘2), columns (⌘3).
+/// The content view (spec/list-view.md–6): icons (⌘1), list (⌘2), columns (⌘3).
 enum ViewMode { icons, list, columns, gallery }

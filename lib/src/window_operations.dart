@@ -4,7 +4,7 @@
 part of 'window.dart';
 
 /// A slow click on the name of an already selected item starts renaming after ~440 ms
-/// (mustache-spec 8), unless a double click follows.
+/// (docs/spec/rename.md), unless a double click follows.
 const Duration slowClickRename = Duration(milliseconds: 440);
 
 extension _Operations on _MustacheWindowState {

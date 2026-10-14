@@ -11,7 +11,7 @@ import 'package:mustache/src/status_bar.dart';
 import 'package:mustache/src/window.dart';
 
 void main() {
-  test('icon slider and bar text (spec 1.5)', () {
+  test('icon slider and bar text (spec/bars.md)', () {
     for (final (v, side) in [
       (0.0, 16.0),
       (8.0, 32.0),

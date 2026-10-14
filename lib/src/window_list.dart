@@ -1,4 +1,4 @@
-// The list view in the window (MU-20, mustache-spec 3; geometry and colors in list_view.dart): a
+// The list view in the window (MU-20, docs/spec/list-view.md; geometry and colors in list_view.dart): a
 // header that sorts and resizes, rows with disclosure triangle, icon and cells, folders expanded in
 // place (15 pt indent per level), alternating rows down to the bottom even for an empty folder,
 // block selection. The empty rows after the last one are background: a click clears the selection,

@@ -10,7 +10,7 @@ import 'package:mustache/src/window.dart';
 import 'package:silica_ui/silica_ui.dart';
 
 void main() {
-  test('the grid follows the table of spec 4.1', () {
+  test('the grid follows the table of spec/icon-view.md', () {
     // 783 pt of content: 6 columns at 64 (pitch ~126.8), first icon at 24, y pitch 116.
     final g64 = iconGrid(783);
     expect(g64.columns, 6);

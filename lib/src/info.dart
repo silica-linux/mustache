@@ -1,4 +1,4 @@
-// The Get Info window (⌘I, MU-60, mustache-spec 11): 265 wide, as tall as its content; a header
+// The Get Info window (⌘I, MU-60, docs/spec/info.md): 265 wide, as tall as its content; a header
 // with the 44 pt icon, the name in semibold, the size and the date; sections with a chevron that
 // open and close (the state applies to all Info windows, R11.1): General, Name & Extension,
 // Comments, Open With, Preview, Sharing & Permissions. Labels right-aligned up to x 91, values from

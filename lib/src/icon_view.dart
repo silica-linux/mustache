@@ -1,9 +1,9 @@
-// The icon view (MU-21, mustache-spec 4): a grid that fills the width, labels below the icons on at
+// The icon view (MU-21, docs/spec/icon-view.md): a grid that fills the width, labels below the icons on at
 // most two lines, selection with the icon background and the name capsule.
 //
-// Grid (spec 4.1, R4.1, R4.6): the x pitch is the available width divided by the columns that fit
+// Grid (spec/icon-view.md, R4.1, R4.6): the x pitch is the available width divided by the columns that fit
 // at the minimum pitch; the y pitch and the top of the first icon follow the size (59 / 78 / 116 /
-// 154 / 192 for 16 / 32 / 64 / 96 / 128, first icon 21–28 pt from the top). Selection (spec 4.2): a
+// 154 / 192 for 16 / 32 / 64 / 96 / 128, first icon 21–28 pt from the top). Selection (spec/icon-view.md): a
 // 72 × 72 background with radius ~6 around the 64 icon (4 pt per side), name capsule 17 tall per
 // line, radius ~5, 4 pt margin, 2 pt below the background.
 
@@ -18,7 +18,7 @@ import 'icon_arrange.dart';
 import 'model.dart';
 import 'tags.dart';
 
-/// The default icon size and the text size (spec 4.1).
+/// The default icon size and the text size (spec/icon-view.md).
 const double defaultIconSide = 64;
 const double defaultLabelSize = 12;
 
@@ -32,12 +32,12 @@ const double labelRadius = 5;
 const double labelPad = 4;
 const double labelGap = 2;
 
-/// Image thumbnails take ~89% of the icon size, ~3 pt corners (spec 4.4).
+/// Image thumbnails take ~89% of the icon size, ~3 pt corners (spec/icon-view.md).
 const double thumbnailRatio = 0.89;
 
 const double thumbnailRadius = 3;
 
-/// Selection colors (spec 4.2), light and dark.
+/// Selection colors (spec/icon-view.md), light and dark.
 @immutable
 class IconViewColors {
   const IconViewColors({
@@ -120,7 +120,7 @@ double minIconPitch({
   double text = defaultLabelSize,
 }) => math.max(side + 36, 50 + text * 5);
 
-/// The grid for `width` pt of content (spec 4.1, R4.1, R4.6).
+/// The grid for `width` pt of content (spec/icon-view.md, R4.1, R4.6).
 IconGrid iconGrid(
   double width, {
   double side = defaultIconSide,
@@ -194,7 +194,7 @@ List<String> labelLines(String name, double maxWidth, TextStyle style) {
   return [first, rest];
 }
 
-/// The rubber band (spec 7.1): black ~10% with a 1 pt outline at ~33%, square corners.
+/// The rubber band (spec/selection-and-keyboard.md): black ~10% with a 1 pt outline at ~33%, square corners.
 const Color rubberFill = Color(0x1A000000);
 const Color rubberBorder = Color(0x55000000);
 

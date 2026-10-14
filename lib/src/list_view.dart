@@ -1,4 +1,4 @@
-// The list view (⌘2, MU-20, mustache-spec 3), measured on MU-20: header from y 52 to 79 with
+// The list view (⌘2, MU-20, docs/spec/list-view.md), measured on MU-20: header from y 52 to 79 with
 // the 2 pt line below (79–81), first row at y 85, 20 pt rows at a 20 pitch; columns from x 10: Name
 // 364, Date Modified 181, Size 97, Kind 121, 1 × 16 separators (y 58–73 of the window). Alternating
 // rows: rectangles with radius 8 on odd rows, from x 10 to the end of the table, also after the
@@ -85,7 +85,7 @@ const List<ListColumn> listColumns = [
 double listTableWidth(List<double> widths) =>
     listInset + widths.fold(0.0, (a, b) => a + b);
 
-/// List colors (light and dark base, mustache-spec 3.1; in light measured on MU-20).
+/// List colors (light and dark base, docs/spec/list-view.md; in light measured on MU-20).
 @immutable
 class ListColors {
   const ListColors({

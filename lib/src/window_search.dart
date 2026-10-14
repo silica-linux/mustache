@@ -1,4 +1,4 @@
-// Search (⌘F, MU-70, mustache-spec 13): the field in the toolbar, the scope bar below (search in
+// Search (⌘F, MU-70, docs/spec/search.md): the field in the toolbar, the scope bar below (search in
 // this computer or the folder), the results in the list titled after the search. Without tokens
 // it searches name and content (R13.2): the name right away, the content only of small text files. Esc
 // clears the field but stays in search (R13.4); Back leaves.
@@ -111,7 +111,7 @@ extension _Search on _MustacheWindowState {
   bool get _dark =>
       MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark;
 
-  /// The search field in the toolbar: 242 × 38 with the focus ring (spec 13); in dark background
+  /// The search field in the toolbar: 242 × 38 with the focus ring (spec/search.md); in dark background
   /// `#4b4b4b` and ring `#3a6996` (MU-70).
   Widget _searchField() => Container(
     key: const ValueKey('search field'),

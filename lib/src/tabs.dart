@@ -1,4 +1,4 @@
-// Tabs (MU-01, mustache-spec 1.3): ⌘T opens a tab in the folder of the active tab, ⌘W closes it, ⌃⇥
+// Tabs (MU-01, docs/spec/tabs.md): ⌘T opens a tab in the folder of the active tab, ⌘W closes it, ⌃⇥
 // and ⌃⇧⇥ move to the next and the previous. The bar appears with at least two tabs, below the
 // toolbar and only above the content: a capsule rail 28 tall (border 1, radius 14), the active tab
 // as a pill 24 tall inset by 2 pt, 1 × 16 separators between inactive tabs, "+" in a 30 pt circle;

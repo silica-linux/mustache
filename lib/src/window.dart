@@ -1121,7 +1121,7 @@ class _MustacheWindowState extends State<MustacheWindow>
                               },
                             ),
                           if (widget.dialog != null) _dialogButtons(),
-                          // The status bar below the path bar (spec 1.5).
+                          // The status bar below the path bar (spec/bars.md).
                           // The status bar moves the window (MU-08).
                           if (_statusBar)
                             WindowDragArea(
@@ -1345,10 +1345,10 @@ class _MustacheWindowState extends State<MustacheWindow>
               ViewMode.columns => _columnsView(),
               ViewMode.gallery => _galleryView(),
             };
-      // In the gallery the pane is always there, 250 wide (spec 6).
+      // In the gallery the pane is always there, 250 wide (spec/gallery.md).
       final pane = _previewPane || _view == ViewMode.gallery;
       if (!pane) return view;
-      // The preview pane on the right (spec 1.6), below the band.
+      // The preview pane on the right (spec/preview-pane.md), below the band.
       return Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1373,7 +1373,7 @@ class _MustacheWindowState extends State<MustacheWindow>
     },
   );
 
-  /// The toolbar (spec 1.2); `visible` is the visible part of the sidebar. No background: the
+  /// The toolbar (spec/toolbar.md); `visible` is the visible part of the sidebar. No background: the
   /// veil of the band is under it (R1.9).
   Widget _toolbar(double visible) => MustacheToolbar(
     onBackHistory: (at) => _historyMenu(at, back: true),

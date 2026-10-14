@@ -1,4 +1,4 @@
-// Dragging inside the window (MU-40, mustache-spec 9.1): the image in flight (16 pt icon and name
+// Dragging inside the window (MU-40, docs/spec/operations.md): the image in flight (16 pt icon and name
 // in an accent pill for each item, alpha ~0.90, red count badge, green "+" when copying), the drop
 // targets that highlight and the "spring-loaded" folder that opens after ~715 ms of hovering.
 // Without modifiers it moves if the destination is on the same disk, otherwise copies; with ⌥ it

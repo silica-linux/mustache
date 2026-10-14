@@ -1,4 +1,4 @@
-// The status bar (⌘', MU-04, mustache-spec 1.5): 28 pt below the content, the text
+// The status bar (⌘', MU-04, docs/spec/bars.md): 28 pt below the content, the text
 // centered (item count and free space, or selected count of the total and free space, R1.21) and, in the icon view, the
 // size slider (80 × 4 track, 18 × 14 knob, 17 pt from the right edge).
 
@@ -11,7 +11,7 @@ import 'l10n.dart';
 
 const double statusBarHeight = 28;
 
-/// The icon size for slider value 0–112 (mustache-spec 1.5): up to 56 it is 16 + 2 × value, then 5
+/// The icon size for slider value 0–112 (docs/spec/bars.md): up to 56 it is 16 + 2 × value, then 5
 /// pt per unit up to 80, then faster up to 512.
 double iconSideFor(double value) {
   final v = value.clamp(0, 112).toDouble();

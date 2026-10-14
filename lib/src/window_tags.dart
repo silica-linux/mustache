@@ -59,7 +59,7 @@ extension _Tags on _MustacheWindowState {
     }
   }
 
-  /// The actions at the bottom of the preview pane, depending on the choice (spec 1.6): Edit for
+  /// The actions at the bottom of the preview pane, depending on the choice (spec/preview-pane.md): Edit for
   /// images and PDFs (with the default app), More (the item menu) always.
   List<PaneAction> _paneActions() {
     final items = _selection;

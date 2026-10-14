@@ -1,4 +1,4 @@
-// The window in dialog mode (Open and Save for the portal, mustache-spec 14): at the top, for Save,
+// The window in dialog mode (Open and Save for the portal, docs/spec/dialogs.md): at the top, for Save,
 // the name field; at the bottom Cancel and the accept button (accent colored, disabled without a
 // valid choice). Double click on a file and Return accept; Esc cancels.
 

@@ -1,4 +1,4 @@
-// The toolbar unified with the window (MU-02, mustache-spec 1.2): 52 tall from the top, right of
+// The toolbar unified with the window (MU-02, docs/spec/toolbar.md): 52 tall from the top, right of
 // the sidebar, without a background; Ossido puts the window buttons on top (silica-window-v1).
 // Back/Forward capsule (75), title 12 pt after it, view group (162) and Search (38 pt circle) on
 // the right, 7–8 pt between capsules. The empty space moves the window.
@@ -11,7 +11,7 @@ import 'package:silica_ui/silica_ui.dart';
 
 import 'model.dart';
 
-/// Minimum width of the title (spec 1.2).
+/// Minimum width of the title (spec/toolbar.md).
 const double toolbarTitleMin = 160;
 
 /// The window buttons end at x 79 (centers 26/49/72, diameter 14): with the sidebar hidden the
@@ -155,7 +155,7 @@ class _MustacheToolbarState extends State<MustacheToolbar> {
       height: toolbarHeight,
       child: LayoutBuilder(
         builder: (context, box) {
-          // When shrinking the views go first, then Back/Forward (spec 1.2, R1.7).
+          // When shrinking the views go first, then Back/Forward (spec/toolbar.md, R1.7).
           final room = box.maxWidth - widget.leading;
           final views =
               widget.view != null && room >= 75 + 12 + 160 + 162 + 8 + 38;

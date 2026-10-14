@@ -1,4 +1,4 @@
-// The apps that open a file (MU-50, mustache-spec R10.1): .desktop entries with `MimeType`
+// The apps that open a file (MU-50, docs/spec R10.1): .desktop entries with `MimeType`
 // (freedesktop Desktop Entry specification), the choices of `mimeapps.list` (the "Association
 // between MIME types and applications" specification: defaults, added, removed) and launching with
 // the field codes of `Exec`.

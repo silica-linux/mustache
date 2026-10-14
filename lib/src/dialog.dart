@@ -1,4 +1,4 @@
-// The Open and Save dialogs (MU-95, mustache-spec 14) for the Silica portal (`silica-portal`,
+// The Open and Save dialogs (MU-95, docs/spec/dialogs.md) for the Silica portal (`silica-portal`,
 // org.freedesktop.impl.portal.FileChooser): Mustache starts with `--dialog=open|save` and the other
 // arguments, and writes the choice to stdout, one `file://` URI per line; cancelling exits with
 // code 1 without writing anything.

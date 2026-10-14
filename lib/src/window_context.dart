@@ -1,11 +1,11 @@
-// Context menus (MU-50, mustache-spec 10.1) and opening with apps (R10.1): Open, Open With (the
+// Context menus (MU-50, docs/spec/menus-and-settings.md) and opening with apps (R10.1): Open, Open With (the
 // default on top, then the others by name), Move to Trash, Rename, Duplicate; on the background New
 // Folder, View and Sort By. Entries for features not done yet stay visible and disabled, for the
 // structure.
 
 part of 'window.dart';
 
-/// The menu opens with its top-left corner at the pointer (+1, −6) (spec 10.1).
+/// The menu opens with its top-left corner at the pointer (+1, −6) (spec/menus-and-settings.md).
 const Offset contextMenuOffset = Offset(1, -6);
 
 extension _Context on _MustacheWindowState {
