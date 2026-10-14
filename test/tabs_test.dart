@@ -61,6 +61,12 @@ void main() {
 
     await keys(LogicalKeyboardKey.keyT, meta: true);
     expect(bar, findsOneWidget);
+    // A sinistra della prima scheda la barra sposta la finestra (MU-08).
+    final grip = tester.getRect(
+      find.byKey(const ValueKey('presa delle schede')),
+    );
+    expect(grip.width, 8);
+    expect(grip.right, tester.getRect(bar).left + 8);
     // Le scorciatoie della finestra arrivano alla scheda nuova (⌘3: colonne, ⌘2: elenco).
     await keys(LogicalKeyboardKey.digit3, meta: true);
     expect(settings.view, 'columns');

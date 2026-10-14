@@ -236,9 +236,15 @@ class _TabBarState extends State<_TabBar> {
       key: const ValueKey('barra delle schede'),
       height: tabRailHeight + 8,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(8, 4, 7, 4),
+        padding: const EdgeInsets.fromLTRB(0, 4, 7, 4),
         child: Row(
           children: [
+            // A sinistra della prima scheda la barra sposta la finestra (MU-08); fra
+            // l'ultima scheda e "+" no.
+            const WindowDragArea(
+              key: ValueKey('presa delle schede'),
+              child: SizedBox(width: 8, height: tabRailHeight),
+            ),
             Expanded(
               child: Container(
                 height: tabRailHeight,
