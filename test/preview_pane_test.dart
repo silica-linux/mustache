@@ -26,12 +26,12 @@ void main() {
               width: 250,
               compact: true,
               items: [entry],
-              kindOf: (_) => 'Cartella',
+              kindOf: (_) => 'Folder',
               now: DateTime(2026, 10, 14, 18),
               tagsOf: (_) => const [],
               onAddTag: (_, tag) => added.add(tag),
               actions: [
-                PaneAction('Altro', 'ellipsis-circle', (at) => more = at),
+                PaneAction('More', 'ellipsis-circle', (at) => more = at),
               ],
             ),
           ),
@@ -40,12 +40,12 @@ void main() {
     );
     // Name beside the 50 pt icon, with the baseline at 39 (mu23-gallery-folder).
     expect(tester.getTopLeft(find.text('Alfa')).dx, 69);
-    // "oggi, 16:01" on the right edge, at 10 pt.
-    final date = find.text('oggi, 16:01');
+    // "Today, 16:01" on the right edge, at 10 pt.
+    final date = find.text('Today, 16:01');
     expect(date, findsOneWidget);
     expect(tester.getTopRight(date).dx, closeTo(240, 0.5));
     // The tags field: Return adds.
-    await tester.tap(find.text('Aggiungi un tag…'));
+    await tester.tap(find.text('Add a tag…'));
     await tester.pump();
     await tester.enterText(find.byType(EditableText), 'Lavoro');
     await tester.testTextInput.receiveAction(TextInputAction.done);
@@ -55,7 +55,7 @@ void main() {
     final bar = tester.getRect(find.byKey(const ValueKey('pane actions')));
     expect(bar.height, paneActionsHeight);
     expect(bar.bottom, 600);
-    await tester.tap(find.byKey(const ValueKey('action Altro')));
+    await tester.tap(find.byKey(const ValueKey('action More')));
     expect(more, isNotNull);
   });
 }

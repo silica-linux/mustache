@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
+import 'l10n.dart';
 import 'link_stat.dart';
 
 /// An item of a folder.
@@ -143,51 +144,33 @@ List<Entry> sortEntries(
 
 const List<String> _units = ['KB', 'MB', 'GB', 'TB'];
 
-/// Size in decimal units (1 KB = 1000 bytes, R3.2): "N byte" below 1000, KB and MB as integers, GB
-/// and TB with two decimals and a decimal comma; "Zero byte" for an empty file, "--" for folders.
+/// Size in decimal units (1 KB = 1000 bytes, R3.2): bytes below 1000, KB and MB as integers, GB
+/// and TB with two decimals and the language's decimal separator; "Zero bytes" for an empty file,
+/// "--" for folders.
 String formatSize(Entry entry) {
   if (entry.isDirectory) return '--';
   final bytes = entry.size;
-  if (bytes == 0) return 'Zero byte';
-  if (bytes < 1000) return '$bytes byte';
+  if (bytes == 0) return l10n.sizeZero;
+  if (bytes < 1000) return l10n.sizeBytes(bytes);
   var value = bytes / 1000;
   var unit = 0;
   while (value.round() >= 1000 && unit < _units.length - 1) {
     value /= 1000;
     unit++;
   }
-  final text = unit < 2
-      ? value.round().toString()
-      : value.toStringAsFixed(2).replaceAll('.', ',');
+  final text = unit < 2 ? value.round().toString() : decimal(value, 2);
   return '$text ${_units[unit]}';
 }
 
-const List<String> _months = [
-  'gen',
-  'feb',
-  'mar',
-  'apr',
-  'mag',
-  'giu',
-  'lug',
-  'ago',
-  'set',
-  'ott',
-  'nov',
-  'dic',
-];
-
-/// "oggi, 10:22", "ieri, 18:05", otherwise "3 ott 2026, 09:14" (R3.1: lowercase, year always
-/// shown).
+/// "Today, 10:22", "Yesterday, 18:05", otherwise "Oct 3, 2026, 09:14" (R3.1: in Italian lowercase,
+/// "oggi, 10:22" and "3 ott 2026, 09:14"; the year is always shown).
 String formatDate(DateTime t, DateTime now) {
-  final hh = t.hour.toString().padLeft(2, '0');
-  final mm = t.minute.toString().padLeft(2, '0');
   final day = DateTime(t.year, t.month, t.day);
   final today = DateTime(now.year, now.month, now.day);
   final days = today.difference(day).inDays;
-  if (days == 0) return 'oggi, $hh:$mm';
-  if (days == 1) return 'ieri, $hh:$mm';
-  return '${t.day} ${_months[t.month - 1]} ${t.year}, $hh:$mm';
+  if (days == 0) return l10n.dateToday(clockTime(t));
+  if (days == 1) return l10n.dateYesterday(clockTime(t));
+  return shortDate(t);
 }
 
 const Map<String, String> _formats = {
@@ -236,24 +219,24 @@ const Set<String> _archives = {
 /// video, PDF, image and audio with the format, document for the rest. `mime` is the content type
 /// (of the target, for a link).
 String kindLabel(Entry entry, [String? mime]) {
-  if (entry.isLink) return 'Collegamento';
-  if (entry.isDirectory) return 'Cartella';
+  if (entry.isLink) return l10n.kindLink;
+  if (entry.isDirectory) return l10n.kindFolder;
   final type = mime ?? 'application/octet-stream';
   final slash = type.indexOf('/');
   final top = slash < 0 ? type : type.substring(0, slash);
   final sub = slash < 0 ? '' : type.substring(slash + 1);
   if (type == 'application/pdf') return 'PDF';
-  if (top == 'image') return 'Immagine ${_formats[sub] ?? sub.toUpperCase()}';
-  if (top == 'audio') return 'Audio ${_formats[sub] ?? sub.toUpperCase()}';
-  if (top == 'video') return 'Video';
+  if (top == 'image') return l10n.kindImage(_formats[sub] ?? sub.toUpperCase());
+  if (top == 'audio') return l10n.kindAudio(_formats[sub] ?? sub.toUpperCase());
+  if (top == 'video') return l10n.kindVideo;
   if (_archives.contains(type)) {
     final ext = entry.extension;
-    return ext.isEmpty ? 'Archivio' : 'Archivio $ext';
+    return ext.isEmpty ? l10n.kindArchive : l10n.kindArchiveExt(ext);
   }
   if (type == 'application/json') return 'JSON';
   if (type == 'text/markdown') return 'Markdown';
-  if (top == 'text') return 'Testo';
-  return 'Documento';
+  if (top == 'text') return l10n.kindText;
+  return l10n.kindDocument;
 }
 
 /// The history of a window: back and forward as in a browser.
@@ -380,7 +363,7 @@ Place trashPlace({required String home, String? dataHome}) {
   final base = (dataHome == null || dataHome.isEmpty)
       ? '$home/.local/share'
       : dataHome;
-  return Place('Cestino', '$base/Trash/files', PlaceKind.trash);
+  return Place(l10n.trash, '$base/Trash/files', PlaceKind.trash);
 }
 
 /// The item at `path` (null if it does not exist): like a row of `listDirectory`.

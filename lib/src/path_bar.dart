@@ -9,6 +9,7 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
 
+import 'l10n.dart';
 import 'icon_view.dart' show EntryIcon;
 import 'model.dart';
 
@@ -111,7 +112,7 @@ class PathBar extends StatelessWidget {
     required this.path,
     required this.onOpen,
     this.env,
-    this.diskName = 'Disco',
+    this.diskName,
   });
 
   /// The last segment: the open folder or the chosen item.
@@ -120,7 +121,7 @@ class PathBar extends StatelessWidget {
   final Map<String, String>? env;
 
   /// The name of the first segment (the root of the file system).
-  final String diskName;
+  final String? diskName;
 
   @override
   Widget build(BuildContext context) {
@@ -134,7 +135,7 @@ class PathBar extends StatelessWidget {
       color: colors.text,
     );
     final segments = pathSegments(path);
-    String label(String p) => p == '/' ? diskName : displayName(p);
+    String label(String p) => p == '/' ? diskName ?? l10n.disk : displayName(p);
     final natural = [
       for (var i = 0; i < segments.length; i++)
         _textWidth(label(segments[i]), style) +

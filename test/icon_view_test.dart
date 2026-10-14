@@ -117,7 +117,7 @@ void main() {
           child: MustacheWindow(
             start: root.path,
             places: [Place('casa', root.path, PlaceKind.home)],
-            trash: Place('Cestino', '${root.path}/Cestino', PlaceKind.trash),
+            trash: Place('Trash', '${root.path}/Cestino', PlaceKind.trash),
             settings: settings,
             // No silica-icons icon: the cells stay empty, the grid does not.
             iconsEnv: {'SILICA_ICONS_DIR': config.path},

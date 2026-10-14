@@ -19,8 +19,11 @@ repository:
 - Start of a session: `docs/plan.md` (next task), then `docs/spec.md`.
 - Before every commit: `dart format`, `flutter analyze --fatal-infos`, `flutter test`,
   `tool/check_assets.sh`. One task per commit (`MU.3: icon view`).
-- Everything in the repository is in English (code, comments, tests, docs, commits); the
-  interface texts are the exception until they move to the localization files.
+- Everything in the repository is in English (code, comments, tests, docs, commits). Interface
+  texts live in `lib/l10n/app_en.arb` (English source, with descriptions) and `app_it.arb`
+  (Italian, the measured texts); code reads them through `l10n` (`lib/src/l10n.dart`). After
+  editing the ARB files run `flutter gen-l10n`; tests run in English, the Italian ones set
+  `useLocale(const Locale('it'))`.
 - For visual work: screenshots inside Ossido (`ui.screenshot`), comparison with the reference
   in `silica-reference`, and the metric in `docs/parity.md` only if measured.
 - Every user action is a `mustache.*` command (id, label, shortcut), listed in `docs/spec.md`.

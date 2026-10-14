@@ -89,8 +89,8 @@ extension _Transfers on _MustacheWindowState {
         _undo.push(
           CreateOp(
             copies,
-            'Copia',
-            (path) => (path: null, error: 'La copia non si può ripetere.'),
+            l10n.copy,
+            (path) => (path: null, error: l10n.copyCantRedo),
           ),
         );
       }
@@ -101,9 +101,7 @@ extension _Transfers on _MustacheWindowState {
     _load();
     if (transfer.state == TransferState.failed) {
       _showError(
-        kind == TransferKind.copy
-            ? 'Non si può completare la copia.'
-            : 'Non si può completare lo spostamento.',
+        kind == TransferKind.copy ? l10n.cantCopy : l10n.cantMove,
         transfer.error,
       );
     }

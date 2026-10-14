@@ -39,7 +39,7 @@ extension _Operations on _MustacheWindowState {
       title: title,
       message: message,
       buttons: [
-        AlertButton('OK', role: AlertRole.primary, onPressed: _closeAlert),
+        AlertButton(l10n.ok, role: AlertRole.primary, onPressed: _closeAlert),
       ],
     ),
   );
@@ -76,14 +76,13 @@ extension _Operations on _MustacheWindowState {
           opaque: true,
           icon: _appIcon,
           title: newExt.isEmpty
-              ? 'Vuoi togliere l\'estensione «$oldExt»?'
-              : 'Vuoi usare l\'estensione «$newExt» invece di «$oldExt»?',
-          message:
-              'Cambiando l\'estensione il file potrebbe aprirsi con un\'altra app.',
+              ? l10n.extensionRemove(oldExt)
+              : l10n.extensionChange(newExt, oldExt),
+          message: l10n.extensionWarning,
           sideBySide: true,
           buttons: [
             AlertButton(
-              'Mantieni $oldExt',
+              l10n.keepExtension(oldExt),
               role: AlertRole.cancel,
               onPressed: () {
                 _closeAlert();
@@ -91,7 +90,7 @@ extension _Operations on _MustacheWindowState {
               },
             ),
             AlertButton(
-              newExt.isEmpty ? 'Togli' : 'Usa $newExt',
+              newExt.isEmpty ? l10n.removeExtension : l10n.useExtension(newExt),
               role: AlertRole.primary,
               onPressed: () {
                 _closeAlert();
@@ -109,7 +108,7 @@ extension _Operations on _MustacheWindowState {
   void _rename(Entry entry, String name) {
     final result = renameEntry(entry.path, name);
     if (result.error != null) {
-      _showError('Non si può rinominare «${entry.name}».', result.error);
+      _showError(l10n.cantRenameItem(entry.name), result.error);
       return;
     }
     _undo.push(RenameOp(entry.path, result.path!));
@@ -121,12 +120,12 @@ extension _Operations on _MustacheWindowState {
   void _newFolder() {
     final result = createFolder(_history.current);
     if (result.error != null) {
-      _showError('Non si può creare la cartella.', result.error);
+      _showError(l10n.cantCreateFolder, result.error);
       return;
     }
     final path = result.path!;
     _undo.push(
-      CreateOp([path], 'Nuova cartella', (p) {
+      CreateOp([path], l10n.newFolder, (p) {
         try {
           Directory(p).createSync();
           return (path: p, error: null);
@@ -158,12 +157,12 @@ extension _Operations on _MustacheWindowState {
         CreateOp(
           made.keys.toList(),
           made.length == 1
-              ? 'Duplicazione'
-              : 'Duplicazione di ${made.length} elementi',
+              ? l10n.opDuplicate
+              : l10n.opDuplicateMany(made.length),
           (copy) {
             // Redo: copy again, with the same name.
             final source = made[copy];
-            if (source == null) return (path: null, error: 'Copia sconosciuta');
+            if (source == null) return (path: null, error: l10n.unknownCopy);
             final again = duplicate(source);
             if (again.error != null || again.path == copy) return again;
             return renameEntry(again.path!, displayName(copy));
@@ -173,7 +172,7 @@ extension _Operations on _MustacheWindowState {
       _select(made.keys);
     }
     _load();
-    if (error != null) _showError('Non si può duplicare.', error);
+    if (error != null) _showError(l10n.cantDuplicate, error);
   }
 
   /// ⌘⌫: to the Trash (the selection moves to the next item); inside the Trash, Put Back.
@@ -211,7 +210,7 @@ extension _Operations on _MustacheWindowState {
     final pick = next ?? rest.lastOrNull;
     _select([?pick]);
     _load();
-    if (error != null) _showError('Non si può spostare nel Cestino.', error);
+    if (error != null) _showError(l10n.cantTrash, error);
   }
 
   void _restore(List<Entry> items) {
@@ -225,7 +224,7 @@ extension _Operations on _MustacheWindowState {
     }
     _select(const []);
     _load();
-    if (error != null) _showError('Non si può ripristinare.', error);
+    if (error != null) _showError(l10n.cantRestore, error);
   }
 
   /// ⌥⌘⌫: confirmation, then deletes immediately (cannot be undone).
@@ -237,22 +236,20 @@ extension _Operations on _MustacheWindowState {
         opaque: true,
         icon: _appIcon,
         title: items.length == 1
-            ? 'Confermi di voler eliminare «${items.first.name}»?'
-            : 'Confermi di voler eliminare ${items.length} elementi?',
+            ? l10n.confirmDeleteOne(items.first.name)
+            : l10n.confirmDeleteMany(items.length),
         message: items.length == 1
-            ? 'Questo elemento verrà eliminato immediatamente. '
-                  'L\'operazione è irreversibile.'
-            : 'Questi elementi verranno eliminati immediatamente. '
-                  'L\'operazione è irreversibile.',
+            ? l10n.deleteWarningOne
+            : l10n.deleteWarningMany,
         sideBySide: true,
         buttons: [
           AlertButton(
-            'Annulla',
+            l10n.cancel,
             role: AlertRole.cancel,
             onPressed: _closeAlert,
           ),
           AlertButton(
-            'Elimina',
+            l10n.delete,
             role: AlertRole.destructive,
             onPressed: () {
               _closeAlert();
@@ -262,7 +259,7 @@ extension _Operations on _MustacheWindowState {
               }
               _select(const []);
               _load();
-              if (error != null) _showError('Non si può eliminare.', error);
+              if (error != null) _showError(l10n.cantDelete, error);
             },
           ),
         ],
@@ -273,13 +270,13 @@ extension _Operations on _MustacheWindowState {
   void _undoLast() {
     final error = _undo.undo(_trash);
     _load();
-    if (error != null) _showError('Non si può annullare.', error);
+    if (error != null) _showError(l10n.cantUndo, error);
   }
 
   void _redoLast() {
     final error = _undo.redo(_trash);
     _load();
-    if (error != null) _showError('Non si può ripetere.', error);
+    if (error != null) _showError(l10n.cantRedo, error);
   }
 
   /// A click on an item: if it was already the only selected one, rename after ~440 ms (unless a

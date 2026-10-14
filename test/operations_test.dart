@@ -22,20 +22,20 @@ void main() {
     expect(splitExtension('archivio.tar.gz'), ('archivio.tar', '.gz'));
     expect(splitExtension('Alfa.d', isDirectory: true), ('Alfa.d', ''));
 
-    expect(createFolder(root.path).path, p('cartella senza nome'));
-    expect(createFolder(root.path).path, p('cartella senza nome 2'));
+    expect(createFolder(root.path).path, p('new folder'));
+    expect(createFolder(root.path).path, p('new folder 2'));
 
     File(p('nota.txt')).writeAsStringSync('ciao');
-    expect(duplicate(p('nota.txt')).path, p('nota copia.txt'));
-    expect(duplicate(p('nota.txt')).path, p('nota copia 2.txt'));
-    expect(File(p('nota copia 2.txt')).readAsStringSync(), 'ciao');
+    expect(duplicate(p('nota.txt')).path, p('nota copy.txt'));
+    expect(duplicate(p('nota.txt')).path, p('nota copy 2.txt'));
+    expect(File(p('nota copy 2.txt')).readAsStringSync(), 'ciao');
 
     Directory(p('Alfa/dentro')).createSync(recursive: true);
     File(p('Alfa/dentro/x.txt')).writeAsStringSync('x');
     Link(p('Alfa/collegamento')).createSync('dentro/x.txt');
-    expect(duplicate(p('Alfa')).path, p('Alfa copia'));
-    expect(File(p('Alfa copia/dentro/x.txt')).readAsStringSync(), 'x');
-    expect(Link(p('Alfa copia/collegamento')).targetSync(), 'dentro/x.txt');
+    expect(duplicate(p('Alfa')).path, p('Alfa copy'));
+    expect(File(p('Alfa copy/dentro/x.txt')).readAsStringSync(), 'x');
+    expect(Link(p('Alfa copy/collegamento')).targetSync(), 'dentro/x.txt');
 
     expect(duplicate(p('sparito')).error, isNotNull);
   });
@@ -43,7 +43,10 @@ void main() {
   test('rename: checks, extension, case', () {
     File(p('appunti.txt')).writeAsStringSync('a');
     File(p('altro.txt')).writeAsStringSync('b');
-    expect(renameEntry(p('appunti.txt'), 'altro.txt').error, contains('già'));
+    expect(
+      renameEntry(p('appunti.txt'), 'altro.txt').error,
+      contains('already'),
+    );
     expect(renameEntry(p('appunti.txt'), 'a/b').error, contains('/'));
     expect(renameEntry(p('appunti.txt'), '  ').error, isNotNull);
     expect(renameEntry(p('appunti.txt'), '..').error, isNotNull);
@@ -82,7 +85,7 @@ void main() {
       isFalse,
     );
     // The origin is taken again: the second is not restored over the first.
-    expect(trash.restore(second.path!).error, contains('già'));
+    expect(trash.restore(second.path!).error, contains('already'));
     expect(trash.contains(second.path!), isTrue);
     expect(trash.contains(p('Documenti')), isFalse);
   });
@@ -92,16 +95,16 @@ void main() {
     File(p('a.txt')).writeAsStringSync('a');
     final renamed = renameEntry(p('a.txt'), 'b.txt');
     undo.push(RenameOp(p('a.txt'), renamed.path!));
-    expect(undo.undoLabel, 'Annulla Rinomina');
+    expect(undo.undoLabel, 'Undo Rename');
     expect(undo.undo(trash), isNull);
     expect(File(p('a.txt')).existsSync(), isTrue);
-    expect(undo.redoLabel, 'Ripeti Rinomina');
+    expect(undo.redoLabel, 'Redo Rename');
     expect(undo.redo(trash), isNull);
     expect(File(p('b.txt')).existsSync(), isTrue);
 
     final folder = createFolder(root.path).path!;
     undo.push(
-      CreateOp([folder], 'Nuova cartella', (path) {
+      CreateOp([folder], 'New Folder', (path) {
         Directory(path).createSync();
         return (path: path, error: null);
       }),

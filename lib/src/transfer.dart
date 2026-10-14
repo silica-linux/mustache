@@ -8,6 +8,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
+import 'l10n.dart';
 import 'model.dart';
 import 'operations.dart';
 
@@ -96,10 +97,7 @@ class Transfer extends ChangeNotifier {
           }
         }
         if (source == destination || destination.startsWith('$source/')) {
-          throw FileSystemException(
-            'Non si può mettere una cartella dentro se stessa.',
-            source,
-          );
+          throw FileSystemException(l10n.errorFolderIntoItself, source);
         }
         currentName = displayName(target);
         targets.add(target);
@@ -239,7 +237,7 @@ class MoveOp extends Undoable {
   final List<TransferMove> moves;
 
   @override
-  String get label => 'Sposta';
+  String get label => l10n.opMove;
 
   @override
   String? undo(Trash trash) {
@@ -253,7 +251,7 @@ class MoveOp extends Undoable {
   static String? _moveBack(String from, String to) {
     if (FileSystemEntity.typeSync(to, followLinks: false) !=
         FileSystemEntityType.notFound) {
-      return 'C\'è già un elemento chiamato «${displayName(to)}».';
+      return l10n.errorAlreadyExists(displayName(to));
     }
     try {
       switch (FileSystemEntity.typeSync(from, followLinks: false)) {
@@ -262,7 +260,7 @@ class MoveOp extends Undoable {
         case FileSystemEntityType.link:
           Link(from).renameSync(to);
         case FileSystemEntityType.notFound:
-          return 'L\'elemento non esiste più.';
+          return l10n.errorGone;
         default:
           File(from).renameSync(to);
       }

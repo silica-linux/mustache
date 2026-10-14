@@ -43,7 +43,7 @@ void main() {
         child: MustacheWindow(
           start: home.path,
           places: [Place('casa', home.path, PlaceKind.home)],
-          trash: Place('Cestino', '${home.path}/Cestino', PlaceKind.trash),
+          trash: Place('Trash', '${home.path}/Cestino', PlaceKind.trash),
           settings: settings,
         ),
       ),
@@ -57,21 +57,19 @@ void main() {
     final panel = find.byKey(ValueKey('info ${file.path}'));
     expect(panel, findsOneWidget);
     expect(tester.getSize(panel).width, infoWidth);
-    expect(find.text('Info su nota.txt'), findsOneWidget);
+    expect(find.text('nota.txt Info'), findsOneWidget);
     expect(
-      find.text('4 byte (4,1 KB su disco)').evaluate().length +
-          find.textContaining('su disco)').evaluate().length,
+      find.text('4 bytes (4.1 KB on disk)').evaluate().length +
+          find.textContaining('on disk)').evaluate().length,
       greaterThan(0),
     );
     // Comments closed: it opens and the state stays for the next ones.
-    await tester.tap(find.byKey(const ValueKey('section Commenti')));
+    await tester.tap(find.byKey(const ValueKey('section comments')));
     await tester.pump();
     expect(find.byKey(const ValueKey('comment field')), findsOneWidget);
     expect(settings.infoSections, contains('comments'));
     // Permissions: the group goes from Read only to No access, on disk right away.
-    await tester.tap(
-      find.byKey(const ValueKey('section Condivisione e permessi')),
-    );
+    await tester.tap(find.byKey(const ValueKey('section permissions')));
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('privilege 3')));
     await tester.pump();

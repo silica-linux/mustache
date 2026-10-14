@@ -26,16 +26,16 @@ void main() {
     expect(sliderValueFor(64), closeTo(24, 0.01));
     expect(
       statusText(count: 12, selected: 0, free: 12345678901),
-      '12 elementi, 12,35 GB disponibili',
+      '12 items, 12.35 GB available',
     );
     expect(
       statusText(count: 12, selected: 3, free: 1000000000),
-      '3 di 12 selezionati, 1,00 GB disponibili',
+      '3 of 12 selected, 1.00 GB available',
     );
-    expect(statusText(count: 1, selected: 1, free: null), '1 di 1 selezionato');
+    expect(statusText(count: 1, selected: 1, free: null), '1 of 1 selected');
     expect(
       statusText(count: 5, selected: 0, free: 10, listing: false),
-      '5 elementi',
+      '5 items',
     );
   });
 
@@ -56,7 +56,7 @@ void main() {
           child: MustacheWindow(
             start: home.path,
             places: [Place('casa', home.path, PlaceKind.home)],
-            trash: Place('Cestino', '${home.path}/Cestino', PlaceKind.trash),
+            trash: Place('Trash', '${home.path}/Cestino', PlaceKind.trash),
             settings: settings,
           ),
         ),
@@ -100,7 +100,7 @@ void main() {
       final bar = find.byKey(const ValueKey('status bar'));
       expect(bar, findsOneWidget);
       expect(tester.getSize(bar).height, statusBarHeight);
-      expect(find.textContaining('2 elementi'), findsOneWidget);
+      expect(find.textContaining('2 items'), findsOneWidget);
       expect(settings.statusBar, isTrue);
       // The slider all the way right: 512 pt icons.
       final slider = find.byKey(const ValueKey('icon slider'));

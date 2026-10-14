@@ -10,6 +10,7 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
 
+import 'l10n.dart';
 import 'model.dart';
 
 const double listRowHeight = 20;
@@ -53,13 +54,19 @@ const double listBlockRadius = 7.5;
 class ListColumn {
   const ListColumn(
     this.key,
-    this.label,
     this.width, {
     this.alignRight = false,
     this.descendingFirst = false,
   });
   final SortKey key;
-  final String label;
+
+  /// The header label, in the user's language.
+  String get label => switch (key) {
+    SortKey.name => l10n.columnName,
+    SortKey.modified => l10n.columnModified,
+    SortKey.size => l10n.columnSize,
+    SortKey.kind => l10n.columnKind,
+  };
   final double width;
   final bool alignRight;
 
@@ -68,16 +75,10 @@ class ListColumn {
 }
 
 const List<ListColumn> listColumns = [
-  ListColumn(SortKey.name, 'Nome', 364),
-  ListColumn(SortKey.modified, 'Data di modifica', 181, descendingFirst: true),
-  ListColumn(
-    SortKey.size,
-    'Dimensioni',
-    97,
-    alignRight: true,
-    descendingFirst: true,
-  ),
-  ListColumn(SortKey.kind, 'Tipo', 121),
+  ListColumn(SortKey.name, 364),
+  ListColumn(SortKey.modified, 181, descendingFirst: true),
+  ListColumn(SortKey.size, 97, alignRight: true, descendingFirst: true),
+  ListColumn(SortKey.kind, 121),
 ];
 
 /// The table width: the margin and the columns.

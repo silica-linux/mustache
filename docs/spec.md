@@ -18,8 +18,8 @@ provisional and says so.
 - **Never lose a file.** Destructive operations go to the Trash; every file operation can be
   undone with ⌘Z while possible; an interrupted copy leaves the destination clean.
 
-The interface texts are in Italian for now (quoted below as they appear); they move to the
-localization files with English as the source language.
+The interface texts are localized (`lib/l10n`): English is the source language, Italian the first
+translation. The texts quoted below are the Italian ones, as measured on the reference.
 
 ## Window
 

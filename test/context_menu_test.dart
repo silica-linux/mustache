@@ -56,7 +56,7 @@ void main() {
           start: dir.path,
           places: [Place('casa', home.path, PlaceKind.home)],
           trash: Place(
-            'Cestino',
+            'Trash',
             '${home.path}/.local/share/Trash/files',
             PlaceKind.trash,
           ),
@@ -78,20 +78,20 @@ void main() {
     await pump(tester);
     final at = tester.getCenter(find.text('nota.txt'));
     await rightClick(tester, at);
-    expect(find.text('Apri'), findsOneWidget);
-    expect(find.text('Sposta nel Cestino'), findsOneWidget);
+    expect(find.text('Open'), findsOneWidget);
+    expect(find.text('Move to Trash'), findsOneWidget);
     // The menu opens with its corner at the pointer (+1, −6).
     final panel = tester.getRect(find.byType(MenuPanel));
     expect(panel.topLeft, at + const Offset(1, -6));
     // The "Apri con" submenu.
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
     await mouse.addPointer(location: at);
-    await mouse.moveTo(tester.getCenter(find.text('Apri con')));
+    await mouse.moveTo(tester.getCenter(find.text('Open With')));
     await tester.pump(const Duration(milliseconds: 350));
     await tester.pump();
-    expect(find.text('Scrivi (predefinita)'), findsOneWidget);
+    expect(find.text('Scrivi (default)'), findsOneWidget);
     expect(find.text('Appunti'), findsOneWidget);
-    final defaultTop = tester.getTopLeft(find.text('Scrivi (predefinita)')).dy;
+    final defaultTop = tester.getTopLeft(find.text('Scrivi (default)')).dy;
     expect(tester.getTopLeft(find.text('Appunti')).dy, greaterThan(defaultTop));
   });
 
@@ -110,7 +110,7 @@ void main() {
   testWidgets('Move to Trash from the menu, which then closes', (tester) async {
     await pump(tester);
     await rightClick(tester, tester.getCenter(find.text('nota.txt')));
-    await tester.tap(find.text('Sposta nel Cestino'));
+    await tester.tap(find.text('Move to Trash'));
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 60));
     }
@@ -132,7 +132,7 @@ void main() {
       ).writeAsStringSync('50:text/plain:*.txt\n');
       await pump(tester);
       // The type comes from shared-mime-info, the name is the short family name.
-      expect(find.text('Testo'), findsWidgets);
+      expect(find.text('Text'), findsWidgets);
       expect(find.text('Testo semplice'), findsNothing);
     },
   );

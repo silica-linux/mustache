@@ -12,17 +12,17 @@ void main() {
     addTearDown(() => dir.deleteSync(recursive: true));
     final file = File('${dir.path}/nota.txt')..writeAsStringSync('x');
     expect(readTags(file.path), isEmpty);
-    if (!writeTags(file.path, ['Rosso', 'Lavoro'])) {
+    if (!writeTags(file.path, ['Red', 'Lavoro'])) {
       markTestSkipped('il file system non supporta gli attributi user');
       return;
     }
-    expect(readTags(file.path), ['Rosso', 'Lavoro']);
+    expect(readTags(file.path), ['Red', 'Lavoro']);
     expect(writeAttribute(file.path, commentAttribute, 'un commento'), isTrue);
     expect(readAttribute(file.path, commentAttribute), 'un commento');
     expect(writeTags(file.path, []), isTrue);
     expect(readTags(file.path), isEmpty);
     // A file that does not exist: nothing, without exceptions.
     expect(readTags('${dir.path}/sparito'), isEmpty);
-    expect(writeTags('${dir.path}/sparito', ['Rosso']), isFalse);
+    expect(writeTags('${dir.path}/sparito', ['Red']), isFalse);
   });
 }

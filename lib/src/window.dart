@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
 
+import 'l10n.dart';
 import 'model.dart';
 import 'settings.dart';
 import 'apps.dart';
@@ -430,10 +431,7 @@ class _MustacheWindowState extends State<MustacheWindow>
   Future<void> _newWindow() async {
     final app = _registry.apps[mustacheDesktopId];
     if (app == null) {
-      _showError(
-        'Non si può aprire una finestra nuova.',
-        'La voce di Mustache non è installata (cargo xtask install-app).',
-      );
+      _showError(l10n.cantOpenWindow, l10n.entryNotInstalled);
       return;
     }
     final home =
@@ -986,16 +984,16 @@ class _MustacheWindowState extends State<MustacheWindow>
                     width: _sidebarWidth,
                     child: Sidebar(
                       sections: [
-                        SidebarSection('Preferiti', [
+                        SidebarSection(l10n.sidebarPinned, [
                           for (final place in widget.places)
                             if (place.kind != PlaceKind.home) place,
                         ]),
-                        SidebarSection('Posizioni', [
+                        SidebarSection(l10n.sidebarPlaces, [
                           for (final place in widget.places)
                             if (place.kind == PlaceKind.home) place,
                           widget.trash,
                         ]),
-                        SidebarSection('Tag', _tagPlaces),
+                        SidebarSection(l10n.sidebarTags, _tagPlaces),
                       ],
                       current: _tagView == null
                           ? _history.current
@@ -1196,10 +1194,7 @@ class _MustacheWindowState extends State<MustacheWindow>
                               final old = _infos[i];
                               final result = renameEntry(old, name);
                               if (result.error != null) {
-                                _showError(
-                                  'Non si può rinominare.',
-                                  result.error,
-                                );
+                                _showError(l10n.cantRename, result.error);
                                 return;
                               }
                               _undo.push(RenameOp(old, result.path!));
@@ -1294,7 +1289,11 @@ class _MustacheWindowState extends State<MustacheWindow>
     title: widget.dialog != null && widget.dialog!.title.isNotEmpty
         ? widget.dialog!.title
         : _searching
-        ? 'Ricerca in «${_searchScope == SearchScope.computer ? 'Questo computer' : displayName(_searchFolder)}»'
+        ? l10n.searchTitle(
+            _searchScope == SearchScope.computer
+                ? l10n.thisComputer
+                : displayName(_searchFolder),
+          )
         : _tagView ?? displayName(_history.current),
     active: _active,
     canGoBack: _history.canGoBack || _searching,

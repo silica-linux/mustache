@@ -40,7 +40,7 @@ void main() {
             Place('Documenti', '${root.path}/Documenti', PlaceKind.documents),
             Place('Download', '${root.path}/Download', PlaceKind.downloads),
           ],
-          trash: Place('Cestino', '${root.path}/Cestino', PlaceKind.trash),
+          trash: Place('Trash', '${root.path}/Cestino', PlaceKind.trash),
           settings: used,
         ),
       ),
@@ -55,10 +55,10 @@ void main() {
     tester,
   ) async {
     await pump(tester);
-    final heading = centerY(tester, inSidebar('Preferiti'));
+    final heading = centerY(tester, inSidebar('Pinned'));
     final documents = centerY(tester, inSidebar('Documenti'));
     final downloads = centerY(tester, inSidebar('Download'));
-    final places = centerY(tester, inSidebar('Posizioni'));
+    final places = centerY(tester, inSidebar('Places'));
     expect(documents - heading, closeTo(sidebarHeadingToRow, 0.5));
     expect(downloads - documents, sidebarRow);
     expect(places - downloads, closeTo(sidebarRowToHeading, 0.5));
@@ -146,31 +146,31 @@ void main() {
     tester,
   ) async {
     await pump(tester);
-    expect(find.byKey(const ValueKey('collapse Preferiti')), findsNothing);
+    expect(find.byKey(const ValueKey('collapse Pinned')), findsNothing);
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
     await mouse.addPointer(location: Offset.zero);
-    await mouse.moveTo(tester.getCenter(inSidebar('Preferiti')));
+    await mouse.moveTo(tester.getCenter(inSidebar('Pinned')));
     await tester.pump();
     // It appears right away, without delay.
-    final chevron = find.byKey(const ValueKey('collapse Preferiti'));
+    final chevron = find.byKey(const ValueKey('collapse Pinned'));
     expect(chevron, findsOneWidget);
-    final placesBefore = centerY(tester, inSidebar('Posizioni'));
+    final placesBefore = centerY(tester, inSidebar('Places'));
     await tester.tap(chevron);
     await tester.pump();
     // The row text disappears right away; the movement starts after ~70 ms.
     expect(inSidebar('Documenti'), findsNothing);
     await tester.pump(const Duration(milliseconds: 60));
-    expect(centerY(tester, inSidebar('Posizioni')), placesBefore);
+    expect(centerY(tester, inSidebar('Places')), placesBefore);
     await tester.pump(const Duration(milliseconds: 200));
     expect(
-      centerY(tester, inSidebar('Posizioni')),
+      centerY(tester, inSidebar('Places')),
       closeTo(placesBefore - 2 * sidebarRow, 0.5),
     );
     // Reopened: back as it was.
-    await tester.tap(find.byKey(const ValueKey('collapse Preferiti')));
+    await tester.tap(find.byKey(const ValueKey('collapse Pinned')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 320));
-    expect(centerY(tester, inSidebar('Posizioni')), placesBefore);
+    expect(centerY(tester, inSidebar('Places')), placesBefore);
     expect(inSidebar('Documenti'), findsOneWidget);
   });
 

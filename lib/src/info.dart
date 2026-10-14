@@ -11,6 +11,7 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
 
+import 'l10n.dart';
 import 'icon_view.dart' show EntryIcon;
 import 'model.dart';
 import 'xattr.dart';
@@ -23,12 +24,12 @@ const double infoValueLeft = 93;
 enum InfoSection { general, name, comments, openWith, preview, permissions }
 
 String infoSectionTitle(InfoSection s) => switch (s) {
-  InfoSection.general => 'Generali',
-  InfoSection.name => 'Nome ed estensione',
-  InfoSection.comments => 'Commenti',
-  InfoSection.openWith => 'Apri con',
-  InfoSection.preview => 'Anteprima',
-  InfoSection.permissions => 'Condivisione e permessi',
+  InfoSection.general => l10n.infoGeneral,
+  InfoSection.name => l10n.infoNameExtension,
+  InfoSection.comments => l10n.infoComments,
+  InfoSection.openWith => l10n.openWith,
+  InfoSection.preview => l10n.infoPreview,
+  InfoSection.permissions => l10n.infoPermissions,
 };
 
 /// What `stat` says about a file that `FileStat` does not have: creation, disk usage, owner and
@@ -80,10 +81,10 @@ class StatDetails {
 enum Privilege { readWrite, readOnly, writeOnly, none }
 
 String privilegeLabel(Privilege p) => switch (p) {
-  Privilege.readWrite => 'Lettura e scrittura',
-  Privilege.readOnly => 'Sola lettura',
-  Privilege.writeOnly => 'Sola scrittura',
-  Privilege.none => 'Nessun accesso',
+  Privilege.readWrite => l10n.privilegeReadWrite,
+  Privilege.readOnly => l10n.privilegeReadOnly,
+  Privilege.writeOnly => l10n.privilegeWriteOnly,
+  Privilege.none => l10n.privilegeNone,
 };
 
 /// The privileges of the class `shift` (6 owner, 3 group, 0 others) in the mode.
@@ -110,25 +111,7 @@ int withPrivilege(int mode, int shift, Privilege p) {
   return (mode & ~(6 << shift)) | (bits << shift);
 }
 
-String _date(DateTime? t) {
-  if (t == null) return '--';
-  const months = [
-    'gennaio',
-    'febbraio',
-    'marzo',
-    'aprile',
-    'maggio',
-    'giugno',
-    'luglio',
-    'agosto',
-    'settembre',
-    'ottobre',
-    'novembre',
-    'dicembre',
-  ];
-  String two(int v) => v.toString().padLeft(2, '0');
-  return '${t.day} ${months[t.month - 1]} ${t.year}, ${two(t.hour)}:${two(t.minute)}';
-}
+String _date(DateTime? t) => t == null ? '--' : longDate(t);
 
 /// Window colors (MU-60); in dark from mu60-info-file-dark: background `#272728`, white text,
 /// secondary `#9e9e9e`, title `#a1a1a1`, lines `#3c3c3d`; the link in dark is *estimated*.
@@ -324,7 +307,7 @@ class _InfoPanelState extends State<InfoPanel> {
         ),
         Expanded(
           child: Text(
-            'Info su ${entry.name}',
+            l10n.infoTitle(entry.name),
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -366,7 +349,7 @@ class _InfoPanelState extends State<InfoPanel> {
               ),
               const SizedBox(height: 2),
               Text(
-                'Modificato: ${_date(entry.modified)}',
+                l10n.modifiedOn(_date(entry.modified)),
                 style: _text(color: _c.secondary),
               ),
             ],
@@ -383,7 +366,7 @@ class _InfoPanelState extends State<InfoPanel> {
       children: [
         Container(height: 1, color: _c.line),
         GestureDetector(
-          key: ValueKey('section ${infoSectionTitle(section)}'),
+          key: ValueKey('section ${section.name}'),
           behavior: HitTestBehavior.opaque,
           onTap: () => widget.onToggle(section),
           child: SizedBox(
@@ -445,15 +428,26 @@ class _InfoPanelState extends State<InfoPanel> {
       case InfoSection.general:
         return Column(
           children: [
-            _row('Tipo', widget.kind),
+            _row(l10n.kind, widget.kind),
             if (!entry.isDirectory)
               _row(
-                'Dimensioni',
-                '${entry.size} byte (${formatSize(Entry(name: '', path: '', isDirectory: false, size: _stat.onDisk, modified: entry.modified))} su disco)',
+                l10n.size,
+                l10n.sizeOnDisk(
+                  entry.size,
+                  formatSize(
+                    Entry(
+                      name: '',
+                      path: '',
+                      isDirectory: false,
+                      size: _stat.onDisk,
+                      modified: entry.modified,
+                    ),
+                  ),
+                ),
               ),
-            _row('Situato in', parentOf(entry.path) ?? '/'),
-            _row('Creato', _date(_stat.created)),
-            _row('Modificato', _date(entry.modified)),
+            _row(l10n.location, parentOf(entry.path) ?? '/'),
+            _row(l10n.created, _date(_stat.created)),
+            _row(l10n.modified, _date(entry.modified)),
           ],
         );
       case InfoSection.name:
@@ -480,7 +474,7 @@ class _InfoPanelState extends State<InfoPanel> {
           ),
         );
       case InfoSection.openWith:
-        return _row('App', widget.openWith ?? 'Nessuna');
+        return _row(l10n.app, widget.openWith ?? l10n.none);
       case InfoSection.preview:
         return Center(
           child: SizedBox(
@@ -493,9 +487,9 @@ class _InfoPanelState extends State<InfoPanel> {
         return Column(
           children: [
             for (final (label, shift) in [
-              ('${_stat.owner.isEmpty ? '?' : _stat.owner} (io)', 6),
-              (_stat.group.isEmpty ? 'gruppo' : _stat.group, 3),
-              ('tutti', 0),
+              (l10n.ownerMe(_stat.owner.isEmpty ? '?' : _stat.owner), 6),
+              (_stat.group.isEmpty ? l10n.groupFallback : _stat.group, 3),
+              (l10n.everyone, 0),
             ])
               _permission(label, shift),
           ],

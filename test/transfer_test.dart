@@ -109,7 +109,7 @@ void main() {
   );
 
   test(
-    'pasting into the same folder makes "name copia"; into itself it does not',
+    'pasting into the same folder makes "name copy"; into itself it does not',
     () async {
       var t = Transfer(
         kind: TransferKind.copy,
@@ -117,7 +117,7 @@ void main() {
         destination: src.path,
       );
       await t.run(onConflict: never);
-      expect(File('${src.path}/grande copia.bin').existsSync(), isTrue);
+      expect(File('${src.path}/grande copy.bin').existsSync(), isTrue);
 
       t = Transfer(
         kind: TransferKind.copy,
@@ -126,7 +126,7 @@ void main() {
       );
       await t.run(onConflict: never);
       expect(t.state, TransferState.failed);
-      expect(t.error, contains('dentro se stessa'));
+      expect(t.error, contains('inside itself'));
     },
   );
 }

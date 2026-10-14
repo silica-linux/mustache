@@ -13,8 +13,8 @@ import 'package:silica_ui/silica_ui.dart';
 
 void main() {
   test('names and colors', () {
-    expect(tagName(TagColor.red), 'Rosso');
-    expect(tagColor('Verde'), TagColor.green);
+    expect(tagName(TagColor.red), 'Red');
+    expect(tagColor('Green'), TagColor.green);
     expect(tagColor('Lavoro'), isNull);
     expect(menuTagColor(TagColor.red), const Color(0xFFFF6663));
     final ring = tagRing(menuTagColor(TagColor.red));
@@ -48,7 +48,7 @@ void main() {
         child: MustacheWindow(
           start: '${home.path}/Doc',
           places: [Place('casa', home.path, PlaceKind.home)],
-          trash: Place('Cestino', '${home.path}/Cestino', PlaceKind.trash),
+          trash: Place('Trash', '${home.path}/Cestino', PlaceKind.trash),
           settings: Settings('${home.path}/s.json')..view = 'list',
         ),
       ),
@@ -59,17 +59,17 @@ void main() {
     );
     await tester.tapAt(tester.getCenter(row), buttons: kSecondaryMouseButton);
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('tag Verde')));
+    await tester.tap(find.byKey(const ValueKey('tag green')));
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 50));
     }
-    expect(readTags(file.path), ['Verde']);
+    expect(readTags(file.path), ['Green']);
     // The dot before the name.
     expect(find.byType(TagDots), findsOneWidget);
 
     // The sidebar: "Verde" shows the items with the tag.
     await tester.tap(
-      find.descendant(of: find.byType(Sidebar), matching: find.text('Verde')),
+      find.descendant(of: find.byType(Sidebar), matching: find.text('Green')),
     );
     for (var i = 0; i < 20; i++) {
       await tester.runAsync(
@@ -80,13 +80,13 @@ void main() {
     expect(row, findsOneWidget);
     // The title is the tag name.
     expect(
-      find.descendant(of: find.byType(Sidebar), matching: find.text('Verde')),
+      find.descendant(of: find.byType(Sidebar), matching: find.text('Green')),
       findsOneWidget,
     );
     // The circle again: removes.
     await tester.tapAt(tester.getCenter(row), buttons: kSecondaryMouseButton);
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('tag Verde')));
+    await tester.tap(find.byKey(const ValueKey('tag green')));
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 50));
     }

@@ -123,7 +123,7 @@ extension _ListView on _MustacheWindowState {
     if (_error != null) {
       return Center(
         child: Text(
-          'Non si può aprire: $_error',
+          l10n.cantOpenFolder('$_error'),
           style: text(13, color: secondaryText),
         ),
       );

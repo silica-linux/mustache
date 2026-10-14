@@ -50,7 +50,7 @@ void main() {
         child: MustacheWindow(
           start: root.path,
           places: [Place('Prova', root.path, PlaceKind.home)],
-          trash: Place('Cestino', '${root.path}/.Cestino', PlaceKind.trash),
+          trash: Place('Trash', '${root.path}/.Cestino', PlaceKind.trash),
           settings: settings,
         ),
       ),

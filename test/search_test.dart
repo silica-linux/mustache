@@ -32,7 +32,7 @@ void main() {
         child: MustacheWindow(
           start: '${home.path}/Doc',
           places: [Place('casa', home.path, PlaceKind.home)],
-          trash: Place('Cestino', '${home.path}/Cestino', PlaceKind.trash),
+          trash: Place('Trash', '${home.path}/Cestino', PlaceKind.trash),
           settings: Settings('${home.path}/.s.json')..view = 'icons',
         ),
       ),
@@ -43,7 +43,7 @@ void main() {
     await tester.pump();
     expect(find.byKey(const ValueKey('search field')), findsOneWidget);
     expect(find.byKey(const ValueKey('scope bar')), findsOneWidget);
-    expect(find.text('Ricerca in «Questo computer»'), findsOneWidget);
+    expect(find.text('Searching “This Computer”'), findsOneWidget);
     await tester.enterText(find.byType(EditableText).last, 'bilancio');
     await tester.pump(const Duration(milliseconds: 300));
     for (var i = 0; i < 20; i++) {

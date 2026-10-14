@@ -38,7 +38,7 @@ void main() {
         child: MustacheWindow(
           start: home.path,
           places: [Place('casa', home.path, PlaceKind.home)],
-          trash: Place('Cestino', '${home.path}/Cestino', PlaceKind.trash),
+          trash: Place('Trash', '${home.path}/Cestino', PlaceKind.trash),
           settings: Settings('${config.path}/s.json')..view = 'icons',
           iconsEnv: {'SILICA_ICONS_DIR': config.path},
         ),

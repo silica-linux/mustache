@@ -48,7 +48,7 @@ void main() {
             start: home.path,
             places: [Place('casa', home.path, PlaceKind.home)],
             trash: Place(
-              'Cestino',
+              'Trash',
               '${home.path}/.local/share/Trash/files',
               PlaceKind.trash,
             ),
@@ -153,7 +153,7 @@ void main() {
           list: (_) => entries,
           onSelect: (_, _) {},
           onOpen: (_) {},
-          tagsOf: (e) => e.name == 'etichettato.txt' ? ['Blu', 'Rosso'] : [],
+          tagsOf: (e) => e.name == 'etichettato.txt' ? ['Blue', 'Red'] : [],
         ),
       ),
     );

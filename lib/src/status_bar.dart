@@ -7,6 +7,8 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
 
+import 'l10n.dart';
+
 const double statusBarHeight = 28;
 
 /// The icon size for slider value 0–112 (mustache-spec 1.5): up to 56 it is 16 + 2 × value, then 5
@@ -58,13 +60,12 @@ int? freeBytes(String path) {
   }
 }
 
-/// "12,34 GB": two decimals (as in the status bar).
+/// "12.34 GB" ("12,34 GB" in Italian): two decimals (as in the status bar).
 String formatFree(int bytes) {
-  String num(double v, int d) => v.toStringAsFixed(d).replaceAll('.', ',');
-  if (bytes >= 1e12) return '${num(bytes / 1e12, 2)} TB';
-  if (bytes >= 1e9) return '${num(bytes / 1e9, 2)} GB';
-  if (bytes >= 1e6) return '${num(bytes / 1e6, 1)} MB';
-  return '${num(bytes / 1e3, 0)} KB';
+  if (bytes >= 1e12) return '${decimal(bytes / 1e12, 2)} TB';
+  if (bytes >= 1e9) return '${decimal(bytes / 1e9, 2)} GB';
+  if (bytes >= 1e6) return '${decimal(bytes / 1e6, 1)} MB';
+  return '${decimal(bytes / 1e3, 0)} KB';
 }
 
 /// The bar text (R1.21).
@@ -74,14 +75,11 @@ String statusText({
   int? free,
   bool listing = true,
 }) {
-  final items = count == 1 ? '1 elemento' : '$count elementi';
   final head = selected == 0
-      ? items
-      : selected == 1 && count == 1
-      ? '1 di 1 selezionato'
-      : '$selected di $count selezionati';
+      ? l10n.itemCount(count)
+      : l10n.selectedCount(selected, count);
   if (!listing || free == null) return head;
-  return '$head, ${formatFree(free)} disponibili';
+  return l10n.available(head, formatFree(free));
 }
 
 /// Status bar colors (MU-04), light and dark.

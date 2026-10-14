@@ -56,9 +56,9 @@ void main() {
           child: PreviewPane(
             width: 264,
             items: [entry],
-            kindOf: (_) => 'Cartella',
+            kindOf: (_) => 'Folder',
             now: DateTime(2026, 10, 14, 18),
-            actions: [PaneAction('Altro', 'ellipsis-circle', (_) {})],
+            actions: [PaneAction('More', 'ellipsis-circle', (_) {})],
           ),
         ),
       ),

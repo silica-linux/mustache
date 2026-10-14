@@ -195,10 +195,10 @@ extension _Search on _MustacheWindowState {
       child: Row(
         children: [
           const SizedBox(width: 14),
-          Text('Cerca in:', style: text(12, color: minor)),
+          Text(l10n.searchIn, style: text(12, color: minor)),
           const SizedBox(width: 8),
-          capsule('Questo computer', SearchScope.computer),
-          capsule('«${displayName(_searchFolder)}»', SearchScope.folder),
+          capsule(l10n.thisComputer, SearchScope.computer),
+          capsule(l10n.quoted(displayName(_searchFolder)), SearchScope.folder),
         ],
       ),
     );

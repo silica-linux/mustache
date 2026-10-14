@@ -93,17 +93,17 @@ extension _Dialog on _MustacheWindowState {
         () => _alert = SilicaAlert(
           opaque: true,
           icon: _appIcon,
-          title: 'Vuoi sostituire «${displayName(paths.single)}»?',
-          message: 'Esiste già un elemento con questo nome in questa cartella.',
+          title: l10n.replaceQuestion(displayName(paths.single)),
+          message: l10n.replaceDetail,
           sideBySide: true,
           buttons: [
             AlertButton(
-              'Annulla',
+              l10n.cancel,
               role: AlertRole.cancel,
               onPressed: _closeAlert,
             ),
             AlertButton(
-              'Sostituisci',
+              l10n.replace,
               role: AlertRole.destructive,
               onPressed: () {
                 _closeAlert();
@@ -130,7 +130,7 @@ extension _Dialog on _MustacheWindowState {
         SizedBox(
           width: 110,
           child: Text(
-            'Salva con nome:',
+            l10n.saveAs,
             textAlign: TextAlign.right,
             style: text(13, color: colors.label),
           ),
@@ -206,7 +206,7 @@ extension _Dialog on _MustacheWindowState {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          button('Annulla', primary: false, onTap: () => _finish(const [])),
+          button(l10n.cancel, primary: false, onTap: () => _finish(const [])),
           const SizedBox(width: 12),
           button(
             _dialogOptions.acceptLabel,

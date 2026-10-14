@@ -39,7 +39,7 @@ void main() {
           start: dir.path,
           places: [Place('casa', home.path, PlaceKind.home)],
           trash: Place(
-            'Cestino',
+            'Trash',
             '${home.path}/.local/share/Trash/files',
             PlaceKind.trash,
           ),
@@ -132,7 +132,7 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump();
     expect(find.byType(SilicaAlert), findsOneWidget);
-    expect(find.textContaining('già stato assegnato'), findsOneWidget);
+    expect(find.textContaining('is already taken'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('alert OK')));
     await tester.pump();
     expect(find.byType(SilicaAlert), findsNothing);
@@ -149,8 +149,8 @@ void main() {
     await tester.enterText(find.byType(EditableText), 'note.md');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump();
-    expect(find.byKey(const ValueKey('alert Usa .md')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('alert Mantieni .txt')));
+    expect(find.byKey(const ValueKey('alert Use .md')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('alert Keep .txt')));
     await tester.pump();
     expect(File(p('note.txt')).existsSync(), isTrue);
   });
@@ -161,28 +161,25 @@ void main() {
     await pump(tester);
     await keys(tester, LogicalKeyboardKey.keyN, meta: true, shift: true);
     await tester.pump();
-    expect(Directory(p('cartella senza nome')).existsSync(), isTrue);
+    expect(Directory(p('new folder')).existsSync(), isTrue);
     final field = tester.widget<EditableText>(find.byType(EditableText));
-    expect(field.controller.text, 'cartella senza nome');
+    expect(field.controller.text, 'new folder');
     // Everything selected (a folder has no extension).
-    expect(
-      field.controller.selection.extentOffset,
-      'cartella senza nome'.length,
-    );
+    expect(field.controller.selection.extentOffset, 'new folder'.length);
     await keys(tester, LogicalKeyboardKey.escape);
     await keys(tester, LogicalKeyboardKey.keyZ, meta: true);
-    expect(Directory(p('cartella senza nome')).existsSync(), isFalse);
+    expect(Directory(p('new folder')).existsSync(), isFalse);
   });
 
   testWidgets('⌘D duplicates and selects the copies', (tester) async {
     await pump(tester);
     await select(tester, 'bozza.txt');
     await keys(tester, LogicalKeyboardKey.keyD, meta: true);
-    expect(File(p('bozza copia.txt')).readAsStringSync(), 'b');
+    expect(File(p('bozza copy.txt')).readAsStringSync(), 'b');
     await keys(tester, LogicalKeyboardKey.keyD, meta: true);
-    expect(File(p('bozza copia copia.txt')).existsSync(), isTrue);
+    expect(File(p('bozza copy copy.txt')).existsSync(), isTrue);
     await keys(tester, LogicalKeyboardKey.keyZ, meta: true);
-    expect(File(p('bozza copia copia.txt')).existsSync(), isFalse);
+    expect(File(p('bozza copy copy.txt')).existsSync(), isFalse);
   });
 
   testWidgets(
@@ -210,11 +207,11 @@ void main() {
     await pump(tester);
     await select(tester, 'conto.txt');
     await keys(tester, LogicalKeyboardKey.backspace, meta: true, alt: true);
-    expect(find.textContaining('eliminare «conto.txt»'), findsOneWidget);
+    expect(find.textContaining('Delete “conto.txt”'), findsOneWidget);
     await keys(tester, LogicalKeyboardKey.escape);
     expect(File(p('conto.txt')).existsSync(), isTrue);
     await keys(tester, LogicalKeyboardKey.backspace, meta: true, alt: true);
-    await tester.tap(find.byKey(const ValueKey('alert Elimina')));
+    await tester.tap(find.byKey(const ValueKey('alert Delete')));
     await tester.pump();
     expect(File(p('conto.txt')).existsSync(), isFalse);
     expect(

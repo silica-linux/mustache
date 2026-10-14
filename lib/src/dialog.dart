@@ -7,6 +7,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
+import 'l10n.dart';
+
 /// What the dialog asks for.
 @immutable
 class DialogOptions {
@@ -37,7 +39,7 @@ class DialogOptions {
   /// The starting folder.
   final String? folder;
 
-  String get acceptLabel => accept ?? (save ? 'Salva' : 'Apri');
+  String get acceptLabel => accept ?? (save ? l10n.save : l10n.open);
 
   /// From the process arguments; null if it is not a dialog.
   static DialogOptions? parse(List<String> args) {

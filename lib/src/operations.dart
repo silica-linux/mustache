@@ -6,10 +6,11 @@
 
 import 'dart:io';
 
+import 'l10n.dart';
 import 'model.dart';
 
-/// The name of a new folder (⇧⌘N).
-const String newFolderName = 'cartella senza nome';
+/// The name of a new folder (⇧⌘N), in the user's language.
+String get newFolderName => l10n.newFolderName;
 
 /// The result of an operation: the path produced, or an error to show.
 typedef OpResult = ({String? path, String? error});
@@ -37,13 +38,14 @@ String uniqueName(String dir, String base, [String ext = '']) {
   return name;
 }
 
-/// The name of the copy (⌘D): "nome copia.ext", then "nome copia 2.ext"; folders "Alfa copia".
+/// The name of the copy (⌘D): "name copy.ext", then "name copy 2.ext"; folders "Alfa copy" (in
+/// Italian "nome copia.ext").
 String copyName(String dir, String name, {bool isDirectory = false}) {
   final (base, ext) = splitExtension(name, isDirectory: isDirectory);
-  return uniqueName(dir, '$base copia', ext);
+  return uniqueName(dir, l10n.copySuffix(base), ext);
 }
 
-/// Creates "cartella senza nome" (or "… 2") in `dir`.
+/// Creates the new folder name (or "… 2") in `dir`.
 OpResult createFolder(String dir) {
   final path = '$dir/${uniqueName(dir, newFolderName)}';
   try {
@@ -58,7 +60,7 @@ OpResult createFolder(String dir) {
 OpResult duplicate(String path) {
   final type = FileSystemEntity.typeSync(path, followLinks: false);
   if (type == FileSystemEntityType.notFound) {
-    return _fail('L\'elemento non esiste più.');
+    return _fail(l10n.errorGone);
   }
   final dir = parentOf(path) ?? '/';
   final target =
@@ -120,18 +122,17 @@ OpResult deletePermanently(String path) {
 /// already used in the same folder. Null if valid.
 String? invalidName(String dir, String oldName, String newName) {
   if (newName.trim().isEmpty || newName == '.' || newName == '..') {
-    return 'Il nome «$newName» non può essere utilizzato. Scegli un altro nome.';
+    return l10n.errorNameInvalid(newName);
   }
   if (newName.contains('/') || newName.contains('\u0000')) {
-    return 'Il nome «$newName» non può essere utilizzato. '
-        'Prova a usare un nome senza la barra «/».';
+    return l10n.errorNameSlash(newName);
   }
   if (newName != oldName &&
       FileSystemEntity.typeSync('$dir/$newName', followLinks: false) !=
           FileSystemEntityType.notFound &&
       // Only a case change on the same file: allowed.
       newName.toLowerCase() != oldName.toLowerCase()) {
-    return 'Il nome «$newName» è già stato assegnato. Scegline un altro.';
+    return l10n.errorNameTaken(newName);
   }
   return null;
 }
@@ -159,7 +160,7 @@ OpResult renameEntry(String path, String newName) {
     final type = FileSystemEntity.typeSync(path, followLinks: false);
     switch (type) {
       case FileSystemEntityType.notFound:
-        return _fail('L\'elemento non esiste più.');
+        return _fail(l10n.errorGone);
       case FileSystemEntityType.directory:
         Directory(path).renameSync(target);
       case FileSystemEntityType.link:
@@ -197,7 +198,7 @@ class Trash {
   OpResult put(String path, {DateTime? now}) {
     final type = FileSystemEntity.typeSync(path, followLinks: false);
     if (type == FileSystemEntityType.notFound) {
-      return _fail('L\'elemento non esiste più.');
+      return _fail(l10n.errorGone);
     }
     try {
       Directory(files).createSync(recursive: true);
@@ -264,14 +265,11 @@ class Trash {
   OpResult restore(String trashed) {
     final origin = originOf(trashed);
     if (origin == null) {
-      return _fail('Non si sa da dove viene «${displayName(trashed)}».');
+      return _fail(l10n.errorUnknownOrigin(displayName(trashed)));
     }
     if (FileSystemEntity.typeSync(origin, followLinks: false) !=
         FileSystemEntityType.notFound) {
-      return _fail(
-        'Nella cartella d\'origine c\'è già un elemento chiamato '
-        '«${displayName(origin)}».',
-      );
+      return _fail(l10n.errorOriginTaken(displayName(origin)));
     }
     try {
       Directory(parentOf(origin) ?? '/').createSync(recursive: true);
@@ -319,10 +317,10 @@ void _move(String from, String to, FileSystemEntityType type) {
 String _describe(FileSystemException e) {
   final code = e.osError?.errorCode;
   return switch (code) {
-    13 || 1 => 'Non hai i permessi per questa operazione.',
-    28 => 'Il disco è pieno.',
-    2 => 'L\'elemento non esiste più.',
-    30 => 'Il disco è di sola lettura.',
+    13 || 1 => l10n.errorPermission,
+    28 => l10n.errorDiskFull,
+    2 => l10n.errorGone,
+    30 => l10n.errorReadOnly,
     _ => e.osError?.message ?? e.message,
   };
 }
@@ -331,7 +329,7 @@ String _describe(FileSystemException e) {
 abstract class Undoable {
   const Undoable();
 
-  /// The label of the Edit menu ("Annulla Rinomina").
+  /// The label of the Edit menu ("Undo Rename").
   String get label;
 
   /// Undo; an error if no longer possible.
@@ -347,7 +345,7 @@ class RenameOp extends Undoable {
   String to;
 
   @override
-  String get label => 'Rinomina';
+  String get label => l10n.rename;
 
   @override
   String? undo(Trash trash) => renameEntry(to, displayName(from)).error;
@@ -392,7 +390,7 @@ class TrashOp extends Undoable {
   final List<(String, String)> moves;
 
   @override
-  String get label => 'Sposta';
+  String get label => l10n.opMove;
 
   @override
   String? undo(Trash trash) {
@@ -425,9 +423,10 @@ class UndoStack {
     _undone.clear();
   }
 
-  String? get undoLabel => _done.isEmpty ? null : 'Annulla ${_done.last.label}';
+  String? get undoLabel =>
+      _done.isEmpty ? null : l10n.undoAction(_done.last.label);
   String? get redoLabel =>
-      _undone.isEmpty ? null : 'Ripeti ${_undone.last.label}';
+      _undone.isEmpty ? null : l10n.redoAction(_undone.last.label);
 
   /// Undoes the last operation; null if it succeeded or there was nothing.
   String? undo(Trash trash) {

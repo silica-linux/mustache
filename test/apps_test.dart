@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/widgets.dart' show Locale;
 import 'package:mustache/src/apps.dart';
+import 'package:mustache/src/l10n.dart';
 import 'package:silica_ui/silica_ui.dart';
 
 void main() {
@@ -73,6 +75,13 @@ text/plain=editor.desktop;
   test(
     '.desktop entries: translated name, hidden ones, ids with subdirectories',
     () {
+      // The name in the user's language (Name[it] in Italian), Name otherwise.
+      expect(
+        AppRegistry.load(env: env, mime: mime).apps['editor.desktop']?.name,
+        'Editor',
+      );
+      useLocale(const Locale('it'));
+      addTearDown(() => useLocale(const Locale('en')));
       final registry = AppRegistry.load(env: env, mime: mime);
       expect(registry.apps['editor.desktop']?.name, 'Editor di testo');
       expect(registry.apps.containsKey('nascosta.desktop'), isFalse);

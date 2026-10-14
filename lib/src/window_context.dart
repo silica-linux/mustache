@@ -92,12 +92,9 @@ extension _Context on _MustacheWindowState {
     final single = items.length == 1 ? items.first : null;
     return [
       if (items.length > 1)
-        MenuAction(
-          'Nuova cartella con selezione (${items.length} elementi)',
-          enabled: false,
-        ),
+        MenuAction(l10n.newFolderWithSelection(items.length), enabled: false),
       MenuAction(
-        'Apri',
+        l10n.open,
         onSelected: () {
           if (single != null && single.isDirectory) {
             _openEntry(single);
@@ -109,24 +106,24 @@ extension _Context on _MustacheWindowState {
       if (files.length == items.length) _openWithMenu(files),
       const MenuDivider(),
       MenuAction(
-        inTrash ? 'Ripristina' : 'Sposta nel Cestino',
+        inTrash ? l10n.restore : l10n.moveToTrash,
         onSelected: () => _moveToTrash(items),
       ),
       const MenuDivider(),
       MenuAction(
-        'Ottieni informazioni',
+        l10n.showInfo,
         onSelected: () => _openInfo([for (final e in items) e.path]),
       ),
       MenuAction(
-        items.length > 1 ? 'Rinomina…' : 'Rinomina',
+        items.length > 1 ? l10n.renameMany : l10n.rename,
         enabled: single != null,
         onSelected: single == null ? null : () => _startRename(single.path),
       ),
-      MenuAction('Duplica', onSelected: () => _duplicate(items)),
-      MenuAction('Copia', onSelected: () => _copySelection(items)),
+      MenuAction(l10n.duplicate, onSelected: () => _duplicate(items)),
+      MenuAction(l10n.copy, onSelected: () => _copySelection(items)),
       const MenuDivider(),
       _tagMenuRow(items),
-      const MenuAction('Tag…', enabled: false),
+      MenuAction(l10n.tagsMenu, enabled: false),
     ];
   }
 
@@ -140,70 +137,65 @@ extension _Context on _MustacheWindowState {
         if (app.id != preferred?.id) app,
     ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     return MenuAction(
-      'Apri con',
+      l10n.openWith,
       submenu: [
         if (preferred != null)
           MenuAction(
-            '${preferred.name} (predefinita)',
+            l10n.defaultApp(preferred.name),
             onSelected: () => _openWith(files, preferred),
           ),
         if (preferred != null && others.isNotEmpty) const MenuDivider(),
         for (final app in others)
           MenuAction(app.name, onSelected: () => _openWith(files, app)),
         const MenuDivider(),
-        const MenuAction('Altro…', enabled: false),
+        MenuAction(l10n.otherApp, enabled: false),
       ],
     );
   }
 
   List<MenuEntry> _backgroundMenu() => [
-    MenuAction('Nuova cartella', onSelected: _newFolder),
+    MenuAction(l10n.newFolder, onSelected: _newFolder),
     MenuAction(
-      FileClipboard.paths.length > 1
-          ? 'Incolla ${FileClipboard.paths.length} elementi'
-          : 'Incolla elemento',
+      l10n.pasteItems(FileClipboard.paths.length),
       enabled: FileClipboard.paths.isNotEmpty,
       onSelected: () => _paste(move: false),
     ),
     const MenuDivider(),
-    MenuAction(
-      'Ottieni informazioni',
-      onSelected: () => _openInfo([_history.current]),
-    ),
+    MenuAction(l10n.showInfo, onSelected: () => _openInfo([_history.current])),
     const MenuDivider(),
     MenuAction(
-      'Vista',
+      l10n.view,
       submenu: [
         MenuAction(
-          'Come icone',
+          l10n.viewIcons,
           checked: _view == ViewMode.icons,
           onSelected: () => _setView(ViewMode.icons),
         ),
         MenuAction(
-          'Come elenco',
+          l10n.viewList,
           checked: _view == ViewMode.list,
           onSelected: () => _setView(ViewMode.list),
         ),
         MenuAction(
-          'Come colonne',
+          l10n.viewColumns,
           checked: _view == ViewMode.columns,
           onSelected: () => _setView(ViewMode.columns),
         ),
         MenuAction(
-          'Come galleria',
+          l10n.viewGallery,
           checked: _view == ViewMode.gallery,
           onSelected: () => _setView(ViewMode.gallery),
         ),
       ],
     ),
     MenuAction(
-      'Ordina per',
+      l10n.sortBy,
       submenu: [
-        for (final (key, label) in const [
-          (SortKey.name, 'Nome'),
-          (SortKey.kind, 'Tipo'),
-          (SortKey.modified, 'Data di modifica'),
-          (SortKey.size, 'Dimensione'),
+        for (final (key, label) in [
+          (SortKey.name, l10n.sortName),
+          (SortKey.kind, l10n.sortKind),
+          (SortKey.modified, l10n.sortModified),
+          (SortKey.size, l10n.sortSize),
         ])
           MenuAction(
             label,

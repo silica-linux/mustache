@@ -8,6 +8,7 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
 
+import 'l10n.dart';
 import 'model.dart';
 import 'transfer.dart';
 
@@ -61,13 +62,10 @@ class _PiePainter extends CustomPainter {
 }
 
 String _bytes(int n) {
-  if (n < 1000) return '$n byte';
-  if (n < 1000 * 1000)
-    return '${(n / 1000).toStringAsFixed(1).replaceAll('.', ',')} KB';
-  if (n < 1000 * 1000 * 1000) {
-    return '${(n / 1e6).toStringAsFixed(1).replaceAll('.', ',')} MB';
-  }
-  return '${(n / 1e9).toStringAsFixed(2).replaceAll('.', ',')} GB';
+  if (n < 1000) return l10n.sizeBytes(n);
+  if (n < 1000 * 1000) return '${decimal(n / 1000, 1)} KB';
+  if (n < 1000 * 1000 * 1000) return '${decimal(n / 1e6, 1)} MB';
+  return '${decimal(n / 1e9, 2)} GB';
 }
 
 TextStyle _text(
@@ -100,7 +98,9 @@ class ProgressWindow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final verb = transfer.kind == TransferKind.copy ? 'Copio' : 'Sposto';
+    final verb = transfer.kind == TransferKind.copy
+        ? l10n.copying
+        : l10n.moving;
     final name = transfer.currentName ?? '';
     return Container(
       key: const ValueKey('progress window'),
@@ -118,7 +118,11 @@ class ProgressWindow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '$verb «$name» in «${displayName(transfer.destination)}»',
+                  l10n.transferLine(
+                    verb,
+                    name,
+                    displayName(transfer.destination),
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: _text(13),
@@ -145,7 +149,10 @@ class ProgressWindow extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${_bytes(transfer.doneBytes)} di ${_bytes(transfer.totalBytes)}',
+                  l10n.progressOf(
+                    _bytes(transfer.doneBytes),
+                    _bytes(transfer.totalBytes),
+                  ),
                   style: _text(11, color: const Color(0xFF8E8E93)),
                 ),
               ],
@@ -231,7 +238,7 @@ class ConflictWindow extends StatelessWidget {
       ConflictChoice choice, {
       bool primary = false,
     }) => GestureDetector(
-      key: ValueKey('conflict $label'),
+      key: ValueKey('conflict ${choice.name}'),
       onTap: () => onChoice(choice),
       child: Container(
         width: width,
@@ -266,8 +273,7 @@ class ConflictWindow extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'In questa posizione c\'è già un elemento chiamato «$name». Vuoi '
-                  'sostituirlo con quello che stai ${moving ? 'spostando' : 'copiando'}?',
+                  moving ? l10n.conflictMove(name) : l10n.conflictCopy(name),
                   maxLines: 3,
                   style: _text(12),
                 ),
@@ -278,11 +284,11 @@ class ConflictWindow extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              button('Mantieni entrambi', 117, ConflictChoice.keepBoth),
+              button(l10n.keepBoth, 117, ConflictChoice.keepBoth),
               const SizedBox(width: 8),
-              button('Interrompi', 88, ConflictChoice.stop),
+              button(l10n.stop, 88, ConflictChoice.stop),
               const SizedBox(width: 8),
-              button('Sostituisci', 88, ConflictChoice.replace, primary: true),
+              button(l10n.replace, 88, ConflictChoice.replace, primary: true),
             ],
           ),
         ],

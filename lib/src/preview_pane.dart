@@ -17,6 +17,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:silica_ui/silica_ui.dart';
 
+import 'l10n.dart';
 import 'icon_view.dart' show EntryIcon, hasThumbnail;
 import 'info.dart' show StatDetails;
 import 'model.dart';
@@ -225,12 +226,23 @@ class PreviewPane extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${items.length} elementi',
+                l10n.itemCount(items.length),
                 style: _text(15, weight: FontWeight.w600, color: c.name),
               ),
               const SizedBox(height: 6),
               Text(
-                '${items.length} documenti - ${formatSize(Entry(name: '', path: '', isDirectory: false, size: total, modified: DateTime(0)))}',
+                l10n.documentsSize(
+                  items.length,
+                  formatSize(
+                    Entry(
+                      name: '',
+                      path: '',
+                      isDirectory: false,
+                      size: total,
+                      modified: DateTime(0),
+                    ),
+                  ),
+                ),
                 style: _text(12, color: c.kind),
               ),
             ],
@@ -329,7 +341,7 @@ class PreviewPane extends StatelessWidget {
                   height: 31,
                   child: _onBaseline(
                     Text(
-                      'Informazioni',
+                      l10n.information,
                       style: _text(
                         13,
                         weight: FontWeight.w700,
@@ -339,21 +351,21 @@ class PreviewPane extends StatelessWidget {
                     24,
                   ),
                 ),
-                _row(c, 'Creato', _when(stat.created)),
+                _row(c, l10n.created, _when(stat.created)),
                 _row(
                   c,
-                  'Modificato',
+                  l10n.modified,
                   _when(entry.modified),
                   last: !hasThumbnail(entry.name),
                 ),
                 if (hasThumbnail(entry.name))
-                  _row(c, 'Dimensioni', formatSize(entry), last: true),
+                  _row(c, l10n.size, formatSize(entry), last: true),
                 if (tagsOf != null) ...[
                   SizedBox(
                     height: 37,
                     child: _onBaseline(
                       Text(
-                        'Tag',
+                        l10n.tags,
                         style: _text(
                           13,
                           weight: FontWeight.w700,
@@ -539,7 +551,7 @@ class _TagFieldState extends State<_TagField> {
   @override
   Widget build(BuildContext context) {
     final existing = widget.tags.join(', ');
-    final placeholder = existing.isEmpty ? 'Aggiungi un tag…' : existing;
+    final placeholder = existing.isEmpty ? l10n.addTag : existing;
     final c = PaneColors.of(context);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,

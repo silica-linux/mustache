@@ -7,6 +7,8 @@ import 'dart:io';
 
 import 'package:silica_ui/silica_ui.dart' show MimeDatabase, xdgDataDirs;
 
+import 'l10n.dart';
+
 /// An installed app that declares the types it opens.
 class DesktopApp {
   const DesktopApp({
@@ -28,7 +30,8 @@ class DesktopApp {
 }
 
 /// A .desktop entry (text); null if it is not a launchable app or it is hidden.
-DesktopApp? parseDesktopApp(String id, String text, {String locale = 'it'}) {
+DesktopApp? parseDesktopApp(String id, String text, {String? locale}) {
+  locale ??= l10n.localeName;
   final values = <String, String>{};
   var inEntry = false;
   for (final raw in text.split('\n')) {
@@ -267,7 +270,7 @@ List<String> _splitExec(String exec) {
 /// Launches an app on some files, detached from Mustache. An error (missing program) is a message.
 Future<String?> launchApp(DesktopApp app, List<String> paths) async {
   final args = execArguments(app, paths);
-  if (args.isEmpty) return 'La voce di «${app.name}» non ha un comando.';
+  if (args.isEmpty) return l10n.appHasNoCommand(app.name);
   try {
     await Process.start(
       args.first,
@@ -276,7 +279,7 @@ Future<String?> launchApp(DesktopApp app, List<String> paths) async {
     );
     return null;
   } on ProcessException catch (e) {
-    return 'Non si può aprire «${app.name}»: ${e.message}';
+    return l10n.appCantOpen(app.name, e.message);
   }
 }
 
@@ -284,11 +287,8 @@ final Map<String, String?> _comments = {};
 
 /// The description of a MIME type in the language (`<comment xml:lang="it">` of `mime/<type>.xml`),
 /// or the one without a language; null if the type has no file.
-String? mimeComment(
-  String type, {
-  String locale = 'it',
-  Map<String, String>? env,
-}) {
+String? mimeComment(String type, {String? locale, Map<String, String>? env}) {
+  locale ??= l10n.localeName;
   final key = '$locale $type';
   // Cached only with the process environment (tests pass others).
   if (env == null && _comments.containsKey(key)) return _comments[key];

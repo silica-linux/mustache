@@ -13,6 +13,7 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
 
+import 'l10n.dart';
 import 'icon_view.dart' show EntryIcon, hasThumbnail;
 import 'model.dart';
 
@@ -272,7 +273,7 @@ class _QuickLookPanelState extends State<QuickLookPanel> {
             child: Text(
               position == null
                   ? entry.name
-                  : '${entry.name}  (${position.$1} di ${position.$2})',
+                  : l10n.positionOf(entry.name, position.$1, position.$2),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -297,7 +298,7 @@ class _QuickLookPanelState extends State<QuickLookPanel> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  'Apri con ${widget.openWith}',
+                  l10n.openWithApp(widget.openWith!),
                   style: const TextStyle(
                     fontFamily: uiFontFamily,
                     package: 'silica_ui',
@@ -318,15 +319,12 @@ class _QuickLookPanelState extends State<QuickLookPanel> {
     if (entry.isDirectory) {
       try {
         final n = Directory(entry.path).listSync().length;
-        count = n == 1 ? '1 elemento' : '$n elementi';
+        count = l10n.itemCount(n);
       } on FileSystemException {
         count = '';
       }
     }
-    final date = entry.modified;
-    String two(int v) => v.toString().padLeft(2, '0');
-    final when =
-        '${date.day} ${_months[date.month - 1]} ${date.year}, ${two(date.hour)}:${two(date.minute)}';
+    final when = longDate(entry.modified);
     return ColoredBox(
       color: const Color(0xFFFFFFFF),
       child: Row(
@@ -366,7 +364,7 @@ class _QuickLookPanelState extends State<QuickLookPanel> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Ultima modifica: $when',
+                  l10n.lastModified(when),
                   style: const TextStyle(
                     fontFamily: uiFontFamily,
                     package: 'silica_ui',
@@ -383,18 +381,3 @@ class _QuickLookPanelState extends State<QuickLookPanel> {
     );
   }
 }
-
-const List<String> _months = [
-  'gennaio',
-  'febbraio',
-  'marzo',
-  'aprile',
-  'maggio',
-  'giugno',
-  'luglio',
-  'agosto',
-  'settembre',
-  'ottobre',
-  'novembre',
-  'dicembre',
-];

@@ -39,7 +39,7 @@ void main() {
         child: MustacheWindow(
           start: start,
           places: [Place('casa', home.path, PlaceKind.home)],
-          trash: Place('Cestino', '${home.path}/Cestino', PlaceKind.trash),
+          trash: Place('Trash', '${home.path}/Cestino', PlaceKind.trash),
           settings: Settings('${home.path}/s.json')..view = 'list',
         ),
       ),
@@ -75,10 +75,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 310));
     await keys(tester, LogicalKeyboardKey.keyC);
     expect(FileClipboard.paths, ['${home.path}/A/nota.txt']);
-    // In the same folder: "nota copia.txt".
+    // In the same folder: "nota copy.txt".
     await keys(tester, LogicalKeyboardKey.keyV);
     await settle(tester);
-    expect(File('${home.path}/A/nota copia.txt').readAsStringSync(), 'ciao');
+    expect(File('${home.path}/A/nota copy.txt').readAsStringSync(), 'ciao');
     // Twice into B: the second one is a conflict.
     await tester.tap(find.text('casa'));
     await tester.pump();
@@ -92,7 +92,7 @@ void main() {
     await keys(tester, LogicalKeyboardKey.keyV);
     await settle(tester);
     expect(find.byKey(const ValueKey('conflict window')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('conflict Mantieni entrambi')));
+    await tester.tap(find.byKey(const ValueKey('conflict keepBoth')));
     await settle(tester);
     expect(File('${home.path}/B/nota 2.txt').existsSync(), isTrue);
     expect(find.byKey(const ValueKey('conflict window')), findsNothing);

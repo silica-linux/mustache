@@ -28,7 +28,7 @@ void main() {
           build: (tab, bar, onLocation, active) => MustacheWindow(
             start: tab.location,
             places: [Place('casa', home.path, PlaceKind.home)],
-            trash: Place('Cestino', '${home.path}/Cestino', PlaceKind.trash),
+            trash: Place('Trash', '${home.path}/Cestino', PlaceKind.trash),
             settings: settings,
             tabBar: bar,
             onLocation: onLocation,

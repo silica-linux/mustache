@@ -43,7 +43,7 @@ void main() {
         child: MustacheWindow(
           start: home.path,
           places: [Place('casa', home.path, PlaceKind.home)],
-          trash: Place('Cestino', '${home.path}/Cestino', PlaceKind.trash),
+          trash: Place('Trash', '${home.path}/Cestino', PlaceKind.trash),
           settings: Settings('${home.path}/s.json')..view = 'list',
         ),
       ),

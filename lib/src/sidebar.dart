@@ -16,6 +16,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:silica_ui/silica_ui.dart';
 
+import 'l10n.dart';
 import 'drag.dart';
 import 'model.dart';
 import 'tags.dart';
@@ -445,7 +446,9 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    place.label,
+                    // The Trash is named in the user's language; the other places by their
+                    // folder or tag name.
+                    place.kind == PlaceKind.trash ? l10n.trash : place.label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: _text(

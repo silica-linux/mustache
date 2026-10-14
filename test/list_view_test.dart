@@ -37,7 +37,7 @@ void main() {
         child: MustacheWindow(
           start: root.path,
           places: [Place('Prova', root.path, PlaceKind.home)],
-          trash: Place('Cestino', '${root.path}/.Cestino', PlaceKind.trash),
+          trash: Place('Trash', '${root.path}/.Cestino', PlaceKind.trash),
           now: DateTime(2026, 10, 14, 12),
           settings: Settings(
             '${Directory.systemTemp.createTempSync('mustache-impostazioni').path}/s.json',
@@ -126,13 +126,13 @@ void main() {
     await tester.pump();
     expect(y('grande.bin'), greaterThan(y('appunti.txt')));
     // Dragging the edge of Name widens the column.
-    final before = tester.getTopLeft(find.textContaining('oggi, ').first).dx;
+    final before = tester.getTopLeft(find.textContaining('Today, ').first).dx;
     await tester.drag(
       find.byKey(const ValueKey('edge name')),
       const Offset(40, 0),
     );
     await tester.pump();
-    final after = tester.getTopLeft(find.textContaining('oggi, ').first).dx;
+    final after = tester.getTopLeft(find.textContaining('Today, ').first).dx;
     expect(after - before, closeTo(40, 1));
   });
 

@@ -6,25 +6,45 @@
 
 import 'package:flutter/widgets.dart';
 
+import 'l10n.dart';
+
 enum TagColor { red, orange, yellow, green, blue, purple, gray }
 
-/// The default tags: name and color.
-const Map<String, TagColor> defaultTags = {
-  'Rosso': TagColor.red,
-  'Arancio': TagColor.orange,
-  'Giallo': TagColor.yellow,
-  'Verde': TagColor.green,
-  'Blu': TagColor.blue,
-  'Viola': TagColor.purple,
-  'Grigio': TagColor.gray,
+/// The names of the default tags in every language Mustache has: tags are stored on the files by
+/// name, so a tag written in another language keeps its color.
+const Map<TagColor, List<String>> defaultTagNames = {
+  TagColor.red: ['Red', 'Rosso'],
+  TagColor.orange: ['Orange', 'Arancio'],
+  TagColor.yellow: ['Yellow', 'Giallo'],
+  TagColor.green: ['Green', 'Verde'],
+  TagColor.blue: ['Blue', 'Blu'],
+  TagColor.purple: ['Purple', 'Viola'],
+  TagColor.gray: ['Gray', 'Grigio'],
 };
 
-/// The tag name of a color.
-String tagName(TagColor color) =>
-    defaultTags.entries.firstWhere((e) => e.value == color).key;
+/// The tag name of a color, in the user's language (written on new tags).
+String tagName(TagColor color) => switch (color) {
+  TagColor.red => l10n.tagRed,
+  TagColor.orange => l10n.tagOrange,
+  TagColor.yellow => l10n.tagYellow,
+  TagColor.green => l10n.tagGreen,
+  TagColor.blue => l10n.tagBlue,
+  TagColor.purple => l10n.tagPurple,
+  TagColor.gray => l10n.tagGray,
+};
 
-/// The color of a tag (null: a tag without a color).
-TagColor? tagColor(String name) => defaultTags[name];
+/// The color of a tag, from its name in any language (null: a tag without a color).
+TagColor? tagColor(String name) {
+  for (final MapEntry(key: color, value: names) in defaultTagNames.entries) {
+    if (names.contains(name)) return color;
+  }
+  return null;
+}
+
+/// Is `name` the tag `wanted`, or the same default color tag in another language?
+bool sameTag(String name, String wanted) =>
+    name == wanted ||
+    (tagColor(wanted) != null && tagColor(name) == tagColor(wanted));
 
 /// The sidebar palette (sRGB, red/orange/yellow measured; the others estimated).
 Color sidebarTagColor(TagColor c, {required bool dark}) => switch (c) {
@@ -165,7 +185,7 @@ class _TagCircleRowState extends State<TagCircleRow> {
               if (_hovered == c) _hovered = null;
             }),
             child: GestureDetector(
-              key: ValueKey('tag ${tagName(c)}'),
+              key: ValueKey('tag ${c.name}'),
               behavior: HitTestBehavior.opaque,
               onTap: () => widget.onToggle(c),
               child: SizedBox(

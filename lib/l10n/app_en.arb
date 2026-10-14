@@ -1,0 +1,943 @@
+{
+  "@@locale": "en",
+  "open": "Open",
+  "@open": {
+    "description": "Opens the chosen items (menu item, dialog button)."
+  },
+  "save": "Save",
+  "@save": {
+    "description": "Save dialog button."
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancels an alert or a dialog."
+  },
+  "replace": "Replace",
+  "@replace": {
+    "description": "Replaces an existing item."
+  },
+  "ok": "OK",
+  "@ok": {
+    "description": "Acknowledges an error."
+  },
+  "delete": "Delete",
+  "@delete": {
+    "description": "Deletes items permanently."
+  },
+  "openWith": "Open With",
+  "@openWith": {
+    "description": "Submenu and Info section listing apps that open a file."
+  },
+  "showInfo": "Show Info",
+  "@showInfo": {
+    "description": "Opens the Info window of the items."
+  },
+  "rename": "Rename",
+  "@rename": {
+    "description": "Renames one item; also the name of the undoable operation."
+  },
+  "renameMany": "Rename…",
+  "@renameMany": {
+    "description": "Renames several items (disabled)."
+  },
+  "duplicate": "Duplicate",
+  "@duplicate": {
+    "description": "Makes copies next to the originals."
+  },
+  "copy": "Copy",
+  "@copy": {
+    "description": "Copies the items to the clipboard; also the name of the undoable copy."
+  },
+  "tagsMenu": "Tags…",
+  "@tagsMenu": {
+    "description": "Opens the tag editor (disabled)."
+  },
+  "moveToTrash": "Move to Trash",
+  "@moveToTrash": {
+    "description": "Moves items to the Trash."
+  },
+  "restore": "Restore",
+  "@restore": {
+    "description": "Puts items in the Trash back where they were."
+  },
+  "newFolderWithSelection": "New Folder from Selection ({count} items)",
+  "@newFolderWithSelection": {
+    "description": "Disabled item shown when several items are chosen.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "defaultApp": "{app} (default)",
+  "@defaultApp": {
+    "description": "The default app in the Open With submenu.",
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "otherApp": "Other…",
+  "@otherApp": {
+    "description": "Chooses another app (disabled)."
+  },
+  "newFolder": "New Folder",
+  "@newFolder": {
+    "description": "Creates a folder; also the name of the undoable operation."
+  },
+  "pasteItems": "{count, plural, =0{Paste Item} =1{Paste Item} other{Paste {count} Items}}",
+  "@pasteItems": {
+    "description": "Pastes the copied items.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "view": "View",
+  "@view": {
+    "description": "Submenu that chooses the view."
+  },
+  "viewIcons": "Icons",
+  "@viewIcons": {
+    "description": "Icon view."
+  },
+  "viewList": "List",
+  "@viewList": {
+    "description": "List view."
+  },
+  "viewColumns": "Columns",
+  "@viewColumns": {
+    "description": "Column view."
+  },
+  "viewGallery": "Gallery",
+  "@viewGallery": {
+    "description": "Gallery view."
+  },
+  "sortBy": "Sort By",
+  "@sortBy": {
+    "description": "Submenu that chooses the sort order."
+  },
+  "sortName": "Name",
+  "@sortName": {
+    "description": "Sort by name."
+  },
+  "sortKind": "Type",
+  "@sortKind": {
+    "description": "Sort by type."
+  },
+  "sortModified": "Modified",
+  "@sortModified": {
+    "description": "Sort by modification date."
+  },
+  "sortSize": "Size",
+  "@sortSize": {
+    "description": "Sort by size."
+  },
+  "columnName": "Name",
+  "@columnName": {
+    "description": "List column header."
+  },
+  "columnModified": "Modified",
+  "@columnModified": {
+    "description": "List column header."
+  },
+  "columnSize": "Size",
+  "@columnSize": {
+    "description": "List column header."
+  },
+  "columnKind": "Type",
+  "@columnKind": {
+    "description": "List column header."
+  },
+  "sidebarPinned": "Pinned",
+  "@sidebarPinned": {
+    "description": "Sidebar section with the user folders."
+  },
+  "sidebarPlaces": "Places",
+  "@sidebarPlaces": {
+    "description": "Sidebar section with home and Trash."
+  },
+  "sidebarTags": "Tags",
+  "@sidebarTags": {
+    "description": "Sidebar section with the tags."
+  },
+  "trash": "Trash",
+  "@trash": {
+    "description": "The Trash place."
+  },
+  "disk": "Disk",
+  "@disk": {
+    "description": "Name of the root disk in the path bar."
+  },
+  "tagRed": "Red",
+  "@tagRed": {
+    "description": "Default tag name."
+  },
+  "tagOrange": "Orange",
+  "@tagOrange": {
+    "description": "Default tag name."
+  },
+  "tagYellow": "Yellow",
+  "@tagYellow": {
+    "description": "Default tag name."
+  },
+  "tagGreen": "Green",
+  "@tagGreen": {
+    "description": "Default tag name."
+  },
+  "tagBlue": "Blue",
+  "@tagBlue": {
+    "description": "Default tag name."
+  },
+  "tagPurple": "Purple",
+  "@tagPurple": {
+    "description": "Default tag name."
+  },
+  "tagGray": "Gray",
+  "@tagGray": {
+    "description": "Default tag name."
+  },
+  "tagError": "Can't assign the tag.",
+  "@tagError": {
+    "description": "Error title when writing a tag fails."
+  },
+  "tagErrorDetail": "The disk does not support extended attributes.",
+  "@tagErrorDetail": {
+    "description": "Error detail when writing a tag fails."
+  },
+  "addTag": "Add a tag…",
+  "@addTag": {
+    "description": "Placeholder of the tag field in the preview pane."
+  },
+  "paneEdit": "Edit",
+  "@paneEdit": {
+    "description": "Preview pane action that opens the file with its app."
+  },
+  "paneMore": "More",
+  "@paneMore": {
+    "description": "Preview pane action that opens the item menu."
+  },
+  "sizeZero": "Zero bytes",
+  "@sizeZero": {
+    "description": "Size of an empty file."
+  },
+  "sizeBytes": "{count, plural, =1{1 byte} other{{count} bytes}}",
+  "@sizeBytes": {
+    "description": "Size below 1000 bytes.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "decimalSeparator": ".",
+  "@decimalSeparator": {
+    "description": "Decimal separator in sizes."
+  },
+  "monthsShort": "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec",
+  "@monthsShort": {
+    "description": "Comma-separated short month names."
+  },
+  "monthsLong": "January,February,March,April,May,June,July,August,September,October,November,December",
+  "@monthsLong": {
+    "description": "Comma-separated month names."
+  },
+  "dateToday": "Today, {time}",
+  "@dateToday": {
+    "description": "A date of today.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "dateYesterday": "Yesterday, {time}",
+  "@dateYesterday": {
+    "description": "A date of yesterday.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "dateShort": "{month} {day}, {year}, {time}",
+  "@dateShort": {
+    "description": "A date with the short month name.",
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "month": {
+        "type": "String"
+      },
+      "year": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "dateLong": "{month} {day}, {year}, {time}",
+  "@dateLong": {
+    "description": "A date with the full month name (Info window).",
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "month": {
+        "type": "String"
+      },
+      "year": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "kindLink": "Link",
+  "@kindLink": {
+    "description": "Type of a symbolic link."
+  },
+  "kindFolder": "Folder",
+  "@kindFolder": {
+    "description": "Type of a folder."
+  },
+  "kindImage": "{format} image",
+  "@kindImage": {
+    "description": "Type of an image.",
+    "placeholders": {
+      "format": {
+        "type": "String"
+      }
+    }
+  },
+  "kindAudio": "{format} audio",
+  "@kindAudio": {
+    "description": "Type of an audio file.",
+    "placeholders": {
+      "format": {
+        "type": "String"
+      }
+    }
+  },
+  "kindVideo": "Video",
+  "@kindVideo": {
+    "description": "Type of a video."
+  },
+  "kindArchive": "Archive",
+  "@kindArchive": {
+    "description": "Type of an archive without extension."
+  },
+  "kindArchiveExt": "{ext} archive",
+  "@kindArchiveExt": {
+    "description": "Type of an archive.",
+    "placeholders": {
+      "ext": {
+        "type": "String"
+      }
+    }
+  },
+  "kindText": "Text",
+  "@kindText": {
+    "description": "Type of a text file."
+  },
+  "kindDocument": "Document",
+  "@kindDocument": {
+    "description": "Type of any other file."
+  },
+  "newFolderName": "new folder",
+  "@newFolderName": {
+    "description": "Name of a new folder on disk."
+  },
+  "copySuffix": "{base} copy",
+  "@copySuffix": {
+    "description": "Name of a duplicate.",
+    "placeholders": {
+      "base": {
+        "type": "String"
+      }
+    }
+  },
+  "errorGone": "The item no longer exists.",
+  "@errorGone": {
+    "description": "Error."
+  },
+  "errorNameInvalid": "The name “{name}” can't be used. Choose another name.",
+  "@errorNameInvalid": {
+    "description": "Error.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "errorNameSlash": "The name “{name}” can't be used. Try a name without the slash “/”.",
+  "@errorNameSlash": {
+    "description": "Error.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "errorNameTaken": "The name “{name}” is already taken. Choose another one.",
+  "@errorNameTaken": {
+    "description": "Error.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUnknownOrigin": "It is not known where “{name}” came from.",
+  "@errorUnknownOrigin": {
+    "description": "Error when restoring from the Trash.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "errorOriginTaken": "The original folder already has an item named “{name}”.",
+  "@errorOriginTaken": {
+    "description": "Error when restoring from the Trash.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "errorPermission": "You don't have permission for this operation.",
+  "@errorPermission": {
+    "description": "Error."
+  },
+  "errorDiskFull": "The disk is full.",
+  "@errorDiskFull": {
+    "description": "Error."
+  },
+  "errorReadOnly": "The disk is read-only.",
+  "@errorReadOnly": {
+    "description": "Error."
+  },
+  "errorFolderIntoItself": "A folder can't be put inside itself.",
+  "@errorFolderIntoItself": {
+    "description": "Error."
+  },
+  "errorAlreadyExists": "There is already an item named “{name}”.",
+  "@errorAlreadyExists": {
+    "description": "Error.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "opMove": "Move",
+  "@opMove": {
+    "description": "Name of the undoable move."
+  },
+  "undoAction": "Undo {action}",
+  "@undoAction": {
+    "description": "Edit menu item.",
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "redoAction": "Redo {action}",
+  "@redoAction": {
+    "description": "Edit menu item.",
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "opDuplicate": "Duplicate",
+  "@opDuplicate": {
+    "description": "Name of the undoable duplicate."
+  },
+  "opDuplicateMany": "Duplicate {count} items",
+  "@opDuplicateMany": {
+    "description": "Name of the undoable duplicate of several items.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unknownCopy": "Unknown copy",
+  "@unknownCopy": {
+    "description": "Error when redoing a duplicate whose source is gone."
+  },
+  "copyCantRedo": "The copy can't be redone.",
+  "@copyCantRedo": {
+    "description": "Error."
+  },
+  "cantRename": "Can't rename.",
+  "@cantRename": {
+    "description": "Error title."
+  },
+  "cantRenameItem": "Can't rename “{name}”.",
+  "@cantRenameItem": {
+    "description": "Error title.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "cantCreateFolder": "Can't create the folder.",
+  "@cantCreateFolder": {
+    "description": "Error title."
+  },
+  "cantDuplicate": "Can't duplicate.",
+  "@cantDuplicate": {
+    "description": "Error title."
+  },
+  "cantTrash": "Can't move to the Trash.",
+  "@cantTrash": {
+    "description": "Error title."
+  },
+  "cantRestore": "Can't restore.",
+  "@cantRestore": {
+    "description": "Error title."
+  },
+  "cantDelete": "Can't delete.",
+  "@cantDelete": {
+    "description": "Error title."
+  },
+  "cantUndo": "Can't undo.",
+  "@cantUndo": {
+    "description": "Error title."
+  },
+  "cantRedo": "Can't redo.",
+  "@cantRedo": {
+    "description": "Error title."
+  },
+  "cantCopy": "Can't complete the copy.",
+  "@cantCopy": {
+    "description": "Error title."
+  },
+  "cantMove": "Can't complete the move.",
+  "@cantMove": {
+    "description": "Error title."
+  },
+  "cantOpenFolder": "Can't open: {error}",
+  "@cantOpenFolder": {
+    "description": "Error shown in place of the list.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "cantOpenWindow": "Can't open a new window.",
+  "@cantOpenWindow": {
+    "description": "Error title."
+  },
+  "entryNotInstalled": "The Mustache desktop entry is not installed (cargo xtask install-app).",
+  "@entryNotInstalled": {
+    "description": "Error detail."
+  },
+  "extensionRemove": "Remove the extension “{old}”?",
+  "@extensionRemove": {
+    "description": "Title when a rename removes the extension.",
+    "placeholders": {
+      "old": {
+        "type": "String"
+      }
+    }
+  },
+  "extensionChange": "Use the extension “{newExt}” instead of “{old}”?",
+  "@extensionChange": {
+    "description": "Title when a rename changes the extension.",
+    "placeholders": {
+      "newExt": {
+        "type": "String"
+      },
+      "old": {
+        "type": "String"
+      }
+    }
+  },
+  "extensionWarning": "With another extension the file may open in a different app.",
+  "@extensionWarning": {
+    "description": "Detail of the extension alert."
+  },
+  "keepExtension": "Keep {ext}",
+  "@keepExtension": {
+    "description": "Keeps the old extension.",
+    "placeholders": {
+      "ext": {
+        "type": "String"
+      }
+    }
+  },
+  "removeExtension": "Remove",
+  "@removeExtension": {
+    "description": "Removes the extension."
+  },
+  "useExtension": "Use {ext}",
+  "@useExtension": {
+    "description": "Uses the new extension.",
+    "placeholders": {
+      "ext": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmDeleteOne": "Delete “{name}” permanently?",
+  "@confirmDeleteOne": {
+    "description": "Title of the delete confirmation.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmDeleteMany": "Delete {count} items permanently?",
+  "@confirmDeleteMany": {
+    "description": "Title of the delete confirmation.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteWarningOne": "This item will be deleted right away. This can't be undone.",
+  "@deleteWarningOne": {
+    "description": "Detail of the delete confirmation."
+  },
+  "deleteWarningMany": "These items will be deleted right away. This can't be undone.",
+  "@deleteWarningMany": {
+    "description": "Detail of the delete confirmation."
+  },
+  "appHasNoCommand": "The entry of “{app}” has no command.",
+  "@appHasNoCommand": {
+    "description": "Error when launching an app.",
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "appCantOpen": "Can't open “{app}”: {error}",
+  "@appCantOpen": {
+    "description": "Error when launching an app.",
+    "placeholders": {
+      "app": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "replaceQuestion": "Replace “{name}”?",
+  "@replaceQuestion": {
+    "description": "Save dialog: an item with the name exists.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "replaceDetail": "An item with this name already exists in this folder.",
+  "@replaceDetail": {
+    "description": "Save dialog detail."
+  },
+  "saveAs": "Save as:",
+  "@saveAs": {
+    "description": "Label of the name field in the Save dialog."
+  },
+  "searchIn": "Search in:",
+  "@searchIn": {
+    "description": "Search scope bar."
+  },
+  "thisComputer": "This Computer",
+  "@thisComputer": {
+    "description": "Search scope: the whole computer."
+  },
+  "searchTitle": "Searching “{scope}”",
+  "@searchTitle": {
+    "description": "Window title while searching.",
+    "placeholders": {
+      "scope": {
+        "type": "String"
+      }
+    }
+  },
+  "quoted": "“{name}”",
+  "@quoted": {
+    "description": "A quoted name.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "itemCount": "{count, plural, =1{1 item} other{{count} items}}",
+  "@itemCount": {
+    "description": "Number of items.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "selectedCount": "{count, plural, =1{{selected} of 1 selected} other{{selected} of {count} selected}}",
+  "@selectedCount": {
+    "description": "Selected items in the status bar.",
+    "placeholders": {
+      "selected": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "available": "{head}, {free} available",
+  "@available": {
+    "description": "Status bar with the free space.",
+    "placeholders": {
+      "head": {
+        "type": "String"
+      },
+      "free": {
+        "type": "String"
+      }
+    }
+  },
+  "documentsSize": "{count} documents - {size}",
+  "@documentsSize": {
+    "description": "Several items in the preview pane.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "information": "Information",
+  "@information": {
+    "description": "Preview pane section."
+  },
+  "created": "Created",
+  "@created": {
+    "description": "Creation date label."
+  },
+  "modified": "Modified",
+  "@modified": {
+    "description": "Modification date label."
+  },
+  "size": "Size",
+  "@size": {
+    "description": "Size label."
+  },
+  "tags": "Tags",
+  "@tags": {
+    "description": "Tags label."
+  },
+  "infoGeneral": "General",
+  "@infoGeneral": {
+    "description": "Info section."
+  },
+  "infoNameExtension": "Name and Extension",
+  "@infoNameExtension": {
+    "description": "Info section."
+  },
+  "infoComments": "Comments",
+  "@infoComments": {
+    "description": "Info section."
+  },
+  "infoPreview": "Preview",
+  "@infoPreview": {
+    "description": "Info section."
+  },
+  "infoPermissions": "Sharing and Permissions",
+  "@infoPermissions": {
+    "description": "Info section."
+  },
+  "privilegeReadWrite": "Read and write",
+  "@privilegeReadWrite": {
+    "description": "Permission."
+  },
+  "privilegeReadOnly": "Read only",
+  "@privilegeReadOnly": {
+    "description": "Permission."
+  },
+  "privilegeWriteOnly": "Write only",
+  "@privilegeWriteOnly": {
+    "description": "Permission."
+  },
+  "privilegeNone": "No access",
+  "@privilegeNone": {
+    "description": "Permission."
+  },
+  "infoTitle": "{name} Info",
+  "@infoTitle": {
+    "description": "Title of the Info window.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "modifiedOn": "Modified: {date}",
+  "@modifiedOn": {
+    "description": "Info header.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "kind": "Type",
+  "@kind": {
+    "description": "Info row."
+  },
+  "sizeOnDisk": "{bytes} bytes ({disk} on disk)",
+  "@sizeOnDisk": {
+    "description": "Info row.",
+    "placeholders": {
+      "bytes": {
+        "type": "int"
+      },
+      "disk": {
+        "type": "String"
+      }
+    }
+  },
+  "location": "Location",
+  "@location": {
+    "description": "Info row."
+  },
+  "app": "App",
+  "@app": {
+    "description": "Info Open With row."
+  },
+  "none": "None",
+  "@none": {
+    "description": "No app."
+  },
+  "groupFallback": "group",
+  "@groupFallback": {
+    "description": "Info permissions row when the group is unknown."
+  },
+  "everyone": "everyone",
+  "@everyone": {
+    "description": "Info permissions row for others."
+  },
+  "ownerMe": "{owner} (me)",
+  "@ownerMe": {
+    "description": "Owner row in Info.",
+    "placeholders": {
+      "owner": {
+        "type": "String"
+      }
+    }
+  },
+  "positionOf": "{name}  ({index} of {count})",
+  "@positionOf": {
+    "description": "Quick Look title with several items.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "index": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "openWithApp": "Open with {app}",
+  "@openWithApp": {
+    "description": "Quick Look button.",
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "lastModified": "Last modified: {date}",
+  "@lastModified": {
+    "description": "Quick Look detail.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "copying": "Copying",
+  "@copying": {
+    "description": "Verb in the progress window."
+  },
+  "moving": "Moving",
+  "@moving": {
+    "description": "Verb in the progress window."
+  },
+  "transferLine": "{verb} “{name}” to “{destination}”",
+  "@transferLine": {
+    "description": "Progress window line.",
+    "placeholders": {
+      "verb": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      },
+      "destination": {
+        "type": "String"
+      }
+    }
+  },
+  "progressOf": "{done} of {total}",
+  "@progressOf": {
+    "description": "Progress window bytes.",
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "conflictCopy": "An item named “{name}” already exists here. Replace it with the one you are copying?",
+  "@conflictCopy": {
+    "description": "Conflict window.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "conflictMove": "An item named “{name}” already exists here. Replace it with the one you are moving?",
+  "@conflictMove": {
+    "description": "Conflict window.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "keepBoth": "Keep both",
+  "@keepBoth": {
+    "description": "Conflict choice."
+  },
+  "stop": "Stop",
+  "@stop": {
+    "description": "Conflict choice."
+  }
+}

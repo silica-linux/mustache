@@ -17,7 +17,7 @@ extension _Tags on _MustacheWindowState {
     if (items.isEmpty) return const {};
     return {
       for (final c in TagColor.values)
-        if (items.every((e) => _tagsOf(e).contains(tagName(c)))) c,
+        if (items.every((e) => _tagsOf(e).any((t) => tagColor(t) == c))) c,
     };
   }
 
@@ -25,14 +25,14 @@ extension _Tags on _MustacheWindowState {
   void _toggleTag(TagColor color, [List<Entry>? targets]) {
     final name = tagName(color);
     final items = targets ?? _selection;
-    final remove =
-        items.isNotEmpty && items.every((e) => _tagsOf(e).contains(name));
+    bool has(List<String> tags) => tags.any((t) => tagColor(t) == color);
+    final remove = items.isNotEmpty && items.every((e) => has(_tagsOf(e)));
     var failed = false;
     for (final e in items) {
       final tags = [..._tagsOf(e)];
       if (remove) {
-        tags.remove(name);
-      } else if (!tags.contains(name)) {
+        tags.removeWhere((t) => tagColor(t) == color);
+      } else if (!has(tags)) {
         tags.add(name);
       }
       if (writeTags(e.path, tags)) {
@@ -43,10 +43,7 @@ extension _Tags on _MustacheWindowState {
     }
     _update(() {});
     if (failed) {
-      _showError(
-        'Non si può assegnare l\'etichetta.',
-        'Il disco non permette gli attributi estesi.',
-      );
+      _showError(l10n.tagError, l10n.tagErrorDetail);
     }
   }
 
@@ -58,10 +55,7 @@ extension _Tags on _MustacheWindowState {
     if (writeTags(entry.path, tags)) {
       _update(() => _tagCache[entry.path] = tags);
     } else {
-      _showError(
-        'Non si può assegnare l\'etichetta.',
-        'Il disco non permette gli attributi estesi.',
-      );
+      _showError(l10n.tagError, l10n.tagErrorDetail);
     }
   }
 
@@ -76,9 +70,9 @@ extension _Tags on _MustacheWindowState {
         !one.isDirectory &&
         (hasThumbnail(one.name) || one.extension == 'pdf');
     return [
-      if (editable) PaneAction('Modifica', 'pencil', (_) => _openEntry(one)),
+      if (editable) PaneAction(l10n.paneEdit, 'pencil', (_) => _openEntry(one)),
       PaneAction(
-        'Altro',
+        l10n.paneMore,
         'ellipsis-circle',
         (at) => _openContextMenu(items.first, at),
       ),
@@ -100,8 +94,8 @@ extension _Tags on _MustacheWindowState {
 
   /// The places of the Tags section.
   List<Place> get _tagPlaces => [
-    for (final name in defaultTags.keys)
-      Place(name, '$tagPathPrefix$name', PlaceKind.tag),
+    for (final color in TagColor.values)
+      Place(tagName(color), '$tagPathPrefix${tagName(color)}', PlaceKind.tag),
   ];
 
   /// Shows the items in home with the tag, as the search finds them.
@@ -130,7 +124,7 @@ extension _Tags on _MustacheWindowState {
         // No hidden folders (.cache, .local…): tags are not put there.
         final relative = item.path.substring(home.length);
         if (relative.contains('/.')) continue;
-        if (!readTags(item.path).contains(name)) continue;
+        if (!readTags(item.path).any((t) => sameTag(t, name))) continue;
         final entry = entryAt(item.path);
         if (entry == null) continue;
         found.add(entry);

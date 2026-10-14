@@ -21,7 +21,7 @@ void main() {
     expect(d.title, 'Esporta');
     expect(d.name, 'relazione.pdf');
     expect(d.folder, '/');
-    expect(d.acceptLabel, 'Salva');
+    expect(d.acceptLabel, 'Save');
     expect(DialogOptions.parse(['/home']), isNull);
     expect(
       DialogOptions.parse([
@@ -62,7 +62,7 @@ void main() {
           child: MustacheWindow(
             start: home.path,
             places: [Place('casa', home.path, PlaceKind.home)],
-            trash: Place('Cestino', '${home.path}/Cestino', PlaceKind.trash),
+            trash: Place('Trash', '${home.path}/Cestino', PlaceKind.trash),
             settings: Settings('${home.path}/.s.json')..view = 'list',
             dialog: dialog,
             onDialogFinish: finished.add,
@@ -95,7 +95,7 @@ void main() {
       tester,
     ) async {
       await pump(tester, const DialogOptions(save: true, name: 'nuovo.txt'));
-      await tester.tap(find.byKey(const ValueKey('dialog Salva')));
+      await tester.tap(find.byKey(const ValueKey('dialog Save')));
       await tester.pump();
       expect(finished, [
         ['${home.path}/nuovo.txt'],
@@ -105,10 +105,10 @@ void main() {
         'nota.txt',
       );
       await tester.pump();
-      await tester.tap(find.byKey(const ValueKey('dialog Salva')));
+      await tester.tap(find.byKey(const ValueKey('dialog Save')));
       await tester.pump();
       expect(find.byType(SilicaAlert), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('alert Sostituisci')));
+      await tester.tap(find.byKey(const ValueKey('alert Replace')));
       await tester.pump();
       expect(finished.last, ['${home.path}/nota.txt']);
     });
@@ -117,7 +117,7 @@ void main() {
       tester,
     ) async {
       await pump(tester, const DialogOptions(save: false, directory: true));
-      await tester.tap(find.byKey(const ValueKey('dialog Apri')));
+      await tester.tap(find.byKey(const ValueKey('dialog Open')));
       await tester.pump();
       expect(finished, [
         [home.path],

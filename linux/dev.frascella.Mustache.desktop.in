@@ -1,13 +1,16 @@
 [Desktop Entry]
 Type=Application
 Name=Mustache
-GenericName=Gestore dei file
-Comment=Cartelle e file
+GenericName=File Manager
+GenericName[it]=Gestore dei file
+Comment=Folders and files
+Comment[it]=Cartelle e file
 Exec=@EMBEDDER@ --size 1000x700 --title Mustache --app-id dev.frascella.Mustache @BUNDLE@
 Icon=system-file-manager
 X-Silica-Icon=mustache
 StartupWMClass=dev.frascella.Mustache
 Categories=System;FileManager;Utility;
-Keywords=file;cartelle;documenti;
+Keywords=file;folder;documents;
+Keywords[it]=file;cartelle;documenti;
 Terminal=false
 OnlyShowIn=Silica;

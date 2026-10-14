@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/widgets.dart' show Locale;
+import 'package:mustache/src/l10n.dart';
 import 'package:mustache/src/model.dart';
 
 Entry file(String name, {int size = 0, DateTime? at, bool dir = false}) =>
@@ -48,18 +50,44 @@ void main() {
   });
 
   test('sizes and dates in the list view formats', () {
-    expect(formatSize(file('x', size: 12)), '12 byte');
+    expect(formatSize(file('x', size: 12)), '12 bytes');
+    expect(formatSize(file('x', size: 1)), '1 byte');
     expect(formatSize(file('x', size: 3400000)), '3 MB');
     // Like the rows of mu20-list-rows (R3.2).
     expect(formatSize(file('x', size: 2967)), '3 KB');
     expect(formatSize(file('x', size: 461000)), '461 KB');
+    expect(formatSize(file('x', size: 2150000000)), '2.15 GB');
+    expect(formatSize(file('x', size: 0)), 'Zero bytes');
+    expect(formatSize(file('x', dir: true)), '--');
+    final now = DateTime(2026, 10, 13, 12);
+    expect(formatDate(DateTime(2026, 10, 13, 10, 22), now), 'Today, 10:22');
+    expect(formatDate(DateTime(2026, 10, 12, 18, 5), now), 'Yesterday, 18:05');
+    expect(formatDate(DateTime(2024, 3, 3, 9, 14), now), 'Mar 3, 2024, 09:14');
+  });
+
+  test('in Italian: the measured formats (R3.1, R3.2)', () {
+    useLocale(const Locale('it'));
+    addTearDown(() => useLocale(const Locale('en')));
+    expect(formatSize(file('x', size: 12)), '12 byte');
     expect(formatSize(file('x', size: 2150000000)), '2,15 GB');
     expect(formatSize(file('x', size: 0)), 'Zero byte');
-    expect(formatSize(file('x', dir: true)), '--');
     final now = DateTime(2026, 10, 13, 12);
     expect(formatDate(DateTime(2026, 10, 13, 10, 22), now), 'oggi, 10:22');
     expect(formatDate(DateTime(2026, 10, 12, 18, 5), now), 'ieri, 18:05');
     expect(formatDate(DateTime(2024, 3, 3, 9, 14), now), '3 mar 2024, 09:14');
+    expect(kindLabel(file('a.png'), 'image/png'), 'Immagine PNG');
+    expect(kindLabel(file('a.zip'), 'application/zip'), 'Archivio zip');
+    expect(kindLabel(file('dati')), 'Documento');
+  });
+
+  test('the language: the first supported one, otherwise English', () {
+    expect(resolveLocale(const [Locale('it', 'IT')]), const Locale('it'));
+    expect(
+      resolveLocale(const [Locale('de'), Locale('it')]),
+      const Locale('it'),
+    );
+    expect(resolveLocale(const [Locale('de')]), const Locale('en'));
+    expect(resolveLocale(const []), const Locale('en'));
   });
 
   test('extensions and kinds', () {
@@ -68,13 +96,13 @@ void main() {
     expect(file('senza').extension, '');
     // Short families (R3.3): the format for images and audio, the extension for archives.
     expect(kindLabel(file('a.pdf'), 'application/pdf'), 'PDF');
-    expect(kindLabel(file('a.png'), 'image/png'), 'Immagine PNG');
-    expect(kindLabel(file('a.wav'), 'audio/x-wav'), 'Audio WAV');
-    expect(kindLabel(file('a.zip'), 'application/zip'), 'Archivio zip');
-    expect(kindLabel(file('a.rs'), 'text/rust'), 'Testo');
+    expect(kindLabel(file('a.png'), 'image/png'), 'PNG image');
+    expect(kindLabel(file('a.wav'), 'audio/x-wav'), 'WAV audio');
+    expect(kindLabel(file('a.zip'), 'application/zip'), 'zip archive');
+    expect(kindLabel(file('a.rs'), 'text/rust'), 'Text');
     expect(kindLabel(file('a.mov'), 'video/quicktime'), 'Video');
-    expect(kindLabel(file('dati')), 'Documento');
-    expect(kindLabel(file('Gamma', dir: true)), 'Cartella');
+    expect(kindLabel(file('dati')), 'Document');
+    expect(kindLabel(file('Gamma', dir: true)), 'Folder');
   });
 
   test('history: back, forward, and a new path clears forward', () {
@@ -133,7 +161,7 @@ void main() {
     // The target is 11 bytes long ("appunti.txt"); the date is now, not 2024.
     expect(link.size, 11);
     expect(link.modified.year, DateTime.now().year);
-    expect(kindLabel(link, 'text/plain'), 'Collegamento');
+    expect(kindLabel(link, 'text/plain'), 'Link');
     expect(entryAt(link.path)?.size, 11);
   });
 

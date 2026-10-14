@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
 
 import 'src/dialog.dart';
+import 'src/l10n.dart';
 import 'src/model.dart';
 import 'src/settings.dart';
 import 'src/tabs.dart';
@@ -39,35 +40,39 @@ void main(List<String> args) {
   SilicaWindow.setFullSizeContent(toolbarHeight).ignore();
   if (dialog != null) {
     runApp(
-      Directionality(
-        textDirection: TextDirection.ltr,
-        child: MustacheWindow(
-          start: start,
-          places: places,
-          trash: trash,
-          iconsDir: env['SILICA_ICONS_DIR'],
-          settings: settings,
-          dialog: dialog,
+      AppLocalizationsScope(
+        child: Directionality(
+          textDirection: TextDirection.ltr,
+          child: MustacheWindow(
+            start: start,
+            places: places,
+            trash: trash,
+            iconsDir: env['SILICA_ICONS_DIR'],
+            settings: settings,
+            dialog: dialog,
+          ),
         ),
       ),
     );
     return;
   }
   runApp(
-    Directionality(
-      textDirection: TextDirection.ltr,
-      // One window per tab (⌘T).
-      child: TabsHost(
-        start: start,
-        build: (tab, tabBar, onLocation, active) => MustacheWindow(
-          start: tab.location,
-          places: places,
-          trash: trash,
-          iconsDir: env['SILICA_ICONS_DIR'],
-          settings: settings,
-          tabBar: tabBar,
-          onLocation: onLocation,
-          focused: active,
+    AppLocalizationsScope(
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        // One window per tab (⌘T).
+        child: TabsHost(
+          start: start,
+          build: (tab, tabBar, onLocation, active) => MustacheWindow(
+            start: tab.location,
+            places: places,
+            trash: trash,
+            iconsDir: env['SILICA_ICONS_DIR'],
+            settings: settings,
+            tabBar: tabBar,
+            onLocation: onLocation,
+            focused: active,
+          ),
         ),
       ),
     ),
