@@ -119,12 +119,52 @@ extension _ListView on _MustacheWindowState {
     dark: MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark,
   );
 
+  /// The column header in the veiled band of the glass toolbar (R1.9: the veil continues under
+  /// it); it follows the rows when the table scrolls sideways.
+  Widget _listHeaderBand() => LayoutBuilder(
+    builder: (context, box) {
+      final width = math.max(
+        listTableWidth(_listWidths) + listInset,
+        box.maxWidth,
+      );
+      return ClipRect(
+        child: ListenableBuilder(
+          listenable: _listScrollX,
+          builder: (context, child) => Transform.translate(
+            offset: Offset(
+              _listScrollX.hasClients ? -_listScrollX.offset : 0,
+              0,
+            ),
+            child: child,
+          ),
+          child: OverflowBox(
+            alignment: Alignment.topLeft,
+            minWidth: width,
+            maxWidth: width,
+            child: ListHeader(
+              widths: _listWidths,
+              sort: _sort,
+              descending: _descending,
+              colors: _listColors,
+              background: const Color(0x00000000),
+              onSort: _sortList,
+              onResize: _resizeColumn,
+            ),
+          ),
+        ),
+      );
+    },
+  );
+
   Widget _listView() {
     if (_error != null) {
-      return Center(
-        child: Text(
-          l10n.cantOpenFolder('$_error'),
-          style: text(13, color: secondaryText),
+      return Padding(
+        padding: EdgeInsets.only(top: _topInset),
+        child: Center(
+          child: Text(
+            l10n.cantOpenFolder('$_error'),
+            style: text(13, color: secondaryText),
+          ),
         ),
       );
     }
@@ -139,41 +179,24 @@ extension _ListView on _MustacheWindowState {
         final scrolls = table + listInset > box.maxWidth;
         final width = scrolls ? table + listInset : box.maxWidth;
         // Alternating rows continue down to the bottom (R3.10).
-        final fill =
-            ((box.maxHeight - listHeaderHeight - listHeaderLine) /
-                    listRowHeight)
-                .ceil() +
-            1;
+        // The header is in the toolbar band, inside `_topInset`.
+        final fill = ((box.maxHeight - _topInset) / listRowHeight).ceil() + 1;
         final count = math.max(rows.length, fill);
         final content = ColoredBox(
           color: colors.background,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ListHeader(
-                widths: _listWidths,
-                sort: _sort,
-                descending: _descending,
-                colors: colors,
-                onSort: _sortList,
-                onResize: _resizeColumn,
-              ),
-              Expanded(
-                child: ListView.builder(
-                  key: const ValueKey('list'),
-                  padding: const EdgeInsets.only(top: listFirstRowGap),
-                  itemExtent: listRowHeight,
-                  itemCount: count,
-                  itemBuilder: (context, index) => index < rows.length
-                      ? _listRow(rows, index, colors, table, now)
-                      : _emptyListRow(index, colors, table),
-                ),
-              ),
-            ],
+          child: ListView.builder(
+            key: const ValueKey('list'),
+            padding: EdgeInsets.only(top: _topInset + listFirstRowGap),
+            itemExtent: listRowHeight,
+            itemCount: count,
+            itemBuilder: (context, index) => index < rows.length
+                ? _listRow(rows, index, colors, table, now)
+                : _emptyListRow(index, colors, table),
           ),
         );
         if (!scrolls) return content;
         return SingleChildScrollView(
+          controller: _listScrollX,
           scrollDirection: Axis.horizontal,
           child: SizedBox(width: width, height: box.maxHeight, child: content),
         );

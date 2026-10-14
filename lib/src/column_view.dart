@@ -96,7 +96,12 @@ class ColumnView extends StatefulWidget {
     this.active = true,
     this.env,
     this.tagsOf,
+    this.topInset = 0,
   });
+
+  /// The band of the glass toolbar above the columns (R1.9): each column starts below it and
+  /// scrolls under it.
+  final double topInset;
 
   /// The tags of an item: the dots before the arrow (mu22-root).
   final List<String> Function(Entry entry)? tagsOf;
@@ -192,6 +197,7 @@ class _ColumnViewState extends State<ColumnView> {
           Expanded(
             child: _RevealList(
               key: ValueKey('list $dir'),
+              topInset: widget.topInset,
               reveal: entries.indexWhere((e) => e.path == highlighted),
               itemCount: entries.length,
               itemBuilder: (context, index) {
@@ -327,7 +333,10 @@ class _RevealList extends StatefulWidget {
     required this.reveal,
     required this.itemCount,
     required this.itemBuilder,
+    this.topInset = 0,
   });
+
+  final double topInset;
 
   final int reveal;
   final int itemCount;
@@ -346,7 +355,8 @@ class _RevealListState extends State<_RevealList> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scroll.hasClients || widget.reveal < 0) return;
       final position = _scroll.position;
-      final bottom = columnTop + columnRow * (widget.reveal + 1);
+      final bottom =
+          widget.topInset + columnTop + columnRow * (widget.reveal + 1);
       if (bottom > position.viewportDimension) {
         _scroll.jumpTo(
           (bottom - position.viewportDimension).clamp(
@@ -367,7 +377,7 @@ class _RevealListState extends State<_RevealList> {
   @override
   Widget build(BuildContext context) => ListView.builder(
     controller: _scroll,
-    padding: const EdgeInsets.only(top: columnTop),
+    padding: EdgeInsets.only(top: widget.topInset + columnTop),
     itemCount: widget.itemCount,
     itemExtent: columnRow,
     itemBuilder: widget.itemBuilder,

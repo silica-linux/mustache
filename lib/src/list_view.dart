@@ -264,8 +264,11 @@ class ListHeader extends StatelessWidget {
     required this.colors,
     required this.onSort,
     required this.onResize,
+    this.background,
   });
 
+  /// Null: the header color; transparent in the veiled band of the glass toolbar (R1.9).
+  final Color? background;
   final List<double> widths;
   final SortKey sort;
   final bool descending;
@@ -358,7 +361,7 @@ class ListHeader extends StatelessWidget {
     return Container(
       key: const ValueKey('column header'),
       height: listHeaderHeight + listHeaderLine,
-      color: colors.header,
+      color: background ?? colors.header,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

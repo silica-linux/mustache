@@ -47,6 +47,10 @@ part 'window_search.dart';
 part 'window_tags.dart';
 part 'window_transfers.dart';
 
+/// The tab bar below the toolbar: a 28 pt rail with 4 pt above and below (the content moves down
+/// by 36, MU-01).
+const double tabBarHeight = 36;
+
 const Color accent = Color(0xFF0075F2);
 const Color textColor = Color(0xFF000000);
 const Color secondaryText = Color(0xFF808182);
@@ -397,6 +401,13 @@ class _MustacheWindowState extends State<MustacheWindow>
 
   /// The width of the content area at the last paint (for the arrows in the grid).
   double _contentWidth = 800;
+
+  /// The height of the veiled band over the content (toolbar and the bars below it, R1.9): the
+  /// views start below it and scroll under it.
+  double _topInset = toolbarHeight;
+
+  /// The sideways scroll of a list wider than the window (the header in the band follows it).
+  final ScrollController _listScrollX = ScrollController();
   final FocusNode _focus = FocusNode();
   List<Entry> _entries = const [];
   String? _error;
@@ -431,6 +442,7 @@ class _MustacheWindowState extends State<MustacheWindow>
     _lifecycle.dispose();
     _externalDrags?.cancel();
     _focus.dispose();
+    _listScrollX.dispose();
     _sidebarShown.dispose();
     _slowClick?.cancel();
     _cleanUpTimer?.cancel();
@@ -1054,66 +1066,36 @@ class _MustacheWindowState extends State<MustacheWindow>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // Above the list the bar has the header background (in dark `#2f2f2f`,
-                          // lighter than the content); elsewhere the content's.
-                          _toolbar(visible),
-                          if (widget.dialog?.save ?? false) _saveBar(),
-                          ?widget.tabBar,
-                          if (_searching) _scopeBar(),
                           Expanded(
-                            // The open folder as a drop target: a 2 pt line along the edge.
-                            child: FolderDropTarget(
-                              path: _history.current,
-                              onDrop: _drop,
-                              builder: (context, active) => Container(
-                                foregroundDecoration: active
-                                    ? BoxDecoration(
-                                        border: Border.all(
-                                          color: dropLine,
-                                          width: 2,
+                            // The content scrolls under the glass toolbar (R1.9, mustache#3).
+                            child: _underToolbar(
+                              visible,
+                              // The open folder as a drop target: a 2 pt line along the edge of
+                              // the content, below the band.
+                              (band) => FolderDropTarget(
+                                path: _history.current,
+                                onDrop: _drop,
+                                builder: (context, active) => Stack(
+                                  children: [
+                                    Positioned.fill(child: _views()),
+                                    if (active)
+                                      Positioned(
+                                        left: 0,
+                                        top: band,
+                                        right: 0,
+                                        bottom: 0,
+                                        child: IgnorePointer(
+                                          child: DecoratedBox(
+                                            decoration: BoxDecoration(
+                                              border: Border.all(
+                                                color: dropLine,
+                                                width: 2,
+                                              ),
+                                            ),
+                                          ),
                                         ),
-                                      )
-                                    : null,
-                                child: LayoutBuilder(
-                                  builder: (context, box) {
-                                    _contentWidth = box.maxWidth;
-                                    // Search results are always a list.
-                                    final view = _searching
-                                        ? _listView()
-                                        : switch (_view) {
-                                            ViewMode.icons => _icons(),
-                                            ViewMode.list => _listView(),
-                                            ViewMode.columns => _columnsView(),
-                                            ViewMode.gallery => _galleryView(),
-                                          };
-                                    // In the gallery the pane is always there, 250 wide (spec 6).
-                                    final pane =
-                                        _previewPane ||
-                                        _view == ViewMode.gallery;
-                                    if (!pane) return view;
-                                    // The preview pane on the right (spec 1.6).
-                                    return Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: [
-                                        Expanded(child: view),
-                                        PreviewPane(
-                                          width: _view == ViewMode.gallery
-                                              ? 250
-                                              : previewPaneWidth,
-                                          compact: _view == ViewMode.gallery,
-                                          items: _selection,
-                                          kindOf: _kind,
-                                          env: widget.iconsEnv,
-                                          now: widget.now,
-                                          tagsOf: _tagsOf,
-                                          onAddTag: _addTag,
-                                          actions: _paneActions(),
-                                          iconsDir: widget.iconsDir,
-                                        ),
-                                      ],
-                                    );
-                                  },
+                                      ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -1313,13 +1295,93 @@ class _MustacheWindowState extends State<MustacheWindow>
     });
   }
 
-  /// The toolbar (spec 1.2); `visible` is the visible part of the sidebar.
+  /// The glass toolbar over the content (R1.9, R4.9): the toolbar, then the bars below it (Save
+  /// name row, tabs, search scope, list column header) in one veiled band; `content` gets the
+  /// band's height and fills the whole area, scrolling under it.
+  Widget _underToolbar(double visible, Widget Function(double band) content) {
+    final list = _error == null && (_searching || _view == ViewMode.list);
+    final bars = <(Widget, double)>[
+      if (widget.dialog?.save ?? false) (_saveBar(), saveBarHeight),
+      if (widget.tabBar case final tabBar?) (tabBar, tabBarHeight),
+      if (_searching) (_scopeBar(), scopeBarHeight),
+      if (list) (_listHeaderBand(), listHeaderHeight + listHeaderLine),
+    ];
+    final header = bars.fold(0.0, (sum, bar) => sum + bar.$2);
+    _topInset = toolbarHeight + header;
+    final veil = ToolbarVeil.of(context);
+    return ScrollUnderToolbar(
+      toolbar: _toolbar(visible),
+      header: bars.isEmpty
+          ? null
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final (bar, height) in bars)
+                  SizedBox(height: height, child: bar),
+              ],
+            ),
+      headerHeight: header,
+      active: _active,
+      // The list header has its own line below it, always there (MU-20): no second one.
+      veil: list
+          ? ToolbarVeil(
+              offset: veil.offset,
+              scale: veil.scale,
+              saturation: veil.saturation,
+              sharpSigma: veil.sharpSigma,
+              wideSigma: veil.wideSigma,
+              wideWeight: veil.wideWeight,
+              line: const Color(0x00000000),
+            )
+          : veil,
+      body: (context, padding) => content(padding.top),
+    );
+  }
+
+  /// The view of the folder (or of the search results), with the preview pane on the right.
+  Widget _views() => LayoutBuilder(
+    builder: (context, box) {
+      _contentWidth = box.maxWidth;
+      // Search results are always a list.
+      final view = _searching
+          ? _listView()
+          : switch (_view) {
+              ViewMode.icons => _icons(),
+              ViewMode.list => _listView(),
+              ViewMode.columns => _columnsView(),
+              ViewMode.gallery => _galleryView(),
+            };
+      // In the gallery the pane is always there, 250 wide (spec 6).
+      final pane = _previewPane || _view == ViewMode.gallery;
+      if (!pane) return view;
+      // The preview pane on the right (spec 1.6), below the band.
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: view),
+          Padding(
+            padding: EdgeInsets.only(top: _topInset),
+            child: PreviewPane(
+              width: _view == ViewMode.gallery ? 250 : previewPaneWidth,
+              compact: _view == ViewMode.gallery,
+              items: _selection,
+              kindOf: _kind,
+              env: widget.iconsEnv,
+              now: widget.now,
+              tagsOf: _tagsOf,
+              onAddTag: _addTag,
+              actions: _paneActions(),
+              iconsDir: widget.iconsDir,
+            ),
+          ),
+        ],
+      );
+    },
+  );
+
+  /// The toolbar (spec 1.2); `visible` is the visible part of the sidebar. No background: the
+  /// veil of the band is under it (R1.9).
   Widget _toolbar(double visible) => MustacheToolbar(
-    // Above the list the bar has the header background (in dark `#2f2f2f`, lighter than the
-    // content); elsewhere the content's.
-    background: _searching || _view == ViewMode.list
-        ? _listColors.header
-        : WindowColors.of(context).content,
     onBackHistory: (at) => _historyMenu(at, back: true),
     onForwardHistory: (at) => _historyMenu(at, back: false),
     // With the sidebar hidden the toolbar leaves room for the window buttons.
@@ -1385,12 +1447,16 @@ class _MustacheWindowState extends State<MustacheWindow>
     );
   }
 
-  Widget _galleryView() => GalleryView(
-    entries: _entries,
-    selected: _cursor ?? (_selected.isEmpty ? null : _selected.last),
-    onTap: _tap,
-    onOpen: _openEntry,
-    env: widget.iconsEnv,
+  // The gallery does not scroll vertically: it starts below the band.
+  Widget _galleryView() => Padding(
+    padding: EdgeInsets.only(top: _topInset),
+    child: GalleryView(
+      entries: _entries,
+      selected: _cursor ?? (_selected.isEmpty ? null : _selected.last),
+      onTap: _tap,
+      onOpen: _openEntry,
+      env: widget.iconsEnv,
+    ),
   );
 
   Widget _columnsView() => ColumnView(
@@ -1403,12 +1469,14 @@ class _MustacheWindowState extends State<MustacheWindow>
     active: _active,
     env: widget.iconsEnv,
     tagsOf: _tagsOf,
+    topInset: _topInset,
   );
 
   Widget _icons() {
     if (_error != null) return _listView();
     final positions = _freePositions;
     final view = IconView(
+      topInset: _topInset,
       side: _iconSide,
       positions: positions,
       moveDuration: _moveDuration,

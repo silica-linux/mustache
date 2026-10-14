@@ -216,6 +216,7 @@ class IconView extends StatefulWidget {
     this.text = defaultLabelSize,
     this.env,
     this.controller,
+    this.topInset = 0,
     this.renaming,
     this.renameBuilder,
     this.onRubberBand,
@@ -259,6 +260,10 @@ class IconView extends StatefulWidget {
   /// The environment where silica-icons is found (tests).
   final Map<String, String>? env;
   final ScrollController? controller;
+
+  /// The band of the glass toolbar above the content (R1.9): the content starts below it and
+  /// scrolls under it.
+  final double topInset;
 
   /// The item being renamed: instead of the label, the field built by `renameBuilder` (at most as
   /// wide as the cell).
@@ -398,7 +403,8 @@ class _IconViewState extends State<IconView> {
           height = rows == 0 ? 0.0 : grid.iconTop(rows - 1) + grid.pitchY;
         }
         _grid = grid;
-        _viewHeight = constraints.maxHeight;
+        // Edge autoscroll counts from the bottom of the toolbar band.
+        _viewHeight = constraints.maxHeight - widget.topInset;
         final band = _bandStart == null || _bandEnd == null
             ? null
             : Rect.fromPoints(_bandStart!, _bandEnd!);
@@ -408,6 +414,7 @@ class _IconViewState extends State<IconView> {
           onSecondaryTapDown: (d) => onContext?.call(null, d.globalPosition),
           child: SingleChildScrollView(
             controller: _scroll,
+            padding: EdgeInsets.only(top: widget.topInset),
             child: _horizontal(
               free: free,
               child: GestureDetector(
@@ -444,7 +451,10 @@ class _IconViewState extends State<IconView> {
                 },
                 child: SizedBox(
                   width: width,
-                  height: math.max(height, constraints.maxHeight),
+                  height: math.max(
+                    height,
+                    constraints.maxHeight - widget.topInset,
+                  ),
                   child: Stack(
                     children: [
                       for (var i = 0; i < entries.length; i++)

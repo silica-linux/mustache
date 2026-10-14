@@ -4,6 +4,9 @@
 
 part of 'window.dart';
 
+/// The name row of the Save panel, below the toolbar.
+const double saveBarHeight = 44;
+
 /// Dialog colors; in dark from mu95-open-dark and mu95-save-compact-dark (button `#373737` with
 /// text `#e0e0e0`, disabled primary `#2f2f30` / `#626263`, field `#191919` with border `#313131`,
 /// line `#3c3c3d`).
@@ -123,7 +126,7 @@ extension _Dialog on _MustacheWindowState {
 
   Widget _saveBarWith(DialogColors colors) => SizedBox(
     key: const ValueKey('name row'),
-    height: 44,
+    height: saveBarHeight,
     child: Row(
       children: [
         const SizedBox(width: 16),

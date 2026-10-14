@@ -6,6 +6,9 @@
 part of 'window.dart';
 
 /// How many items a search examines at most, and the largest file read for its content.
+/// The scope bar below the toolbar while searching.
+const double scopeBarHeight = 32;
+
 const int searchScanLimit = 200000;
 const int searchContentLimit = 256 * 1024;
 
@@ -190,7 +193,7 @@ extension _Search on _MustacheWindowState {
 
     return Container(
       key: const ValueKey('scope bar'),
-      height: 32,
+      height: scopeBarHeight,
       color: _listColors.header,
       child: Row(
         children: [

@@ -334,7 +334,9 @@ void main() {
 
     Future<void> backgroundMenu(WidgetTester tester) async {
       await tester.tapAt(
-        tester.getTopLeft(find.byType(IconView)) + const Offset(420, 230),
+        // The view starts under the glass toolbar (R1.9).
+        tester.getTopLeft(find.byType(IconView)) +
+            const Offset(420, 230 + toolbarHeight),
         buttons: kSecondaryMouseButton,
       );
       await tester.pump();
