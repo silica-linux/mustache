@@ -4,10 +4,11 @@
 // Without modifiers it moves if the destination is on the same disk, otherwise copies; with ⌥ it
 // copies (R9.1).
 
-import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -21,7 +22,17 @@ const Color dragCountBadge = Color(0xFFFB3936);
 const Color dragCopyBadge = Color(0xFF00C261);
 const Color dropLine = Color(0xFFB3D7FF);
 const double dragAlpha = 0.90;
+
+/// The dragged items left in place while the image travels: dimmed (provisional, as the desktop).
+const double dragDim = 0.5;
 const double dragPill = 16;
+
+/// The pills of the image: one row per item, at this pitch, after the room for the badges.
+const double dragRowPitch = dragPill + 4;
+const double dragImagePad = 12;
+
+/// The most items drawn in the image.
+const int dragImageRows = 5;
 
 /// The hover time on a folder before it opens (R9.1, spring-loaded folder).
 const Duration springOpen = Duration(milliseconds: 715);
@@ -61,15 +72,19 @@ List<MountPoint> get systemMounts {
   }
 }
 
-/// Copies (does not move) with ⌥ or when source and destination are on different disks.
+/// Copies (does not move) with ⌥ or when source and destination are on different disks; ⌘ moves
+/// even across disks (R9.1).
 bool dropCopies(
   List<String> paths,
   String destination, {
   bool? alt,
+  bool? meta,
   List<MountPoint>? mounts,
 }) {
   final option = alt ?? HardwareKeyboard.instance.isAltPressed;
   if (option) return true;
+  final command = meta ?? HardwareKeyboard.instance.isMetaPressed;
+  if (command) return false;
   final m = mounts ?? systemMounts;
   final target = mountOf(destination, m);
   return paths.any((p) => mountOf(p, m) != target);
@@ -93,21 +108,27 @@ class DragImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final copy = HardwareKeyboard.instance.isAltPressed;
-    final shown = paths.take(5).toList();
+    final shown = paths.take(dragImageRows).toList();
     return Opacity(
       opacity: dragAlpha,
       child: Stack(
-        clipBehavior: Clip.none,
         children: [
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [for (final path in shown) _row(path)],
+          // Room for the badges inside the image: Ossido gets it as a picture.
+          Padding(
+            padding: const EdgeInsets.only(
+              left: dragImagePad,
+              top: dragImagePad,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [for (final path in shown) _row(path)],
+            ),
           ),
           if (paths.length > 1 || copy)
             Positioned(
-              left: -12,
-              top: -12,
+              left: 0,
+              top: 0,
               child: Row(
                 children: [
                   if (copy) _badge('+', dragCopyBadge, 18),
@@ -180,30 +201,47 @@ class DragImage extends StatelessWidget {
   );
 }
 
-/// The mark of a destination folder in the render tree: a drop from another app (which does not go
-/// through `DragTarget`) finds it with [folderAt].
+/// The mark of a destination folder in the render tree: the window finds the folder under the
+/// pointer with [folderAt] (its own drags and Ossido's) and drops there with [onDrop].
 @immutable
 class FolderDropMeta {
-  const FolderDropMeta(this.path);
+  const FolderDropMeta(this.path, {this.onDrop, this.onSpring});
   final String path;
+  final void Function(DragPayload payload, String destination)? onDrop;
+
+  /// The spring-loaded opening, for the folders that have it.
+  final VoidCallback? onSpring;
 }
 
 /// The innermost destination folder under `position` (view coordinates).
-String? folderAt(Offset position, int viewId) {
+FolderDropMeta? folderAt(Offset position, int viewId) {
   final result = HitTestResult();
   WidgetsBinding.instance.hitTestInView(result, position, viewId);
   for (final entry in result.path) {
     final target = entry.target;
     if (target is RenderMetaData && target.metaData is FolderDropMeta) {
-      return (target.metaData as FolderDropMeta).path;
+      return target.metaData as FolderDropMeta;
     }
   }
   return null;
 }
 
-/// A drop target for dragged items: `builder` receives whether it is under the pointer with an
-/// acceptable payload; after hovering for `springOpen` it calls `onSpring` (spring-loaded folder).
-class FolderDropTarget extends StatefulWidget {
+/// The folder a drag is over, for the window below it: its [FolderDropTarget] lights up.
+class DropHover extends InheritedNotifier<ValueNotifier<String?>> {
+  const DropHover({
+    super.key,
+    required ValueNotifier<String?> super.notifier,
+    required super.child,
+  });
+
+  static String? of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<DropHover>()?.notifier?.value;
+}
+
+/// A drop target for dragged items: `builder` receives whether a drag is over it (the window
+/// decides, [DropHover]); the window opens it after hovering for `springOpen` when it has
+/// `onSpring` (spring-loaded folder).
+class FolderDropTarget extends StatelessWidget {
   const FolderDropTarget({
     super.key,
     required this.path,
@@ -218,101 +256,124 @@ class FolderDropTarget extends StatefulWidget {
   final VoidCallback? onSpring;
 
   @override
-  State<FolderDropTarget> createState() => _FolderDropTargetState();
-}
-
-class _FolderDropTargetState extends State<FolderDropTarget> {
-  Timer? _spring;
-
-  @override
-  void dispose() {
-    _spring?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => DragTarget<DragPayload>(
-    onWillAcceptWithDetails: (details) {
-      final ok = canDrop(details.data, widget.path);
-      if (ok && widget.onSpring != null) {
-        _spring?.cancel();
-        _spring = Timer(springOpen, () => widget.onSpring?.call());
-      }
-      return ok;
-    },
-    onLeave: (_) => _spring?.cancel(),
-    onAcceptWithDetails: (details) {
-      _spring?.cancel();
-      widget.onDrop(details.data, widget.path);
-    },
-    builder: (context, candidates, rejected) => MetaData(
-      metaData: FolderDropMeta(widget.path),
-      behavior: HitTestBehavior.translucent,
-      child: widget.builder(context, candidates.isNotEmpty),
+  Widget build(BuildContext context) => MetaData(
+    metaData: FolderDropMeta(path, onDrop: onDrop, onSpring: onSpring),
+    behavior: HitTestBehavior.translucent,
+    child: Builder(
+      builder: (context) => builder(context, DropHover.of(context) == path),
     ),
   );
 }
 
-/// A `Draggable` that starts only after the pointer has moved more than `threshold` pt (the icon
-/// view, MU-34); the drag still starts from the press point, so a drop moves the item by the whole
-/// movement of the pointer (R7.7).
-class ThresholdDraggable<T extends Object> extends Draggable<T> {
-  const ThresholdDraggable({
-    super.key,
-    required super.child,
-    required super.feedback,
-    required this.threshold,
-    super.data,
-    super.dragAnchorStrategy,
-    super.onDragStarted,
-    super.onDragUpdate,
-  });
+/// The count badge: 20 pt red circle with white digits (MU-40).
+const double dragBadgeSide = 20;
 
-  final double threshold;
+/// The largest drag image, per side (the embedder's limit).
+const double dragImageMax = 1024;
 
-  @override
-  MultiDragGestureRecognizer createRecognizer(
-    GestureMultiDragStartCallback onStart,
-  ) => _ThresholdDragRecognizer(threshold)..onStart = onStart;
-}
-
-class _ThresholdDragRecognizer extends MultiDragGestureRecognizer {
-  _ThresholdDragRecognizer(this.threshold) : super(debugOwner: null);
-
-  final double threshold;
-
-  @override
-  MultiDragPointerState createNewPointerState(PointerDownEvent event) =>
-      _ThresholdPointerState(
-        event.position,
-        event.kind,
-        gestureSettings,
-        threshold,
-      );
-
-  @override
-  String get debugDescription => 'threshold drag';
-}
-
-class _ThresholdPointerState extends MultiDragPointerState {
-  _ThresholdPointerState(
-    super.initialPosition,
-    super.kind,
-    super.gestureSettings,
-    this.threshold,
+/// One image of `pieces` (each at its origin, same coordinates as `grab`) at ~90 % (MU-40), with
+/// the count badge of `count` items at `grab + badgeFromPointer` when there are several; and the
+/// point of it that stays under the pointer: `grab`, so the items move with the pointer from where
+/// they were taken. Null when there is nothing to draw.
+(ui.Image?, Offset) composeDragImage(
+  List<(Offset, ui.Image)> pieces,
+  Offset grab,
+  int count, {
+  Offset badgeFromPointer = const Offset(-2, -2),
+}) {
+  final badge = count > 1
+      ? Rect.fromCircle(
+          center: grab + badgeFromPointer,
+          radius: dragBadgeSide / 2,
+        )
+      : null;
+  var bounds = badge;
+  for (final (origin, image) in pieces) {
+    final rect = origin & Size(image.width.toDouble(), image.height.toDouble());
+    bounds = bounds?.expandToInclude(rect) ?? rect;
+  }
+  if (bounds == null) return (null, Offset.zero);
+  // Within the largest image, around the press.
+  bounds = bounds.intersect(
+    Rect.fromCenter(center: grab, width: dragImageMax, height: dragImageMax),
   );
+  bounds = Rect.fromLTRB(
+    bounds.left.floorToDouble(),
+    bounds.top.floorToDouble(),
+    bounds.right.ceilToDouble(),
+    bounds.bottom.ceilToDouble(),
+  );
+  if (bounds.isEmpty) return (null, Offset.zero);
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder)..translate(-bounds.left, -bounds.top);
+  final translucent = Paint()
+    ..color = const Color(0xFFFFFFFF).withValues(alpha: dragAlpha);
+  for (final (origin, image) in pieces) {
+    canvas.drawImage(image, origin, translucent);
+  }
+  if (badge != null) {
+    canvas.drawCircle(
+      badge.center,
+      dragBadgeSide / 2,
+      Paint()..color = dragCountBadge,
+    );
+    final digits = TextPainter(
+      text: TextSpan(
+        text: '$count',
+        style: const TextStyle(
+          fontFamily: uiFontFamily,
+          package: 'silica_ui',
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFFFFFFFF),
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    digits.paint(
+      canvas,
+      badge.center - Offset(digits.width / 2, digits.height / 2),
+    );
+    digits.dispose();
+  }
+  final picture = recorder.endRecording();
+  final image = picture.toImageSync(
+    bounds.width.toInt(),
+    bounds.height.toInt(),
+  );
+  picture.dispose();
+  return (image, grab - bounds.topLeft);
+}
 
-  final double threshold;
-
-  @override
-  void checkForResolutionAfterMove() {
-    if ((pendingDelta ?? Offset.zero).distance > threshold) {
-      resolve(GestureDisposition.accepted);
+/// Hands the files to Ossido's drag (the embedder's `silica/drag` › `start`) with `image` on the
+/// pointer and its point `hotspot` under it, so the image stays where the pointer grabbed the
+/// items. True if Ossido took it.
+Future<bool> startFileDrag(
+  List<String> paths,
+  ui.Image? image,
+  Offset hotspot,
+) async {
+  final args = <String, Object?>{
+    'uris': [for (final p in paths) Uri.file(p).toString()],
+  };
+  if (image != null) {
+    // rawRgba: premultiplied, as Wayland wants.
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    if (bytes != null) {
+      args['icon'] = {
+        'width': image.width,
+        'height': image.height,
+        'rgba': base64Encode(bytes.buffer.asUint8List()),
+        'x': hotspot.dx.round().clamp(0, math.max(0, image.width - 1)),
+        'y': hotspot.dy.round().clamp(0, math.max(0, image.height - 1)),
+      };
     }
   }
-
-  @override
-  void accepted(GestureMultiDragStartCallback starter) {
-    starter(initialPosition);
+  try {
+    return await SilicaDrag.channel.invokeMethod<bool>('start', args) ?? false;
+  } on MissingPluginException {
+    return false;
+  } on PlatformException {
+    return false;
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mustache/src/drag.dart';
+import 'package:mustache/src/list_view.dart';
 import 'package:mustache/src/model.dart';
 import 'package:mustache/src/settings.dart';
 import 'package:mustache/src/window.dart';
@@ -34,6 +35,21 @@ void main() {
       isTrue,
     );
     expect(mountOf('/media/chiaveX/f', mounts), '/');
+    // ⌘ moves even to another disk; ⌥ still copies.
+    expect(
+      dropCopies(
+        ['/home/a'],
+        '/media/chiave',
+        alt: false,
+        meta: true,
+        mounts: mounts,
+      ),
+      isFalse,
+    );
+    expect(
+      dropCopies(['/home/a'], '/home/b', alt: true, meta: true, mounts: mounts),
+      isTrue,
+    );
   });
 
   group('in the window', () {
@@ -122,26 +138,26 @@ void main() {
       expect(File('${home.path}/Doc/Dentro/nota.txt').existsSync(), isTrue);
     });
 
-    testWidgets('outside the window the drag passes to Ossido', (tester) async {
+    testWidgets('the drag is handed to Ossido at once, held where grabbed', (
+      tester,
+    ) async {
       final calls = <MethodCall>[];
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(SilicaDrag.channel, (call) async {
             calls.add(call);
-            return true;
+            return false;
           });
+      addTearDown(
+        () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(SilicaDrag.channel, null),
+      );
       await pump(tester);
+      final name = tester.getCenter(find.text('nota.txt'));
       final mouse = await tester.startGesture(
-        tester.getCenter(find.text('nota.txt')),
+        name,
         kind: PointerDeviceKind.mouse,
       );
-      await tester.pump(const Duration(milliseconds: 20));
       await mouse.moveBy(const Offset(6, 0));
-      await tester.pump();
-      // Inside the window it stays a Flutter drag.
-      await mouse.moveTo(const Offset(500, 300));
-      await tester.pump();
-      expect(calls, isEmpty);
-      await mouse.moveTo(const Offset(1100, 300));
       await tester.pump();
       for (var i = 0; i < 10 && calls.isEmpty; i++) {
         await tester.runAsync(
@@ -149,15 +165,71 @@ void main() {
         );
         await tester.pump();
       }
+      // Still inside the window, the files already belong to Ossido's drag.
       expect(calls.single.method, 'start');
       final args = calls.single.arguments as Map;
       expect(args['uris'], [Uri.file('${home.path}/Doc/nota.txt').toString()]);
-      expect(args['icon'], isA<Map<Object?, Object?>>());
-      // Leaving and coming back does not start it again.
-      await mouse.moveTo(const Offset(1200, 300));
+      final icon = args['icon'] as Map;
+      // The grab point is inside the image, on the pill (not its corner).
+      expect(icon['x'], allOf(greaterThan(0), lessThan(icon['width'])));
+      expect(icon['y'], allOf(greaterThan(0), lessThan(icon['height'])));
+      // Not taken (outside Silica): the image travels in the window, the row grays.
+      expect(find.byKey(const ValueKey('drag image')), findsOneWidget);
+      await mouse.up();
       await tester.pump();
-      expect(calls, hasLength(1));
+      expect(find.byKey(const ValueKey('drag image')), findsNothing);
+      await tester.pump(const Duration(seconds: 1));
+    });
+
+    testWidgets('taken by Ossido: its events light the folder and drop there', (
+      tester,
+    ) async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SilicaDrag.channel, (call) async => true);
+      addTearDown(
+        () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(SilicaDrag.channel, null),
+      );
+      Future<void> embedder(String method, Map<String, Object?> args) =>
+          tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+            SilicaDrag.channel.name,
+            const JSONMethodCodec().encodeMethodCall(MethodCall(method, args)),
+            (_) {},
+          );
+      await pump(tester);
+      final mouse = await tester.startGesture(
+        tester.getCenter(find.text('nota.txt')),
+        kind: PointerDeviceKind.mouse,
+      );
+      await mouse.moveBy(const Offset(6, 0));
+      await tester.pump();
+      await settle(tester);
+      // Ossido draws the image now; the embedder cancels Flutter's press.
+      expect(find.byKey(const ValueKey('drag image')), findsNothing);
       await mouse.cancel();
+      await tester.pump();
+      final folder = tester.getCenter(find.text('Dentro'));
+      await embedder('enter', {'x': folder.dx, 'y': folder.dy});
+      await tester.pump();
+      final lit = tester.widget<ListRowBackground>(
+        find.descendant(
+          of: find.ancestor(
+            of: find.text('Dentro'),
+            matching: find.byKey(ValueKey('${home.path}/Doc/Dentro')),
+          ),
+          matching: find.byType(ListRowBackground),
+        ),
+      );
+      expect(lit.dropTarget, isTrue);
+      await embedder('drop', {
+        'x': folder.dx,
+        'y': folder.dy,
+        'uris': [Uri.file('${home.path}/Doc/nota.txt').toString()],
+      });
+      await embedder('finished', {'action': 'move'});
+      await settle(tester);
+      expect(File('${home.path}/Doc/Dentro/nota.txt').existsSync(), isTrue);
+      expect(File('${home.path}/Doc/nota.txt').existsSync(), isFalse);
       await tester.pump(const Duration(seconds: 1));
     });
 

@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+Windows: dragging files works in every view (icons, list, columns, gallery). The items are
+pressed through raw pointer events, so the rubber band, taps and double clicks no longer take the
+drag away; past the view's threshold the dragged items dim in place and their image (the icons as
+drawn, or the list pills, with a count badge) goes to Ossido at once, held where the pointer
+grabbed it, so files reach other windows, the desktop, the Dock and other apps. Over the window
+the folder under the pointer lights up, springs open after ~715 ms and takes the drop; ⌥ copies,
+⌘ moves even across disks. Pressing an item of a larger selection keeps the selection for the
+drag. Rename on a slow click: only a click released without moving on the name of the item that
+was already the only one selected, not the second click of a double click; a drag, a rubber band
+or a click on the icon never opens the field.
+
 Full folders: a folder with at least one visible item (hidden files do not count) is drawn with
 the `full` variant of the silica-icons folder, on the Desktop and in every view of the window;
 the symbol and tint stay on top. The check is one directory listing per folder, cached until the

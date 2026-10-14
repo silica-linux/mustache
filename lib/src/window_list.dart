@@ -228,7 +228,8 @@ extension _ListView on _MustacheWindowState {
     bool chosen(int i) =>
         i >= 0 && i < rows.length && _selected.contains(rows[i].entry.path);
     final selected = chosen(index);
-    final active = _active;
+    // The rows being dragged turn gray (inactive selection, MU-40).
+    final active = _active && _drag == null;
     final pending = _pendingTransfer(entry.path);
     final nameColor = selected
         ? (active ? colors.selectionName : colors.inactiveName)
@@ -281,8 +282,10 @@ extension _ListView on _MustacheWindowState {
       x += w;
     }
     final ring = _contextRing == entry.path;
-    return _draggable(
+    return _itemPress(
       entry,
+      threshold: 1,
+      anchor: Offset(listIconLeft + indent, (listRowHeight - listIconSide) / 2),
       _folderTarget(
         entry,
         (context, dropActive) => Listener(
@@ -398,10 +401,24 @@ extension _ListView on _MustacheWindowState {
                           alignment: Alignment.centerLeft,
                           child: _renameField(entry, maxWidth: nameRoom),
                         )
-                      : baselineText(
-                          middleEllipsis(entry.name, nameStyle, nameRoom),
-                          nameStyle,
+                      : Baseline(
                           baseline: listRowBaseline,
+                          baselineType: TextBaseline.alphabetic,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            heightFactor: 1,
+                            // A press on the name itself may be a slow click (R8).
+                            child: Listener(
+                              onPointerDown: (_) => _namePress(entry),
+                              child: Text(
+                                middleEllipsis(entry.name, nameStyle, nameRoom),
+                                maxLines: 1,
+                                softWrap: false,
+                                overflow: TextOverflow.clip,
+                                style: nameStyle,
+                              ),
+                            ),
+                          ),
                         ),
                 ),
                 if (pending != null)

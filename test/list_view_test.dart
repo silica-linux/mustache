@@ -38,7 +38,8 @@ void main() {
           start: root.path,
           places: [Place('Prova', root.path, PlaceKind.home)],
           trash: Place('Trash', '${root.path}/.Cestino', PlaceKind.trash),
-          now: DateTime(2026, 10, 14, 12),
+          // The files are made now: their dates read "Today, …".
+          now: DateTime.now(),
           settings: Settings(
             '${Directory.systemTemp.createTempSync('mustache-impostazioni').path}/s.json',
           )..view = 'list',

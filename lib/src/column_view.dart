@@ -97,7 +97,11 @@ class ColumnView extends StatefulWidget {
     this.env,
     this.tagsOf,
     this.topInset = 0,
+    this.wrapItem,
   });
+
+  /// Wraps every row (dragging, drop target).
+  final Widget Function(Entry entry, Widget child)? wrapItem;
 
   /// The band of the glass toolbar above the columns (R1.9): each column starts below it and
   /// scrolls under it.
@@ -213,101 +217,105 @@ class _ColumnViewState extends State<ColumnView> {
                 final tagsWidth = tags.isEmpty
                     ? 0.0
                     : 10 + 5.0 * (tags.length - 1);
-                return Listener(
-                  onPointerDown: (_) => widget.onSelect(entry, dir),
-                  child: GestureDetector(
-                    key: ValueKey(entry.path),
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {},
-                    onDoubleTap: () => widget.onOpen(entry),
-                    child: Stack(
-                      children: [
-                        if (fill != null)
+                final wrap = widget.wrapItem ?? (_, Widget child) => child;
+                return wrap(
+                  entry,
+                  Listener(
+                    onPointerDown: (_) => widget.onSelect(entry, dir),
+                    child: GestureDetector(
+                      key: ValueKey(entry.path),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {},
+                      onDoubleTap: () => widget.onOpen(entry),
+                      child: Stack(
+                        children: [
+                          if (fill != null)
+                            Positioned(
+                              left: columnSelectionLeft,
+                              width: columnSelectionWidth,
+                              top: 0,
+                              bottom: 0,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: fill,
+                                  borderRadius: BorderRadius.circular(
+                                    columnSelectionRadius,
+                                  ),
+                                ),
+                              ),
+                            ),
                           Positioned(
-                            left: columnSelectionLeft,
-                            width: columnSelectionWidth,
+                            left: columnIconLeft,
+                            top: (columnRow - columnIconSide) / 2,
+                            width: columnIconSide,
+                            height: columnIconSide,
+                            child: EntryIcon(
+                              entry: entry,
+                              side: columnIconSide,
+                              env: widget.env,
+                            ),
+                          ),
+                          // The name truncated in the middle (MU-22: "Beta con un…nella
+                          // colonna"); the tag dots before the arrow.
+                          Positioned(
+                            left: columnTextLeft,
+                            right:
+                                columnPitch -
+                                columnBand -
+                                columnChevronLeft +
+                                4 +
+                                (tags.isEmpty ? 0 : tagsWidth + 6),
                             top: 0,
                             bottom: 0,
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: fill,
-                                borderRadius: BorderRadius.circular(
-                                  columnSelectionRadius,
-                                ),
-                              ),
-                            ),
-                          ),
-                        Positioned(
-                          left: columnIconLeft,
-                          top: (columnRow - columnIconSide) / 2,
-                          width: columnIconSide,
-                          height: columnIconSide,
-                          child: EntryIcon(
-                            entry: entry,
-                            side: columnIconSide,
-                            env: widget.env,
-                          ),
-                        ),
-                        // The name truncated in the middle (MU-22: "Beta con un…nella
-                        // colonna"); the tag dots before the arrow.
-                        Positioned(
-                          left: columnTextLeft,
-                          right:
-                              columnPitch -
-                              columnBand -
-                              columnChevronLeft +
-                              4 +
-                              (tags.isEmpty ? 0 : tagsWidth + 6),
-                          top: 0,
-                          bottom: 0,
-                          child: LayoutBuilder(
-                            builder: (context, box) {
-                              final style = TextStyle(
-                                fontFamily: uiFontFamily,
-                                package: 'silica_ui',
-                                fontSize: 13,
-                                color: textColor,
-                              );
-                              return Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  middleEllipsis(
-                                    entry.name,
-                                    style,
-                                    box.maxWidth,
+                            child: LayoutBuilder(
+                              builder: (context, box) {
+                                final style = TextStyle(
+                                  fontFamily: uiFontFamily,
+                                  package: 'silica_ui',
+                                  fontSize: 13,
+                                  color: textColor,
+                                );
+                                return Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    middleEllipsis(
+                                      entry.name,
+                                      style,
+                                      box.maxWidth,
+                                    ),
+                                    maxLines: 1,
+                                    softWrap: false,
+                                    style: style,
                                   ),
-                                  maxLines: 1,
-                                  softWrap: false,
-                                  style: style,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        if (tags.isNotEmpty)
-                          Positioned(
-                            left: columnChevronLeft - 10 - tagsWidth,
-                            top: (columnRow - 10) / 2,
-                            child: TagDots(
-                              tags: tags,
-                              background: fill ?? colors.fill,
+                                );
+                              },
                             ),
                           ),
-                        if (entry.isDirectory)
-                          Positioned(
-                            left: columnChevronLeft,
-                            top: (columnRow - 7) / 2,
-                            width: 4,
-                            height: 7,
-                            child: CustomPaint(
-                              painter: _Chevron(
-                                lit && active
-                                    ? colors.activeText
-                                    : colors.chevron,
+                          if (tags.isNotEmpty)
+                            Positioned(
+                              left: columnChevronLeft - 10 - tagsWidth,
+                              top: (columnRow - 10) / 2,
+                              child: TagDots(
+                                tags: tags,
+                                background: fill ?? colors.fill,
                               ),
                             ),
-                          ),
-                      ],
+                          if (entry.isDirectory)
+                            Positioned(
+                              left: columnChevronLeft,
+                              top: (columnRow - 7) / 2,
+                              width: 4,
+                              height: 7,
+                              child: CustomPaint(
+                                painter: _Chevron(
+                                  lit && active
+                                      ? colors.activeText
+                                      : colors.chevron,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 );

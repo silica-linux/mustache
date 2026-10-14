@@ -282,16 +282,4 @@ extension _Operations on _MustacheWindowState {
     _load();
     if (error != null) _showError(l10n.cantRedo, error);
   }
-
-  /// A click on an item: if it was already the only selected one, rename after ~440 ms (unless a
-  /// double click arrives, which opens it).
-  void _clickForRename(Entry entry, {required bool wasOnlySelected}) {
-    _slowClick?.cancel();
-    if (!wasOnlySelected) return;
-    _slowClick = Timer(slowClickRename, () {
-      if (mounted && _selected.length == 1 && _selected.contains(entry.path)) {
-        _startRename(entry.path);
-      }
-    });
-  }
 }

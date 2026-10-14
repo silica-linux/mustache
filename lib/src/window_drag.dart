@@ -1,7 +1,79 @@
-// Dragging inside the window (MU-40): what is dragged, where it is dropped, the spring-loaded
-// folder.
+// Dragging items out of the view (MU-40) and the slow click that renames (R8).
+//
+// Items are pressed through raw pointer events, not gestures: a drag never waits on the gesture
+// arena, so the rubber band, the taps and the double click cannot take it away. Past the view's
+// threshold the drag starts: the dragged items stay in place, dimmed, and the image of them is
+// handed to Ossido (`silica/drag` › `start`, grabbed at the press point) right away, so the files
+// reach any window, the desktop, the Dock and other apps. Over this window Ossido's drag comes
+// back as `enter`/`motion`/`drop`: the folder under the pointer lights up, springs open after
+// hovering and receives the drop. Outside Silica the image travels inside the window.
 
 part of 'window.dart';
+
+/// A press on an item of the view.
+class _ItemPress {
+  _ItemPress({
+    required this.entry,
+    required this.pointer,
+    required this.at,
+    required this.local,
+    required this.threshold,
+    required this.anchor,
+    required this.faces,
+    required this.slowClick,
+  });
+
+  final Entry entry;
+  final int pointer;
+
+  /// The press point, global and in the item.
+  final Offset at;
+  final Offset local;
+
+  /// The movement that starts the drag.
+  final double threshold;
+
+  /// The top left corner of the item's icon, in the item: the drag image's pill is held there.
+  final Offset anchor;
+
+  /// The image is the items as drawn (icons, thumbnails) instead of the pills.
+  final bool faces;
+
+  /// Released without moving it renames (a press on the name of the only selected item, no
+  /// modifiers, not the second click of a double click).
+  final bool slowClick;
+  bool dragged = false;
+}
+
+/// A drag that left from this window.
+class _WindowDrag {
+  _WindowDrag({
+    required this.payload,
+    required this.pointer,
+    required this.hotspot,
+  });
+
+  final DragPayload payload;
+
+  /// Where the pointer is (global) and the point of the image under it.
+  Offset pointer;
+  Offset hotspot;
+
+  /// The image as drawn by the window (icons): shown here and handed to Ossido.
+  ui.Image? faces;
+
+  /// The picture of the pills handed to Ossido.
+  ui.Image? picture;
+
+  /// Ossido took the drag: the image is its own, and the drop comes back as `drop`.
+  bool handedOver = false;
+
+  /// Ossido did not take it (outside Silica): the drag stays in the window.
+  bool local = false;
+
+  /// The press was released here before Ossido answered: the drop happened here.
+  bool released = false;
+}
 
 extension _Drag on _MustacheWindowState {
   /// The items that leave when dragging `entry`: the selection if it belongs to it, otherwise the
@@ -10,69 +82,374 @@ extension _Drag on _MustacheWindowState {
       ? [for (final e in _selection) e.path]
       : [entry.path];
 
-  /// Makes an item of the view draggable (threshold: 1 pt for the mouse, as in the list; the icon
-  /// view passes its own, MU-34). Leaving the window, the drag passes to Ossido (`SilicaDrag`)
-  /// with the same image: other apps and the Dock receive the files.
-  Widget _draggable(Entry entry, Widget child, {double? threshold}) {
-    final data = DragPayload(_dragPaths(entry), _history.current);
-    final feedback = RepaintBoundary(
-      key: _dragImageKey,
-      child: DragImage(paths: _dragPaths(entry), env: widget.iconsEnv),
-    );
-    void started() {
-      _slowClick?.cancel();
-      _rowDragged = true;
-      _draggedOut = false;
-    }
+  /// The paths being dragged (dimmed in place).
+  bool _isDragged(String path) => _drag?.payload.paths.contains(path) ?? false;
 
-    void update(DragUpdateDetails details) =>
-        _maybeDragOut(entry, details.globalPosition);
-    if (threshold != null) {
-      return ThresholdDraggable<DragPayload>(
+  /// An item of a view: pressing it may start a drag past `threshold` (list and columns 1 pt,
+  /// icons ~8 pt, R7.3) or, released, a slow click. `anchor` is where the item's icon starts (the
+  /// pills of the image are held there); with `faces` the image is the item as drawn.
+  Widget _itemPress(
+    Entry entry,
+    Widget child, {
+    required double threshold,
+    Offset anchor = Offset.zero,
+    bool faces = false,
+  }) {
+    final dimmed = faces && _isDragged(entry.path);
+    return Listener(
+      onPointerDown: (e) => _itemDown(
+        e,
+        entry,
         threshold: threshold,
-        data: data,
-        dragAnchorStrategy: pointerDragAnchorStrategy,
-        feedback: feedback,
-        onDragStarted: started,
-        onDragUpdate: update,
-        child: child,
-      );
-    }
-    return Draggable<DragPayload>(
-      data: data,
-      dragAnchorStrategy: pointerDragAnchorStrategy,
-      feedback: feedback,
-      onDragStarted: started,
-      onDragUpdate: update,
-      child: child,
+        anchor: anchor,
+        faces: faces,
+      ),
+      child: Opacity(
+        opacity: dimmed ? dragDim : 1,
+        child: faces
+            ? RepaintBoundary(
+                key: _faces.putIfAbsent(entry.path, GlobalKey.new),
+                child: child,
+              )
+            : child,
+      ),
     );
   }
 
-  void _maybeDragOut(Entry entry, Offset position) {
-    if (_draggedOut) return;
-    final size = MediaQuery.sizeOf(context);
-    if ((Offset.zero & size).contains(position)) return;
-    _draggedOut = true;
-    final paths = _dragPaths(entry);
-    final boundary = _dragImageKey.currentContext?.findRenderObject();
-    final image = boundary is RenderRepaintBoundary
-        ? boundary.toImageSync()
-        : null;
-    SilicaDrag.start(paths, icon: image).whenComplete(() => image?.dispose());
+  /// A press on an item's name (heard before the item's press): it may be a slow click if the
+  /// item is already the only one selected.
+  void _namePress(Entry entry) {
+    _nameDown = (
+      entry.path,
+      _selected.length == 1 && _selected.contains(entry.path),
+    );
   }
 
-  /// Files dropped by another app (or coming back here from outside): onto the folder under the
-  /// pointer, otherwise into the open one; move or copy as inside the window.
+  void _itemDown(
+    PointerDownEvent e,
+    Entry entry, {
+    required double threshold,
+    required Offset anchor,
+    required bool faces,
+  }) {
+    _endStaleDrag();
+    _slowClick?.cancel();
+    final name = _nameDown;
+    _nameDown = null;
+    if (e.buttons & kPrimaryButton == 0) {
+      _press = null;
+      return;
+    }
+    final keys = HardwareKeyboard.instance;
+    final plain =
+        !keys.isMetaPressed &&
+        !keys.isControlPressed &&
+        !keys.isShiftPressed &&
+        !keys.isAltPressed;
+    // The second press of a double click never renames.
+    final quick = _recentClick == entry.path;
+    _press = _ItemPress(
+      entry: entry,
+      pointer: e.pointer,
+      at: e.position,
+      local: e.localPosition,
+      threshold: threshold,
+      anchor: anchor,
+      faces: faces,
+      slowClick:
+          plain && !quick && name != null && name.$1 == entry.path && name.$2,
+    );
+    _pressAt = e.position;
+  }
+
+  /// Every press in the window, after the item's own: one on nothing ends the slow-click wait.
+  void _windowDown(PointerDownEvent e) {
+    _lastDrag = null;
+    if (_press?.pointer == e.pointer) return;
+    _nameDown = null;
+    _press = null;
+    _slowClick?.cancel();
+    _endStaleDrag();
+  }
+
+  void _windowMove(PointerMoveEvent e) {
+    final press = _press;
+    if (press == null || press.pointer != e.pointer) return;
+    final drag = _drag;
+    if (press.dragged) {
+      if (drag == null || drag.handedOver) return;
+      _update(() => drag.pointer = e.position);
+      _hoverAt(e.position, drag.payload);
+      return;
+    }
+    if ((e.position - press.at).distance <= press.threshold) return;
+    press.dragged = true;
+    _beginDrag(press, e.position);
+  }
+
+  void _windowUp(PointerUpEvent e) {
+    final press = _press;
+    if (press == null || press.pointer != e.pointer) return;
+    _press = null;
+    final drag = _drag;
+    if (!press.dragged) {
+      _clickUp(press);
+      return;
+    }
+    if (drag == null || drag.handedOver) return;
+    // Released here (outside Silica, or before Ossido answered): the drop is here.
+    drag.released = true;
+    _dropAt(e.position, drag.payload, own: true);
+    _endDrag();
+  }
+
+  void _windowCancel(PointerCancelEvent e) {
+    final press = _press;
+    if (press == null || press.pointer != e.pointer) return;
+    _press = null;
+    // A cancel during a drag is the embedder handing it to Ossido: it goes on there, and ends
+    // with `finished`.
+    final drag = _drag;
+    if (drag != null && drag.local) _endDrag();
+  }
+
+  /// A click released without a drag: on the name of the item that was already the only one
+  /// selected, the field opens after ~440 ms unless a second click comes first (R8, MU-32). A
+  /// click on the icon, a drag, a rubber band or a double click never rename.
+  void _clickUp(_ItemPress press) {
+    final path = press.entry.path;
+    if (_collapseTo == path) {
+      _update(() {
+        _selected
+          ..clear()
+          ..add(path);
+      });
+    }
+    _collapseTo = null;
+    _recentClick = path;
+    _recentClickTimer?.cancel();
+    _recentClickTimer = Timer(kDoubleTapTimeout, () => _recentClick = null);
+    _slowClick?.cancel();
+    if (!press.slowClick) return;
+    _slowClick = Timer(slowClickRename, () {
+      if (mounted && _selected.length == 1 && _selected.contains(path)) {
+        _startRename(path);
+      }
+    });
+  }
+
+  /// The drag starts: the items stay in place, dimmed; the image is handed to Ossido.
+  void _beginDrag(_ItemPress press, Offset pointer) {
+    _slowClick?.cancel();
+    _collapseTo = null;
+    _rowDragged = true;
+    final paths = _dragPaths(press.entry);
+    if (paths.isEmpty) return;
+    final payload = DragPayload(
+      paths,
+      parentOf(paths.first) ?? _history.current,
+    );
+    _endDrag();
+    final drag = _WindowDrag(
+      payload: payload,
+      pointer: pointer,
+      hotspot: Offset.zero,
+    );
+    if (press.faces) {
+      final (image, hotspot) = _facesImage(paths, press.at);
+      drag
+        ..faces = image
+        ..hotspot = hotspot;
+    }
+    if (drag.faces == null) drag.hotspot = _pillsHotspot(press, paths);
+    _update(() => _drag = drag);
+    _hoverAt(pointer, payload);
+    if (drag.faces case final image?) {
+      _handOver(drag, image);
+      return;
+    }
+    // The pills are laid out by Flutter: their picture is ready after this frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !identical(_drag, drag) || drag.released) return;
+      final boundary = _dragImageKey.currentContext?.findRenderObject();
+      ui.Image? picture;
+      try {
+        if (boundary is RenderRepaintBoundary && boundary.hasSize) {
+          picture = boundary.toImageSync();
+        }
+      } on Object {
+        // A renderer that cannot read back: the drag goes on without an image.
+      }
+      drag.picture = picture;
+      _handOver(drag, picture);
+    });
+  }
+
+  void _handOver(_WindowDrag drag, ui.Image? image) {
+    startFileDrag(drag.payload.paths, image, drag.hotspot).then((taken) {
+      if (!mounted || !identical(_drag, drag) || drag.released) return;
+      _update(() {
+        drag.handedOver = taken;
+        drag.local = !taken;
+      });
+    });
+  }
+
+  /// The image of the dragged items as drawn in the view (icon and name, thumbnail), with the
+  /// count badge by the press point, which stays under the pointer.
+  (ui.Image?, Offset) _facesImage(List<String> paths, Offset grab) {
+    final pieces = <(Offset, ui.Image)>[];
+    try {
+      for (final path in paths) {
+        final boundary = _faces[path]?.currentContext?.findRenderObject();
+        if (boundary is! RenderRepaintBoundary || !boundary.hasSize) continue;
+        if (!boundary.attached) continue;
+        pieces.add((
+          boundary.localToGlobal(Offset.zero),
+          boundary.toImageSync(),
+        ));
+      }
+      if (pieces.isEmpty) return (null, Offset.zero);
+      return composeDragImage(pieces, grab, paths.length);
+    } on Object {
+      return (null, Offset.zero);
+    } finally {
+      for (final (_, image) in pieces) {
+        image.dispose();
+      }
+    }
+  }
+
+  /// The point of the pills under the pointer: where the press was on the grabbed item, from its
+  /// icon (the pill's icon), kept inside the image.
+  Offset _pillsHotspot(_ItemPress press, List<String> paths) {
+    final shown = paths.take(dragImageRows).toList();
+    final row = math.max(0, shown.indexOf(press.entry.path));
+    final name = TextPainter(
+      text: TextSpan(
+        text: displayName(press.entry.path),
+        style: const TextStyle(
+          fontFamily: uiFontFamily,
+          package: 'silica_ui',
+          fontSize: 12,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final width = dragImagePad + 16 + 4 + 10 + name.width;
+    name.dispose();
+    final height = dragImagePad + dragRowPitch * shown.length;
+    final at =
+        const Offset(dragImagePad, dragImagePad) +
+        Offset(0, dragRowPitch * row) +
+        (press.local - press.anchor);
+    return Offset(
+      at.dx.clamp(0, math.max(0, width - 1)),
+      at.dy.clamp(0, math.max(0, height - 1)),
+    );
+  }
+
+  /// The drag that left from here is over (dropped, cancelled, or never reported back).
+  void _endDrag() {
+    final drag = _drag;
+    if (drag == null) return;
+    _lastDrag = drag;
+    _drag = null;
+    _dropHover.value = null;
+    _spring?.cancel();
+    if (mounted) _update(() {});
+    // The image may still be on screen in this frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      drag.faces?.dispose();
+      drag.picture?.dispose();
+    });
+  }
+
+  /// A drag Ossido never reported back on (no `finished`): over at the next press.
+  void _endStaleDrag() {
+    if (_drag?.handedOver ?? false) _endDrag();
+  }
+
+  /// The folder under a drag at `position` lights up; after hovering it springs open (R9.1).
+  void _hoverAt(Offset position, DragPayload? payload) {
+    if (!mounted) return;
+    final meta = folderAt(position, View.of(context).viewId);
+    var path = meta?.path;
+    if (path != null && payload != null && !canDrop(payload, path)) {
+      path = null;
+    }
+    if (path == _dropHover.value) return;
+    _dropHover.value = path;
+    _spring?.cancel();
+    final spring = meta?.onSpring;
+    if (path == null || spring == null) return;
+    _spring = Timer(springOpen, () {
+      if (!mounted) return;
+      _dropHover.value = null;
+      spring();
+    });
+  }
+
+  /// Ossido's drags over this window: from here, from another window, from another app.
+  void _dragEvent(SilicaDragEvent event) {
+    if (!mounted) return;
+    switch (event) {
+      case SilicaDragOver(:final position):
+        if (widget.focused) _hoverAt(position, _drag?.payload);
+      case SilicaDragLeave():
+        _dropHover.value = null;
+        _spring?.cancel();
+      case final SilicaDrop drop:
+        _externalDrop(drop);
+      case SilicaDragFinished():
+        // The drag that left from here is over: dropped (here the drop moved or copied the
+        // files, elsewhere the other side did) or cancelled.
+        if (_drag?.handedOver ?? false) _endDrag();
+    }
+  }
+
+  /// Files dropped through Ossido: this window's own drag coming back, another window's, another
+  /// app's. Onto the folder under the pointer, otherwise into the open one.
   void _externalDrop(SilicaDrop drop) {
+    _dropHover.value = null;
+    _spring?.cancel();
     final paths = drop.paths;
     if (paths.isEmpty || !widget.focused) return;
-    final destination =
-        folderAt(drop.position, View.of(context).viewId) ?? _history.current;
+    final own = _drag ?? _lastDrag;
+    if (own != null &&
+        own.payload.paths.length == paths.length &&
+        own.payload.paths.toSet().containsAll(paths)) {
+      _lastDrag = null;
+      // Released here before Ossido answered: already dropped.
+      if (!own.released) _dropAt(drop.position, own.payload, own: true);
+      return;
+    }
     final from = File(paths.first).parent.path;
-    final payload = DragPayload(paths, from);
-    if (!canDrop(payload, destination)) return;
-    if (paths.every((p) => File(p).parent.path == destination)) return;
-    _drop(payload, destination);
+    _dropAt(drop.position, DragPayload(paths, from), own: false);
+  }
+
+  /// The drop at `position`: icons of this folder dropped in its own view with free positions
+  /// move (R4.7); otherwise into the folder under the pointer (the open one for files from
+  /// elsewhere); released on nothing (the toolbar) nothing moves (R9.3).
+  void _dropAt(Offset position, DragPayload payload, {required bool own}) {
+    _dropHover.value = null;
+    _spring?.cancel();
+    final meta = folderAt(position, View.of(context).viewId);
+    final inPlace =
+        meta != null &&
+        (meta.path == _history.current || !canDrop(payload, meta.path));
+    if (own &&
+        inPlace &&
+        _view == ViewMode.icons &&
+        !_searching &&
+        _acceptsMove(payload)) {
+      _moveDropped(payload, position);
+      return;
+    }
+    final destination = meta?.path ?? (own ? null : _history.current);
+    if (destination == null || !canDrop(payload, destination)) return;
+    if (payload.paths.every((p) => parentOf(p) == destination)) return;
+    (meta?.onDrop ?? _drop)(payload, destination);
   }
 
   /// A folder of the view as a drop target (and spring-loaded folder: it opens after hovering).
@@ -90,6 +467,21 @@ extension _Drag on _MustacheWindowState {
         )
       : builder(context, false);
 
+  /// A folder of the icon view, the columns or the gallery lit as a destination.
+  Widget _litFolder(Entry entry, Widget child, {double radius = 6}) =>
+      _folderTarget(
+        entry,
+        (context, active) => active
+            ? Container(
+                foregroundDecoration: BoxDecoration(
+                  color: const Color(0x400064E1),
+                  borderRadius: BorderRadius.circular(radius),
+                ),
+                child: child,
+              )
+            : child,
+      );
+
   /// Drop: move or copy (R9.1) into the destination.
   void _drop(DragPayload payload, String destination) {
     final copy = dropCopies(payload.paths, destination);
@@ -97,6 +489,27 @@ extension _Drag on _MustacheWindowState {
       copy ? TransferKind.copy : TransferKind.move,
       payload.paths,
       destination,
+    );
+  }
+
+  /// The image of a drag travelling inside the window (until Ossido takes it, or outside Silica).
+  Widget? _dragLayer() {
+    final drag = _drag;
+    if (drag == null || drag.handedOver) return null;
+    final at = drag.pointer - drag.hotspot;
+    return Positioned(
+      left: at.dx,
+      top: at.dy,
+      child: IgnorePointer(
+        key: const ValueKey('drag image'),
+        child: switch (drag.faces) {
+          final image? => RawImage(image: image),
+          null => RepaintBoundary(
+            key: _dragImageKey,
+            child: DragImage(paths: drag.payload.paths, env: widget.iconsEnv),
+          ),
+        },
+      ),
     );
   }
 }

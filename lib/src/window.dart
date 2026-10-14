@@ -5,8 +5,9 @@ import 'external.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
-import 'package:flutter/gestures.dart' show kPrimaryButton;
+import 'package:flutter/gestures.dart' show kDoubleTapTimeout, kPrimaryButton;
 import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -287,9 +288,26 @@ class _MustacheWindowState extends State<MustacheWindow>
   /// Active for Ossido and, with tabs, the tab in front.
   bool get _active => widget.active && _windowActive;
 
-  /// Drag and drop between apps: the image to hand to Ossido, whether it already left, and drops.
+  /// Dragging (window_drag.dart): the press on an item, the drag that left from here (and the
+  /// last one, whose drop may come back after it ended), the folder under a drag and its spring,
+  /// the pills' picture and the items as drawn (icon view, gallery).
+  _ItemPress? _press;
+  _WindowDrag? _drag;
+  _WindowDrag? _lastDrag;
+  final ValueNotifier<String?> _dropHover = ValueNotifier(null);
+  Timer? _spring;
   final GlobalKey _dragImageKey = GlobalKey();
-  bool _draggedOut = false;
+  final Map<String, GlobalKey> _faces = {};
+
+  /// The slow click (R8): a press on a name (path, it was the only one selected) and the item
+  /// clicked last, until the double-click time passes.
+  (String, bool)? _nameDown;
+  String? _recentClick;
+  Timer? _recentClickTimer;
+
+  /// The item of a larger selection pressed without modifiers: the only one selected on release
+  /// if no drag started.
+  String? _collapseTo;
 
   /// The pressed row (selected on release, MU-25) and whether a drag started from it; the pressed
   /// disclosure triangle with ⌥ read at press time.
@@ -433,9 +451,7 @@ class _MustacheWindowState extends State<MustacheWindow>
   void initState() {
     super.initState();
     _lifecycle;
-    _externalDrags = SilicaDrag.events.listen((event) {
-      if (event is SilicaDrop && mounted) _externalDrop(event);
-    });
+    _externalDrags = SilicaDrag.events.listen(_dragEvent);
     _load();
   }
 
@@ -447,6 +463,11 @@ class _MustacheWindowState extends State<MustacheWindow>
     _listScrollX.dispose();
     _sidebarShown.dispose();
     _slowClick?.cancel();
+    _recentClickTimer?.cancel();
+    _spring?.cancel();
+    _dropHover.dispose();
+    _drag?.faces?.dispose();
+    _drag?.picture?.dispose();
     _cleanUpTimer?.cancel();
     _searchTimer?.cancel();
     _searchQuery.dispose();
@@ -595,6 +616,7 @@ class _MustacheWindowState extends State<MustacheWindow>
     _history.go(path);
     _selected.clear();
     _anchor = null;
+    _faces.clear();
     _load();
   }
 
@@ -708,6 +730,9 @@ class _MustacheWindowState extends State<MustacheWindow>
 
   /// The rubber band: with ⌘ or ⇧ it toggles the starting items, otherwise it replaces them.
   void _rubberBand(Set<String> paths, {required bool done}) {
+    // A rubber band never renames (R8).
+    _slowClick?.cancel();
+    _recentClick = null;
     final keys = HardwareKeyboard.instance;
     final base = _bandBase ??= keys.isMetaPressed || keys.isShiftPressed
         ? {..._selected}
@@ -723,11 +748,6 @@ class _MustacheWindowState extends State<MustacheWindow>
 
   void _tap(Entry entry) {
     final keys = HardwareKeyboard.instance;
-    final wasOnlySelected =
-        _selected.length == 1 && _selected.contains(entry.path);
-    final plain =
-        !keys.isMetaPressed && !keys.isControlPressed && !keys.isShiftPressed;
-    _clickForRename(entry, wasOnlySelected: plain && wasOnlySelected);
     setState(() {
       // In the icon view ⇧-click adds or removes like ⌘-click (R7.3).
       if (keys.isMetaPressed ||
@@ -749,6 +769,11 @@ class _MustacheWindowState extends State<MustacheWindow>
                 order[i].path,
             ]);
         }
+      } else if (_selected.length > 1 && _selected.contains(entry.path)) {
+        // A press on an item of a larger selection keeps it (it may be dragged): released
+        // without a drag, only the item stays selected.
+        _collapseTo = entry.path;
+        _anchor = _cursor = entry.path;
       } else {
         _selected
           ..clear()
@@ -760,7 +785,24 @@ class _MustacheWindowState extends State<MustacheWindow>
   }
 
   @override
-  Widget build(BuildContext context) => _OverlayHost(child: _window(context));
+  Widget build(BuildContext context) => _OverlayHost(
+    // Every press, move and release, after the items' own (window_drag.dart).
+    child: Listener(
+      onPointerDown: _windowDown,
+      onPointerMove: _windowMove,
+      onPointerUp: _windowUp,
+      onPointerCancel: _windowCancel,
+      child: DropHover(
+        notifier: _dropHover,
+        child: Stack(
+          children: [
+            Positioned.fill(child: _window(context)),
+            ?_dragLayer(),
+          ],
+        ),
+      ),
+    ),
+  );
 
   Widget _window(BuildContext context) {
     return Shortcuts(
@@ -1452,6 +1494,12 @@ class _MustacheWindowState extends State<MustacheWindow>
       onTap: _tap,
       onOpen: _openEntry,
       env: widget.iconsEnv,
+      wrapItem: (entry, child) => _itemPress(
+        entry,
+        _litFolder(entry, child),
+        threshold: iconDragThreshold,
+        faces: true,
+      ),
     ),
   );
 
@@ -1466,6 +1514,12 @@ class _MustacheWindowState extends State<MustacheWindow>
     env: widget.iconsEnv,
     tagsOf: _tagsOf,
     topInset: _topInset,
+    wrapItem: (entry, child) => _itemPress(
+      entry,
+      _litFolder(entry, child, radius: columnSelectionRadius),
+      threshold: 1,
+      anchor: const Offset(columnIconLeft, (columnRow - columnIconSide) / 2),
+    ),
   );
 
   Widget _icons() {
@@ -1488,37 +1542,18 @@ class _MustacheWindowState extends State<MustacheWindow>
       onContext: _openContextMenu,
       onRubberBand: _rubberBand,
       tagsOf: _tagsOf,
-      wrapItem: (entry, child) => Listener(
-        onPointerDown: (event) => _pressAt = event.position,
-        child: _draggable(
-          entry,
-          threshold: iconDragThreshold,
-          _folderTarget(
-            entry,
-            (context, active) => active
-                ? Container(
-                    foregroundDecoration: BoxDecoration(
-                      color: const Color(0x400064E1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: child,
-                  )
-                : child,
-          ),
-        ),
+      onNamePress: _namePress,
+      wrapItem: (entry, child) => _itemPress(
+        entry,
+        _litFolder(entry, child),
+        threshold: iconDragThreshold,
+        faces: true,
       ),
       onBackground: () => setState(() {
         _selected.clear();
         _anchor = null;
       }),
     );
-    if (positions == null) return view;
-    // With free positions a drop in the folder's own view moves the icons (R4.7).
-    return DragTarget<DragPayload>(
-      onWillAcceptWithDetails: (details) => _acceptsMove(details.data),
-      onAcceptWithDetails: (details) =>
-          _moveDropped(details.data, details.offset),
-      builder: (context, candidates, rejected) => view,
-    );
+    return view;
   }
 }

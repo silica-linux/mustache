@@ -11,6 +11,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart' show kPrimaryButton;
 import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
 
@@ -199,6 +200,9 @@ List<String> labelLines(String name, double maxWidth, TextStyle style) {
 const Color rubberFill = Color(0x1A000000);
 const Color rubberBorder = Color(0x55000000);
 
+/// The movement that turns a press on the background into a rubber band.
+const double bandThreshold = 1;
+
 /// Autoscroll past the edge: ~38.5 pt/s for each pt beyond (R7.4).
 const double autoScrollPerPoint = 38.5;
 
@@ -221,6 +225,7 @@ class IconView extends StatefulWidget {
     this.renaming,
     this.renameBuilder,
     this.onRubberBand,
+    this.onNamePress,
     this.tagsOf,
     this.positions,
     this.moveDuration = Duration.zero,
@@ -240,6 +245,9 @@ class IconView extends StatefulWidget {
 
   /// The rubber band: the touched items, live; `done` on release.
   final void Function(Set<String> paths, {required bool done})? onRubberBand;
+
+  /// A press on an item's name, heard before the cell's own press (slow-click rename, R8).
+  final ValueChanged<Entry>? onNamePress;
 
   final List<Entry> entries;
   final Set<String> selected;
@@ -280,6 +288,13 @@ class _IconViewState extends State<IconView> {
   final ScrollController _hScroll = ScrollController();
   Offset? _bandStart;
   Offset? _bandEnd;
+
+  /// The press that may become a rubber band (not on a cell) and where it was.
+  int? _bandPointer;
+  Offset? _bandFrom;
+
+  /// A cell took the press being dispatched (cells hear it before the background).
+  bool _cellPressed = false;
 
   /// Where the pointer is relative to the view (for edge autoscroll).
   double _pointerY = 0;
@@ -371,6 +386,43 @@ class _IconViewState extends State<IconView> {
     });
   }
 
+  void _bandDownAt(PointerDownEvent e) {
+    final onCell = _cellPressed;
+    _cellPressed = false;
+    if (onCell ||
+        widget.onRubberBand == null ||
+        e.buttons & kPrimaryButton == 0) {
+      return;
+    }
+    _bandPointer = e.pointer;
+    _bandFrom = e.localPosition;
+  }
+
+  void _bandMove(PointerMoveEvent e) {
+    final from = _bandFrom;
+    if (e.pointer != _bandPointer || from == null) return;
+    if (_bandStart == null) {
+      // A click that does not move is not a rubber band.
+      if ((e.localPosition - from).distance < bandThreshold) return;
+      setState(() => _bandStart = from);
+      _autoScroll();
+    }
+    setState(() => _bandEnd = e.localPosition);
+    _pointerY = e.localPosition.dy - (_scroll.hasClients ? _scroll.offset : 0);
+    _band(done: false);
+  }
+
+  void _bandRelease(int pointer, {required bool done}) {
+    if (pointer != _bandPointer) return;
+    _bandPointer = null;
+    _bandFrom = null;
+    _auto?.cancel();
+    _auto = null;
+    if (_bandStart == null) return;
+    _band(done: done);
+    setState(() => _bandStart = _bandEnd = null);
+  }
+
   @override
   Widget build(BuildContext context) {
     final dark =
@@ -418,38 +470,14 @@ class _IconViewState extends State<IconView> {
             padding: EdgeInsets.only(top: widget.topInset),
             child: _horizontal(
               free: free,
-              child: GestureDetector(
-                // From the background: the rubber band (cells have their own drag).
+              child: Listener(
+                // From the background: the rubber band. Raw pointer events, not a gesture: a press
+                // on a cell (its own drag) never starts it.
                 behavior: HitTestBehavior.translucent,
-                onPanStart: widget.onRubberBand == null
-                    ? null
-                    : (d) {
-                        setState(() {
-                          _bandStart = d.localPosition;
-                          _bandEnd = d.localPosition;
-                        });
-                        _band(done: false);
-                        _autoScroll();
-                      },
-                onPanUpdate: (d) {
-                  if (_bandStart == null) return;
-                  setState(() => _bandEnd = d.localPosition);
-                  _pointerY =
-                      d.localPosition.dy -
-                      (_scroll.hasClients ? _scroll.offset : 0);
-                  _band(done: false);
-                },
-                onPanEnd: (_) {
-                  _band(done: true);
-                  _auto?.cancel();
-                  _auto = null;
-                  setState(() => _bandStart = _bandEnd = null);
-                },
-                onPanCancel: () {
-                  _auto?.cancel();
-                  _auto = null;
-                  setState(() => _bandStart = _bandEnd = null);
-                },
+                onPointerDown: _bandDownAt,
+                onPointerMove: _bandMove,
+                onPointerUp: (e) => _bandRelease(e.pointer, done: true),
+                onPointerCancel: (e) => _bandRelease(e.pointer, done: true),
                 child: SizedBox(
                   width: width,
                   height: math.max(
@@ -539,7 +567,10 @@ class _IconViewState extends State<IconView> {
       child: (wrapItem ?? (_, Widget child) => child)(
         entry,
         Listener(
-          onPointerDown: (_) => onTap(entry),
+          onPointerDown: (_) {
+            _cellPressed = true;
+            onTap(entry);
+          },
           child: GestureDetector(
             key: ValueKey(entry.path),
             behavior: HitTestBehavior.translucent,
@@ -587,38 +618,42 @@ class _IconViewState extends State<IconView> {
                           i * labelLine,
                       height: labelLine,
                       child: Center(
-                        child: DecoratedBox(
-                          key: ValueKey('name ${entry.path} $i'),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? (active ? c.capsule : c.capsuleInactive)
-                                : null,
-                            borderRadius: BorderRadius.circular(labelRadius),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: labelPad,
+                        child: Listener(
+                          // A press on the name (not the icon) may become a slow click (R8).
+                          onPointerDown: (_) => widget.onNamePress?.call(entry),
+                          child: DecoratedBox(
+                            key: ValueKey('name ${entry.path} $i'),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? (active ? c.capsule : c.capsuleInactive)
+                                  : null,
+                              borderRadius: BorderRadius.circular(labelRadius),
                             ),
-                            child: i == 0 && tags.isNotEmpty
-                                ? Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      TagDots(tags: tags),
-                                      const SizedBox(width: 5),
-                                      Text(
-                                        lines[i],
-                                        maxLines: 1,
-                                        softWrap: false,
-                                        style: style,
-                                      ),
-                                    ],
-                                  )
-                                : Text(
-                                    lines[i],
-                                    maxLines: 1,
-                                    softWrap: false,
-                                    style: style,
-                                  ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: labelPad,
+                              ),
+                              child: i == 0 && tags.isNotEmpty
+                                  ? Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        TagDots(tags: tags),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          lines[i],
+                                          maxLines: 1,
+                                          softWrap: false,
+                                          style: style,
+                                        ),
+                                      ],
+                                    )
+                                  : Text(
+                                      lines[i],
+                                      maxLines: 1,
+                                      softWrap: false,
+                                      style: style,
+                                    ),
+                            ),
                           ),
                         ),
                       ),

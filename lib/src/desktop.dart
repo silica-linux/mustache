@@ -32,7 +32,7 @@ import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
 
 import 'apps.dart';
-import 'drag.dart' show dragAlpha, dragCountBadge;
+import 'drag.dart' show composeDragImage, startFileDrag;
 import 'icon_arrange.dart';
 import 'icon_view.dart' show EntryIcon, labelLines;
 import 'model.dart';
@@ -92,13 +92,9 @@ const double desktopDragDim = 0.5;
 /// travels there decelerating in ~250 ms (R15.7).
 const Duration desktopSettle = Duration(milliseconds: 250);
 
-/// The count badge of a drag with several items: 20 pt red circle with white digits (MU-40); its
-/// center sits up and left of the pointer as in the windows (provisional on the desktop).
-const double desktopBadgeSide = 20;
+/// The count badge of a drag with several items ([dragBadgeSide]): its center sits up and left of
+/// the pointer as in the windows (provisional on the desktop).
 const Offset desktopBadgeFromPointer = Offset(-2, -2);
-
-/// The largest drag image, per side (the embedder's limit).
-const double desktopDragImageMax = 1024;
 
 /// The double click: a second press within this time on the same icon opens it.
 const Duration desktopDoubleClick = Duration(milliseconds: 500);
@@ -430,39 +426,6 @@ class _DesktopDrag {
 
   /// Outside Silica (no Ossido to take it) the image travels inside the desktop.
   bool local = false;
-}
-
-/// Hands the files to Ossido's drag (the embedder's `silica/drag` › `start`) with `image` on the
-/// pointer and its point `hotspot` under it, so the image stays where the pointer grabbed the
-/// icons. True if Ossido took it.
-Future<bool> startDesktopDrag(
-  List<String> paths,
-  ui.Image? image,
-  Offset hotspot,
-) async {
-  final args = <String, Object?>{
-    'uris': [for (final p in paths) Uri.file(p).toString()],
-  };
-  if (image != null) {
-    // rawRgba: premultiplied, as Wayland wants.
-    final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-    if (bytes != null) {
-      args['icon'] = {
-        'width': image.width,
-        'height': image.height,
-        'rgba': base64Encode(bytes.buffer.asUint8List()),
-        'x': hotspot.dx.round(),
-        'y': hotspot.dy.round(),
-      };
-    }
-  }
-  try {
-    return await SilicaDrag.channel.invokeMethod<bool>('start', args) ?? false;
-  } on MissingPluginException {
-    return false;
-  } on PlatformException {
-    return false;
-  }
 }
 
 class DesktopViewState extends State<DesktopView>
@@ -925,7 +888,7 @@ class DesktopViewState extends State<DesktopView>
       hotspot: hotspot,
     );
     setState(() => _drag = drag);
-    startDesktopDrag(paths, image, hotspot).then((taken) {
+    startFileDrag(paths, image, hotspot).then((taken) {
       if (!taken && mounted && identical(_drag, drag)) {
         setState(() => drag.local = true);
       }
@@ -946,73 +909,12 @@ class DesktopViewState extends State<DesktopView>
         if (!boundary.hasSize) continue;
         pieces.add((_faceOrigin(at), boundary.toImageSync()));
       }
-      final badge = count > 1
-          ? Rect.fromCircle(
-              center: grab + desktopBadgeFromPointer,
-              radius: desktopBadgeSide / 2,
-            )
-          : null;
-      var bounds = badge;
-      for (final (origin, image) in pieces) {
-        final rect =
-            origin & Size(image.width.toDouble(), image.height.toDouble());
-        bounds = bounds?.expandToInclude(rect) ?? rect;
-      }
-      if (bounds == null) return (null, Offset.zero);
-      // Within the largest image, around the press.
-      bounds = bounds.intersect(
-        Rect.fromCenter(
-          center: grab,
-          width: desktopDragImageMax,
-          height: desktopDragImageMax,
-        ),
+      return composeDragImage(
+        pieces,
+        grab,
+        count,
+        badgeFromPointer: desktopBadgeFromPointer,
       );
-      bounds = Rect.fromLTRB(
-        bounds.left.floorToDouble(),
-        bounds.top.floorToDouble(),
-        bounds.right.ceilToDouble(),
-        bounds.bottom.ceilToDouble(),
-      );
-      if (bounds.isEmpty) return (null, Offset.zero);
-      final recorder = ui.PictureRecorder();
-      final canvas = Canvas(recorder)..translate(-bounds.left, -bounds.top);
-      final translucent = Paint()
-        ..color = const Color(0xFFFFFFFF).withValues(alpha: dragAlpha);
-      for (final (origin, image) in pieces) {
-        canvas.drawImage(image, origin, translucent);
-      }
-      if (badge != null) {
-        canvas.drawCircle(
-          badge.center,
-          desktopBadgeSide / 2,
-          Paint()..color = dragCountBadge,
-        );
-        final digits = TextPainter(
-          text: TextSpan(
-            text: '$count',
-            style: const TextStyle(
-              fontFamily: uiFontFamily,
-              package: 'silica_ui',
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFFFFFFFF),
-            ),
-          ),
-          textDirection: TextDirection.ltr,
-        )..layout();
-        digits.paint(
-          canvas,
-          badge.center - Offset(digits.width / 2, digits.height / 2),
-        );
-        digits.dispose();
-      }
-      final picture = recorder.endRecording();
-      final image = picture.toImageSync(
-        bounds.width.toInt(),
-        bounds.height.toInt(),
-      );
-      picture.dispose();
-      return (image, grab - bounds.topLeft);
     } on Object {
       // No image (a renderer that cannot read back): the drag goes on without one.
       return (null, Offset.zero);

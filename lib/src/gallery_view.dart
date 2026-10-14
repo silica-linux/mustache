@@ -36,7 +36,11 @@ class GalleryView extends StatefulWidget {
     required this.onTap,
     required this.onOpen,
     this.env,
+    this.wrapItem,
   });
+
+  /// Wraps every thumbnail (dragging, drop target).
+  final Widget Function(Entry entry, Widget child)? wrapItem;
 
   final List<Entry> entries;
 
@@ -110,31 +114,35 @@ class _GalleryViewState extends State<GalleryView> {
                 itemBuilder: (context, i) {
                   final entry = entries[i];
                   final chosen = i == _index;
-                  return Listener(
-                    onPointerDown: (_) => widget.onTap(entry),
-                    child: GestureDetector(
-                      key: ValueKey('thumbnail ${entry.path}'),
-                      onDoubleTap: () => widget.onOpen(entry),
-                      child: Center(
-                        child: Container(
-                          width: galleryStrip,
-                          height: galleryStrip,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: chosen
-                                ? (_dark(context)
-                                      ? galleryChosenDark
-                                      : galleryChosen)
-                                : null,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: SizedBox(
-                            width: galleryThumb,
-                            height: galleryThumb,
-                            child: EntryIcon(
-                              entry: entry,
-                              side: galleryThumb,
-                              env: widget.env,
+                  final wrap = widget.wrapItem ?? (_, Widget child) => child;
+                  return wrap(
+                    entry,
+                    Listener(
+                      onPointerDown: (_) => widget.onTap(entry),
+                      child: GestureDetector(
+                        key: ValueKey('thumbnail ${entry.path}'),
+                        onDoubleTap: () => widget.onOpen(entry),
+                        child: Center(
+                          child: Container(
+                            width: galleryStrip,
+                            height: galleryStrip,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: chosen
+                                  ? (_dark(context)
+                                        ? galleryChosenDark
+                                        : galleryChosen)
+                                  : null,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: SizedBox(
+                              width: galleryThumb,
+                              height: galleryThumb,
+                              child: EntryIcon(
+                                entry: entry,
+                                side: galleryThumb,
+                                env: widget.env,
+                              ),
                             ),
                           ),
                         ),
