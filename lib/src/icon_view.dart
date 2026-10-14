@@ -34,8 +34,6 @@ const double labelGap = 2;
 /// Le immagini in miniatura occupano ~89 % del lato dell'icona, angoli di ~3 pt (spec 4.4).
 const double thumbnailRatio = 0.89;
 
-/// Il corpo delle icone di cartelle e file rispetto al lato (mu21-size-56-light).
-const double fileIconScale = 0.92;
 const double thumbnailRadius = 3;
 
 /// I colori della selezione (spec 4.2), chiaro e scuro.
@@ -597,14 +595,9 @@ class EntryIcon extends StatelessWidget {
     if (hasThumbnail(entry.name) && !entry.isDirectory) {
       return _Thumbnail(entry.path, side);
     }
-    // Cartelle e documenti: il corpo 824 di silica-icons occupa il 92 % del lato (mu21-size-56:
-    // cartella 118 su 128, documento 96 × 124 con l'ombra), centrato.
-    final body = side * fileIconScale;
-    return SizedBox(
-      width: side,
-      height: side,
-      child: Center(child: _icon(body)),
-    );
+    // Cartelle e documenti: la tela di silica-icons è il lato intero (silica-icons 0.2, misurata
+    // su mu21-size-56: cartella 0,922 × 0,734, foglio 0,668 × 0,883 della tela).
+    return _icon(side);
   }
 
   Widget _icon(double side) {
