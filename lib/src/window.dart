@@ -1308,7 +1308,6 @@ class _MustacheWindowState extends State<MustacheWindow>
     ];
     final header = bars.fold(0.0, (sum, bar) => sum + bar.$2);
     _topInset = toolbarHeight + header;
-    final veil = ToolbarVeil.of(context);
     return ScrollUnderToolbar(
       toolbar: _toolbar(visible),
       header: bars.isEmpty
@@ -1323,17 +1322,9 @@ class _MustacheWindowState extends State<MustacheWindow>
       headerHeight: header,
       active: _active,
       // The list header has its own line below it, always there (MU-20): no second one.
-      veil: list
-          ? ToolbarVeil(
-              offset: veil.offset,
-              scale: veil.scale,
-              saturation: veil.saturation,
-              sharpSigma: veil.sharpSigma,
-              wideSigma: veil.wideSigma,
-              wideWeight: veil.wideWeight,
-              line: const Color(0x00000000),
-            )
-          : veil,
+      showLine: !list,
+      // The column view's lists and a wide list scroll vertically below depth 0.
+      scrollPredicate: anyVerticalScrollUnderPredicate,
       body: (context, padding) => content(padding.top),
     );
   }

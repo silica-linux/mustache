@@ -115,8 +115,8 @@ void main() {
         .jumpTo(40);
     await tester.pumpAndSettle();
     expect(tester.getTopLeft(firstRow).dy, lessThan(band));
-    // The header has its own line: the band's is transparent.
-    expect(lineColor(tester).a, 0);
+    // The header has its own line: the band draws none.
+    expect(line, findsNothing);
   });
 
   testWidgets('columns: each column starts below the band', (tester) async {
