@@ -16,6 +16,7 @@ import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
 
 import 'folder_icons.dart';
+import 'folder_style.dart';
 import 'icon_arrange.dart';
 import 'model.dart';
 import 'tags.dart';
@@ -718,19 +719,23 @@ class EntryIcon extends StatelessWidget {
   Widget _icon(double side) {
     final (file, badges) = _resolve();
     if (entry.isDirectory) {
-      final folder = resolveFolderIcon(entry.path, env: env);
-      if (folder != null) {
-        // A folder with a visible item inside is drawn full; symbol and tint stay on top.
-        return SilicaIcon(
-          FolderSource(
-            folderHasItems(entry.path) ? fullFolder(folder) : folder,
-          ),
-          side: side,
-          badges: badges,
-          env: env,
-        );
-      }
-      return SizedBox(width: side, height: side);
+      // Colour and symbol live on the folder: redrawn when they change (folder_style.dart).
+      return ListenableBuilder(
+        listenable: folderStyles,
+        builder: (context, _) {
+          final folder = styledFolderIcon(entry.path, env: env);
+          if (folder == null) return SizedBox(width: side, height: side);
+          // A folder with a visible item inside is drawn full; symbol and tint stay on top.
+          return SilicaIcon(
+            FolderSource(
+              folderHasItems(entry.path) ? fullFolder(folder) : folder,
+            ),
+            side: side,
+            badges: badges,
+            env: env,
+          );
+        },
+      );
     }
     if (file == null) return SizedBox(width: side, height: side);
     return SilicaIcon(FileSource(file), side: side, badges: badges, env: env);

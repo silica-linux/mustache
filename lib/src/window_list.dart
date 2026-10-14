@@ -32,12 +32,15 @@ extension _ListView on _MustacheWindowState {
       ? [for (final row in _listRows) row.entry]
       : _entries;
 
-  List<Entry> _childrenOf(String path) => _childCache[path] ??= sortEntries(
-    listDirectory(path, showHidden: _showHidden).entries,
-    _sort,
-    descending: _descending,
-    kindOf: _kind,
-  );
+  List<Entry> _childrenOf(String path) => _childCache[path] ??= () {
+    _watchStyles(path);
+    return sortEntries(
+      listDirectory(path, showHidden: _showHidden).entries,
+      _sort,
+      descending: _descending,
+      kindOf: _kind,
+    );
+  }();
 
   /// Expands or collapses a folder in place; with ⌥ the whole subtree (R3.7).
   void _toggleExpanded(Entry entry, {bool subtree = false}) {

@@ -959,5 +959,41 @@
   "stop": "Stop",
   "@stop": {
     "description": "Conflict choice."
+  },
+  "customizeFolder": "Customize Folder…",
+  "@customizeFolder": {
+    "description": "Folder context menu: opens Get Info on the Customize Folder section."
+  },
+  "infoCustomize": "Customize Folder",
+  "@infoCustomize": {
+    "description": "Info section of a folder: its colour and symbol."
+  },
+  "folderColor": "Color",
+  "@folderColor": {
+    "description": "Customize Folder: the colour row."
+  },
+  "folderSymbol": "Symbol",
+  "@folderSymbol": {
+    "description": "Customize Folder: the symbol grid."
+  },
+  "folderCustomColor": "Custom color, as #rrggbb",
+  "@folderCustomColor": {
+    "description": "Customize Folder: placeholder of the custom colour field."
+  },
+  "folderSymbolSearch": "Search symbols",
+  "@folderSymbolSearch": {
+    "description": "Customize Folder: placeholder of the symbol search field."
+  },
+  "folderNoSymbols": "No symbols",
+  "@folderNoSymbols": {
+    "description": "Customize Folder: the search found nothing, or the icons are not installed."
+  },
+  "folderReset": "Reset",
+  "@folderReset": {
+    "description": "Customize Folder: removes the custom colour and symbol."
+  },
+  "folderStyleError": "This folder can't be customized.",
+  "@folderStyleError": {
+    "description": "Customize Folder: saving failed (no permission, read-only disk)."
   }
 }

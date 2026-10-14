@@ -165,5 +165,14 @@
   "conflictCopy": "In questa posizione c'è già un elemento chiamato «{name}». Vuoi sostituirlo con quello che stai copiando?",
   "conflictMove": "In questa posizione c'è già un elemento chiamato «{name}». Vuoi sostituirlo con quello che stai spostando?",
   "keepBoth": "Mantieni entrambi",
-  "stop": "Interrompi"
+  "stop": "Interrompi",
+  "customizeFolder": "Personalizza cartella…",
+  "infoCustomize": "Personalizza cartella",
+  "folderColor": "Colore",
+  "folderSymbol": "Simbolo",
+  "folderCustomColor": "Colore personalizzato, come #rrggbb",
+  "folderSymbolSearch": "Cerca simboli",
+  "folderNoSymbols": "Nessun simbolo",
+  "folderReset": "Ripristina",
+  "folderStyleError": "Non è possibile personalizzare questa cartella."
 }

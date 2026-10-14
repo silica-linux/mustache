@@ -19,6 +19,8 @@ import 'settings.dart';
 import 'apps.dart';
 import 'column_view.dart';
 import 'dialog.dart';
+import 'folder_icons.dart';
+import 'folder_style.dart';
 import 'drag.dart';
 import 'gallery_view.dart';
 import 'icon_arrange.dart';
@@ -411,6 +413,20 @@ class _MustacheWindowState extends State<MustacheWindow>
   /// The column contents, read once per load.
   final Map<String, List<Entry>> _columnCache = {};
 
+  /// Attribute watches of the folders on screen, so a folder's colour or symbol changed
+  /// elsewhere redraws at once (folder_style.dart).
+  final Map<String, VoidCallback> _styleWatches = {};
+
+  void _watchStyles(String dir) =>
+      _styleWatches[dir] ??= folderStyles.watch(dir);
+
+  /// Stops the watches of the folders no longer on screen.
+  void _unwatchStyles({String? keep}) {
+    for (final dir in _styleWatches.keys.toList()) {
+      if (dir != keep) _styleWatches.remove(dir)?.call();
+    }
+  }
+
   // Dialogs start in columns, and there is no gallery (R14.5, R14.6).
   late ViewMode _view = widget.dialog != null
       ? ViewMode.columns
@@ -457,6 +473,7 @@ class _MustacheWindowState extends State<MustacheWindow>
 
   @override
   void dispose() {
+    _unwatchStyles();
     _lifecycle.dispose();
     _externalDrags?.cancel();
     _focus.dispose();
@@ -578,6 +595,8 @@ class _MustacheWindowState extends State<MustacheWindow>
       _showTag(tag);
       return;
     }
+    _unwatchStyles(keep: _history.current);
+    _watchStyles(_history.current);
     final result = listDirectory(_history.current, showHidden: _showHidden);
     if (_statusBar) _free = freeBytes(_history.current);
     widget.onLocation?.call(_history.current);
@@ -1330,7 +1349,7 @@ class _MustacheWindowState extends State<MustacheWindow>
           MenuAction(
             displayName(places[i]),
             icon: (_) =>
-                switch (resolveFolderIcon(places[i], env: widget.iconsEnv)) {
+                switch (styledFolderIcon(places[i], env: widget.iconsEnv)) {
                   final folder? => SilicaIcon(FolderSource(folder), side: 16),
                   null => const SizedBox(width: 16, height: 16),
                 },

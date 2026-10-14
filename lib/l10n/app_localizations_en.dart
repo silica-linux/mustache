@@ -635,4 +635,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get stop => 'Stop';
+
+  @override
+  String get customizeFolder => 'Customize Folder…';
+
+  @override
+  String get infoCustomize => 'Customize Folder';
+
+  @override
+  String get folderColor => 'Color';
+
+  @override
+  String get folderSymbol => 'Symbol';
+
+  @override
+  String get folderCustomColor => 'Custom color, as #rrggbb';
+
+  @override
+  String get folderSymbolSearch => 'Search symbols';
+
+  @override
+  String get folderNoSymbols => 'No symbols';
+
+  @override
+  String get folderReset => 'Reset';
+
+  @override
+  String get folderStyleError => 'This folder can\'t be customized.';
 }

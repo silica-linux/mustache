@@ -30,3 +30,15 @@ bool _found(String executable) {
       .where((dir) => dir.isNotEmpty)
       .any((dir) => File('$dir/$executable').existsSync());
 }
+
+/// Runs [executable] to the end and returns what it printed, unless running under
+/// `flutter test`: there it starts nothing and returns null, as for a missing program or a
+/// failure (callers then fall back to a fake or to nothing).
+ProcessResult? runQuietly(String executable, List<String> arguments) {
+  if (startsNothing) return null;
+  try {
+    return Process.runSync(executable, arguments);
+  } on ProcessException {
+    return null;
+  }
+}

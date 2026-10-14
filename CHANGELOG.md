@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+Folder colour and symbol: a folder is tinted by its first colour tag (`user.xdg.tags`, the
+convention other file managers share) or by a custom colour, and can carry a silica-icons symbol;
+the custom choice lives on the folder in `user.silica.folder` (JSON), or in the GIO metadata
+store on disks without user attributes. Every view, the Desktop, the path bar, Get Info and the
+previews draw it, on the empty and the full folder alike, and redraw at once when another app
+changes it (the folders on screen are watched for attribute changes). Get Info has a Customize
+Folder section (colour swatches, a custom colour, a searchable symbol grid, Reset), opened from
+the folder's context menu; its measurements are provisional.
+
 Windows: dragging files works in every view (icons, list, columns, gallery). The items are
 pressed through raw pointer events, so the rubber band, taps and double clicks no longer take the
 drag away; past the view's threshold the dragged items dim in place and their image (the icons as

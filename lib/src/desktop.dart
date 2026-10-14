@@ -19,6 +19,7 @@
 // state (`desktop.state`), and runs the items the menu sends back (`desktop.action`).
 
 import 'external.dart';
+import 'folder_style.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -493,7 +494,9 @@ class DesktopViewState extends State<DesktopView>
     _load();
     if (widget.watch) {
       try {
-        _watcher = Directory(widget.folder).watch().listen((_) {
+        _watcher = Directory(widget.folder).watch().listen((event) {
+          // A folder's colour or symbol (an attribute change) redraws its icon.
+          folderStyles.changed(event.path);
           _reload?.cancel();
           _reload = Timer(const Duration(milliseconds: 150), _load);
         });

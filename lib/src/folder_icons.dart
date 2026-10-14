@@ -8,6 +8,8 @@ import 'dart:io';
 
 import 'package:silica_ui/silica_ui.dart';
 
+import 'folder_style.dart';
+
 /// Per folder: its modification time when it was listed, and whether it has a visible item.
 /// A folder's modification time changes when an item is added, removed or renamed, so one
 /// `stat` per query tells whether the cached answer still holds; the listing runs again only
@@ -94,3 +96,23 @@ FolderIcon fullFolder(FolderIcon folder) => FolderIcon(
   symbol: folder.symbol,
   tint: folder.tint,
 );
+
+/// The icon of the folder at [path] with its colour and symbol (folder_style.dart): a custom
+/// symbol replaces the special folder's; one silica-icons does not have keeps the special one.
+FolderIcon? styledFolderIcon(
+  String path, {
+  Map<String, String>? env,
+  FolderStyles? styles,
+}) {
+  final look = (styles ?? folderStyles).look(path);
+  final folder = resolveFolderIcon(
+    path,
+    symbol: look.symbol,
+    tint: look.tint,
+    env: env,
+  );
+  if (look.symbol != null && folder != null && folder.symbol == null) {
+    return resolveFolderIcon(path, tint: look.tint, env: env);
+  }
+  return folder;
+}

@@ -123,8 +123,21 @@ extension _Context on _MustacheWindowState {
       MenuAction(l10n.copy, onSelected: () => _copySelection(items)),
       const MenuDivider(),
       _tagMenuRow(items),
-      MenuAction(l10n.tagsMenu, enabled: false),
+      if (single != null && single.isDirectory)
+        MenuAction(
+          l10n.customizeFolder,
+          onSelected: () => _customizeFolder(single.path),
+        )
+      else
+        MenuAction(l10n.tagsMenu, enabled: false),
     ];
+  }
+
+  /// Customize Folder…: Get Info with its Customize Folder section open.
+  void _customizeFolder(String path) {
+    _update(() => _infoOpen.add(InfoSection.customize));
+    widget.settings?.infoSections = [for (final s in _infoOpen) s.name];
+    _openInfo([path]);
   }
 
   /// "Open With ›": the default on top with "(default)", then the others by name, then "Other…"

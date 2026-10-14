@@ -634,4 +634,32 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get stop => 'Interrompi';
+
+  @override
+  String get customizeFolder => 'Personalizza cartella…';
+
+  @override
+  String get infoCustomize => 'Personalizza cartella';
+
+  @override
+  String get folderColor => 'Colore';
+
+  @override
+  String get folderSymbol => 'Simbolo';
+
+  @override
+  String get folderCustomColor => 'Colore personalizzato, come #rrggbb';
+
+  @override
+  String get folderSymbolSearch => 'Cerca simboli';
+
+  @override
+  String get folderNoSymbols => 'Nessun simbolo';
+
+  @override
+  String get folderReset => 'Ripristina';
+
+  @override
+  String get folderStyleError =>
+      'Non è possibile personalizzare questa cartella.';
 }

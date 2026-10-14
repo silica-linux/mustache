@@ -37,6 +37,8 @@ extension _Tags on _MustacheWindowState {
       }
       if (writeTags(e.path, tags)) {
         _tagCache[e.path] = tags;
+        // A colour tag tints a folder.
+        if (e.isDirectory) folderStyles.invalidate([e.path]);
       } else {
         failed = true;
       }
@@ -54,6 +56,7 @@ extension _Tags on _MustacheWindowState {
     tags.add(tag);
     if (writeTags(entry.path, tags)) {
       _update(() => _tagCache[entry.path] = tags);
+      if (entry.isDirectory) folderStyles.invalidate([entry.path]);
     } else {
       _showError(l10n.tagError, l10n.tagErrorDetail);
     }

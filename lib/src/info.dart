@@ -1,7 +1,8 @@
 // The Get Info window (⌘I, MU-60, docs/spec/info.md): 265 wide, as tall as its content; a header
 // with the 44 pt icon, the name in semibold, the size and the date; sections with a chevron that
 // open and close (the state applies to all Info windows, R11.1): General, Name & Extension,
-// Comments, Open With, Preview, Sharing & Permissions. Labels right-aligned up to x 91, values from
+// Comments, Open With, Preview, Sharing & Permissions; folders also have Customize Folder (colour
+// and symbol) after General. Labels right-aligned up to x 91, values from
 // x 93, ~11 pt text.
 //
 // In Silica it lives inside the Mustache window (the embedder has no child windows).
@@ -11,6 +12,7 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
 
+import 'folder_customize.dart';
 import 'l10n.dart';
 import 'icon_view.dart' show EntryIcon;
 import 'model.dart';
@@ -21,10 +23,21 @@ const double infoLabelRight = 91;
 const double infoValueLeft = 93;
 
 /// The sections, in order.
-enum InfoSection { general, name, comments, openWith, preview, permissions }
+enum InfoSection {
+  general,
+
+  /// Folders only: colour and symbol (folder_customize.dart, provisional).
+  customize,
+  name,
+  comments,
+  openWith,
+  preview,
+  permissions,
+}
 
 String infoSectionTitle(InfoSection s) => switch (s) {
   InfoSection.general => l10n.infoGeneral,
+  InfoSection.customize => l10n.infoCustomize,
   InfoSection.name => l10n.infoNameExtension,
   InfoSection.comments => l10n.infoComments,
   InfoSection.openWith => l10n.openWith,
@@ -279,7 +292,11 @@ class _InfoPanelState extends State<InfoPanel> {
               _titleBar(entry),
               _header(entry),
               for (final section in InfoSection.values)
-                if (section != InfoSection.openWith || !entry.isDirectory)
+                if (switch (section) {
+                  InfoSection.openWith => !entry.isDirectory,
+                  InfoSection.customize => entry.isDirectory,
+                  _ => true,
+                })
                   _section(section),
             ],
           ),
@@ -473,6 +490,8 @@ class _InfoPanelState extends State<InfoPanel> {
             onSubmitted: (_) => _commentFocus.unfocus(),
           ),
         );
+      case InfoSection.customize:
+        return FolderCustomizeSection(path: entry.path, env: widget.env);
       case InfoSection.openWith:
         return _row(l10n.app, widget.openWith ?? l10n.none);
       case InfoSection.preview:

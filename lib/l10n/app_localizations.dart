@@ -1093,6 +1093,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stop'**
   String get stop;
+
+  /// Folder context menu: opens Get Info on the Customize Folder section.
+  ///
+  /// In en, this message translates to:
+  /// **'Customize Folder…'**
+  String get customizeFolder;
+
+  /// Info section of a folder: its colour and symbol.
+  ///
+  /// In en, this message translates to:
+  /// **'Customize Folder'**
+  String get infoCustomize;
+
+  /// Customize Folder: the colour row.
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get folderColor;
+
+  /// Customize Folder: the symbol grid.
+  ///
+  /// In en, this message translates to:
+  /// **'Symbol'**
+  String get folderSymbol;
+
+  /// Customize Folder: placeholder of the custom colour field.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom color, as #rrggbb'**
+  String get folderCustomColor;
+
+  /// Customize Folder: placeholder of the symbol search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Search symbols'**
+  String get folderSymbolSearch;
+
+  /// Customize Folder: the search found nothing, or the icons are not installed.
+  ///
+  /// In en, this message translates to:
+  /// **'No symbols'**
+  String get folderNoSymbols;
+
+  /// Customize Folder: removes the custom colour and symbol.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get folderReset;
+
+  /// Customize Folder: saving failed (no permission, read-only disk).
+  ///
+  /// In en, this message translates to:
+  /// **'This folder can\'t be customized.'**
+  String get folderStyleError;
 }
 
 class _AppLocalizationsDelegate

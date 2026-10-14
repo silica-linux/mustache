@@ -19,12 +19,15 @@ extension _Columns on _MustacheWindowState {
   }
 
   /// The sorted contents of a column, read once per load.
-  List<Entry> _columnList(String dir) => _columnCache[dir] ??= sortEntries(
-    listDirectory(dir, showHidden: _showHidden).entries,
-    _sort,
-    descending: _descending,
-    kindOf: _kind,
-  );
+  List<Entry> _columnList(String dir) => _columnCache[dir] ??= () {
+    _watchStyles(dir);
+    return sortEntries(
+      listDirectory(dir, showHidden: _showHidden).entries,
+      _sort,
+      descending: _descending,
+      kindOf: _kind,
+    );
+  }();
 
   /// The chosen item of the columns: the selected one, or the open folder.
   String get _leaf =>
