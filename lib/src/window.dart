@@ -1,6 +1,7 @@
 // The Mustache window: the sidebar on the left (sidebar.dart) from top to bottom, on the right the
 // toolbar unified with the window (toolbar.dart) and the content view.
 
+import 'external.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
@@ -610,7 +611,7 @@ class _MustacheWindowState extends State<MustacheWindow>
   }
 
   static void _xdgOpen(String path) {
-    Process.start('xdg-open', [path], mode: ProcessStartMode.detached).ignore();
+    startDetached('xdg-open', [path]).ignore();
   }
 
   void _openSelection() {

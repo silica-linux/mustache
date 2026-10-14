@@ -18,6 +18,7 @@
 // is not): the desktop announces the click (`desktopmenu` = "x y desktop" or "x y items") and its
 // state (`desktop.state`), and runs the items the menu sends back (`desktop.action`).
 
+import 'external.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -376,7 +377,7 @@ Future<void> _launch(String command) async {
     // Same.
   }
   try {
-    await Process.start('sh', ['-c', command], mode: ProcessStartMode.detached);
+    await startDetached('sh', ['-c', command]);
   } on ProcessException {
     // Nothing to start it with: the click does nothing, as a missing app would.
   }

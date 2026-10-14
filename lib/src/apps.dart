@@ -3,6 +3,7 @@
 // between MIME types and applications" specification: defaults, added, removed) and launching with
 // the field codes of `Exec`.
 
+import 'external.dart';
 import 'dart:io';
 
 import 'package:silica_ui/silica_ui.dart' show MimeDatabase, xdgDataDirs;
@@ -272,11 +273,7 @@ Future<String?> launchApp(DesktopApp app, List<String> paths) async {
   final args = execArguments(app, paths);
   if (args.isEmpty) return l10n.appHasNoCommand(app.name);
   try {
-    await Process.start(
-      args.first,
-      args.skip(1).toList(),
-      mode: ProcessStartMode.detached,
-    );
+    await startDetached(args.first, args.skip(1).toList());
     return null;
   } on ProcessException catch (e) {
     return l10n.appCantOpen(app.name, e.message);
