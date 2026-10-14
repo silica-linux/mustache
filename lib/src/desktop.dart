@@ -58,20 +58,23 @@ const double desktopBottom = 84;
 /// icon, whose outer 2 pt are a light outline (white ~10 %) and the inside black ~30 % (`#545559`
 /// and `#88898c` over the measured wallpaper), the same in light and dark. It is painted behind
 /// the icon and never takes part in the layout: selecting moves neither the icon nor its name.
-/// The corner radius (~10 outside) is read from one capture: provisional until DESKTOP-SEL.
+/// The corner radius is ~8 pt (DESKTOP-SEL).
 const double desktopSelectionPad = 6;
 const double desktopSelectionSide = desktopIconSide + 2 * desktopSelectionPad;
-const double desktopSelectionRadius = 10;
+const double desktopSelectionRadius = 8;
 const double desktopSelectionOutlineWidth = 2;
 const Color desktopSelectionFill = Color(0x4D000000);
 const Color desktopSelectionOutline = Color(0x1AFFFFFF);
 
-/// The selected name's capsule (MU-90): 17 pt tall, accent blue, white text; ~5 pt of side padding
-/// and a ~5 pt radius are read from one capture (provisional, DESKTOP-SEL).
+/// The selected name's capsule (MU-90, DESKTOP-SEL): 17 pt tall with fully round ends, 5 pt of side
+/// padding, accent blue with white text; light grey `#d0d0d0` with dark text while the desktop is
+/// not the active surface (a window is key), the square unchanged.
 const Color desktopCapsule = Color(0xFF0064E1);
 const Color desktopCapsuleDark = Color(0xFF0059D1);
+const Color desktopCapsuleInactive = Color(0xFFD0D0D0);
+const Color desktopCapsuleInactiveText = Color(0xFF1D1D1F);
 const double desktopCapsulePad = 5;
-const double desktopCapsuleRadius = 5;
+const double desktopCapsuleRadius = 8.5;
 
 /// The name starts 8 pt below the icon (its capsule's top 104 pt below the icon's top, MU-90), one
 /// line of 17 pt per row of text.
@@ -81,9 +84,10 @@ const double desktopLabelLine = 17;
 /// The widest a line of the name gets.
 const double desktopLabelWidth = desktopPitchX - 12;
 
-/// The rubber band on the desktop: white veil and outline (provisional, DESKTOP-SEL).
-const Color desktopBandFill = Color(0x1AFFFFFF);
-const Color desktopBandBorder = Color(0x80FFFFFF);
+/// The rubber band on the desktop (DESKTOP-SEL): square corners, white fill ~15 %, 1 pt outline
+/// white ~57 %.
+const Color desktopBandFill = Color(0x26FFFFFF);
+const Color desktopBandBorder = Color(0x91FFFFFF);
 
 /// The drag threshold on the desktop (R7.7: 4–5 pt).
 const double desktopDragThreshold = 4.5;
@@ -95,9 +99,14 @@ const double desktopDragDim = 0.5;
 /// travels there decelerating in ~250 ms (R15.7).
 const Duration desktopSettle = Duration(milliseconds: 250);
 
-/// The count badge of a drag with several items ([dragBadgeSide]): its center sits up and left of
-/// the pointer as in the windows (provisional on the desktop).
-const Offset desktopBadgeFromPointer = Offset(-2, -2);
+/// The count badge of a drag with several items ([dragBadgeSide], 20 pt): its center sits below
+/// and right of the pointer (DESKTOP-SEL: +9…+28 pt across, +11…+30 pt down).
+const Offset desktopBadgeFromPointer = Offset(19, 20);
+
+/// After a drop on free desktop (no snapping) the drag image, badge included, fades out in
+/// ~175 ms and the selection (square and capsule) is back ~275 ms after the release.
+const Duration desktopDropFade = Duration(milliseconds: 175);
+const Duration desktopDropSelect = Duration(milliseconds: 275);
 
 /// The double click: a second press within this time on the same icon opens it.
 const Duration desktopDoubleClick = Duration(milliseconds: 500);
@@ -446,7 +455,7 @@ class _DesktopDrag {
 }
 
 class DesktopViewState extends State<DesktopView>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   List<Entry> _entries = const [];
   Map<String, Offset> _positions = const {};
   final Set<String> _selected = {};
@@ -476,6 +485,25 @@ class DesktopViewState extends State<DesktopView>
   /// What each icon paints (icon and name, no selection square): the drag image is made of
   /// them.
   final Map<String, GlobalKey> _faces = {};
+
+  /// Whether the desktop is the active surface (the capsules turn grey when it is not).
+  bool _surfaceActive = _isActive(WidgetsBinding.instance.lifecycleState);
+  late final AppLifecycleListener _lifecycle;
+
+  static bool _isActive(AppLifecycleState? state) =>
+      state == null || state == AppLifecycleState.resumed;
+
+  /// Icons just dropped whose selection is not drawn yet, and the timer that brings it back.
+  final Set<String> _unselectedYet = {};
+  Timer? _reselect;
+
+  /// The local drag image fading out after the drop (outside Silica), and where it is.
+  ui.Image? _fadeImage;
+  Offset _fadeAt = Offset.zero;
+  late final AnimationController _fade = AnimationController(
+    vsync: this,
+    duration: desktopDropFade,
+  )..addListener(() => setState(() {}));
 
   /// Icons travelling to their place after a drop: where each one starts.
   Map<String, Offset> _settleFrom = const {};
@@ -520,6 +548,17 @@ class DesktopViewState extends State<DesktopView>
         // No notifications: the desktop shows what was there at start.
       }
     }
+    _lifecycle = AppLifecycleListener(
+      onStateChange: (state) {
+        final active = _isActive(state);
+        if (active != _surfaceActive && mounted) {
+          setState(() => _surfaceActive = active);
+        }
+      },
+    );
+    _fade.addStatusListener((status) {
+      if (status == AnimationStatus.completed) _dropFadeDone();
+    });
     _drags = SilicaDrag.events.listen(_externalDrag);
     _shell.setMethodCallHandler((call) async {
       if (call.method == 'broadcast') {
@@ -539,6 +578,10 @@ class DesktopViewState extends State<DesktopView>
     _drags?.cancel();
     _reload?.cancel();
     _focus.dispose();
+    _lifecycle.dispose();
+    _reselect?.cancel();
+    _fade.dispose();
+    _fadeImage?.dispose();
     _settle.dispose();
     _drag?.image?.dispose();
     super.dispose();
@@ -712,9 +755,12 @@ class DesktopViewState extends State<DesktopView>
         final items = _selection;
         if (items.length == 1) setState(() => _renaming = items.single.name);
       case 'duplicate':
+        var duplicated = false;
         for (final e in _selection) {
-          duplicate(e.path);
+          duplicated |= duplicate(e.path).error == null;
         }
+        // The copy is made: the move/copy sound (FILE-SOUNDS).
+        if (duplicated) unawaited(playUiSound(UiSound.fileTransfer));
         _load();
       case 'customize':
         _customize();
@@ -1028,12 +1074,27 @@ class DesktopViewState extends State<DesktopView>
     final drag = _drag;
     if (drag == null) return;
     _lastDrag = drag;
-    drag.image?.dispose();
+    final image = drag.image;
+    if (mounted && drag.local && image != null && _free) {
+      // The image (badge included) fades out where it was dropped.
+      _fadeImage?.dispose();
+      _fadeImage = image;
+      _fadeAt = drag.pointer - drag.hotspot;
+      _fade.forward(from: 0);
+    } else {
+      image?.dispose();
+    }
     if (mounted) {
       setState(() => _drag = null);
     } else {
       _drag = null;
     }
+  }
+
+  void _dropFadeDone() {
+    _fadeImage?.dispose();
+    _fadeImage = null;
+    if (mounted) setState(() {});
   }
 
   /// Dragged icons released on the desktop, `delta` from where they were. With free positions
@@ -1051,7 +1112,16 @@ class DesktopViewState extends State<DesktopView>
         ..clear()
         ..addAll(released.keys);
     });
-    if (_free) _moveTo(released);
+    if (_free) {
+      _moveTo(released);
+      // Free desktop: no snap, no fly. The normal selected look returns ~275 ms later.
+      _unselectedYet.addAll(released.keys);
+      _reselect?.cancel();
+      _reselect = Timer(desktopDropSelect, () {
+        _unselectedYet.clear();
+        if (mounted) setState(() {});
+      });
+    }
     _settleFromAt({
       for (final MapEntry(:key, :value) in released.entries)
         if (_positions[key] case final p? when (p - value).distance > 0.5)
@@ -1119,6 +1189,8 @@ class DesktopViewState extends State<DesktopView>
       return;
     }
     final moved = <String>[];
+    // Copies across disks still running: the one sound comes when the last is done.
+    final copies = <Future<bool>>[];
     for (final p in paths) {
       final name = uniqueName(widget.folder, displayName(p));
       final target = '${widget.folder}/$name';
@@ -1128,18 +1200,23 @@ class DesktopViewState extends State<DesktopView>
             : File(p).renameSync(target);
         moved.add(name);
       } on FileSystemException {
-        // Another disk: copied instead, as the windows do across disks; the sound once done.
-        Process.start('cp', [
-          '-a',
-          p,
-          target,
-        ]).then((process) => process.exitCode).then((code) {
-          if (code == 0) unawaited(playUiSound(UiSound.fileTransfer));
-        }).ignore();
+        // Another disk: copied instead, as the windows do across disks.
+        copies.add(
+          Process.start('cp', ['-a', p, target])
+              .then((process) => process.exitCode)
+              .then((code) => code == 0)
+              .catchError((_) => false),
+        );
       }
     }
-    // The move is done (FILE-SOUNDS).
-    if (moved.isNotEmpty) unawaited(playUiSound(UiSound.fileTransfer));
+    // One sound per operation, when it is complete (FILE-SOUNDS): after the last copy, or at
+    // once when everything was an instant move.
+    final anyMoved = moved.isNotEmpty;
+    Future.wait(copies).then((done) {
+      if (anyMoved || done.contains(true)) {
+        unawaited(playUiSound(UiSound.fileTransfer));
+      }
+    }).ignore();
     _load();
     if (_free && moved.isNotEmpty) {
       final grid = _grid;
@@ -1290,6 +1367,20 @@ class DesktopViewState extends State<DesktopView>
                     ),
                   ),
                 ),
+              if (_fadeImage != null)
+                Positioned(
+                  left: _fadeAt.dx,
+                  top: _fadeAt.dy,
+                  child: IgnorePointer(
+                    child: Opacity(
+                      opacity: 1 - _fade.value,
+                      child: RawImage(
+                        key: const ValueKey('desktop drop fade'),
+                        image: _fadeImage,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -1304,6 +1395,7 @@ class DesktopViewState extends State<DesktopView>
     required bool dimmed,
   }) {
     final isSelected = _selected.contains(icon.key);
+    final shown = isSelected && !_unselectedYet.contains(icon.key);
     final shadowed = _labelStyle.copyWith(
       shadows: const [
         Shadow(color: Color(0xB3000000), offset: Offset(0, 1), blurRadius: 2.5),
@@ -1344,9 +1436,13 @@ class DesktopViewState extends State<DesktopView>
               padding: const EdgeInsets.symmetric(
                 horizontal: desktopCapsulePad,
               ),
-              decoration: isSelected
+              decoration: shown
                   ? BoxDecoration(
-                      color: dark ? desktopCapsuleDark : desktopCapsule,
+                      color: !_surfaceActive
+                          ? desktopCapsuleInactive
+                          : dark
+                          ? desktopCapsuleDark
+                          : desktopCapsule,
                       borderRadius: BorderRadius.circular(desktopCapsuleRadius),
                     )
                   : null,
@@ -1356,7 +1452,11 @@ class DesktopViewState extends State<DesktopView>
                   line,
                   maxLines: 1,
                   softWrap: false,
-                  style: isSelected ? _labelStyle : shadowed,
+                  style: !shown
+                      ? shadowed
+                      : _surfaceActive
+                      ? _labelStyle
+                      : _labelStyle.copyWith(color: desktopCapsuleInactiveText),
                 ),
               ),
             ),
@@ -1380,7 +1480,7 @@ class DesktopViewState extends State<DesktopView>
           clipBehavior: Clip.none,
           children: [
             // Behind the icon, outside the layout: it never moves the icon or the name.
-            if (isSelected)
+            if (shown)
               const Positioned(
                 left: (desktopPitchX - desktopSelectionSide) / 2,
                 top: 0,

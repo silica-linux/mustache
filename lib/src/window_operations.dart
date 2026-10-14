@@ -170,6 +170,8 @@ extension _Operations on _MustacheWindowState {
         ),
       );
       _select(made.keys);
+      // The copy is made: the move/copy sound (FILE-SOUNDS).
+      unawaited(playUiSound(UiSound.fileTransfer));
     }
     _load();
     if (error != null) _showError(l10n.cantDuplicate, error);

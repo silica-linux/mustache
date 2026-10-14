@@ -172,10 +172,13 @@ void main() {
   });
 
   testWidgets('⌘D duplicates and selects the copies', (tester) async {
+    final sounds = listenSounds(tester);
     await pump(tester);
     await select(tester, 'bozza.txt');
     await keys(tester, LogicalKeyboardKey.keyD, meta: true);
     expect(File(p('bozza copy.txt')).readAsStringSync(), 'b');
+    // Duplicate sounds like a copy, once (FILE-SOUNDS).
+    expect(sounds, ['file-transfer']);
     await keys(tester, LogicalKeyboardKey.keyD, meta: true);
     expect(File(p('bozza copy copy.txt')).existsSync(), isTrue);
     await keys(tester, LogicalKeyboardKey.keyZ, meta: true);

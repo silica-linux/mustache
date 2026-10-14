@@ -507,63 +507,152 @@ void main() {
       );
     });
 
-    testWidgets(
-      'dropped back by Ossido, the icons keep where they were grabbed',
-      (tester) async {
-        final state = await pump(tester);
-        final one = state.positions['one.txt']!;
-        // Ossido takes the drag.
-        final starts = <MethodCall>[];
-        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+    testWidgets('dropped back by Ossido, the icons keep where they were grabbed', (
+      tester,
+    ) async {
+      final state = await pump(tester);
+      final one = state.positions['one.txt']!;
+      // Ossido takes the drag.
+      final starts = <MethodCall>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SilicaDrag.channel,
+        (call) async {
+          starts.add(call);
+          return true;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
           SilicaDrag.channel,
-          (call) async {
-            starts.add(call);
-            return true;
-          },
-        );
-        addTearDown(
-          () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-            SilicaDrag.channel,
-            null,
-          ),
-        );
-        final press = one + const Offset(10, 40);
-        final drag = await tester.startGesture(press);
-        await tester.pump(const Duration(milliseconds: 600));
-        await drag.moveTo(press + const Offset(-20, 0));
-        await tester.pump();
-        await settleDragStart(tester);
-        expect(starts.single.method, 'start');
-        final args = starts.single.arguments as Map;
-        expect(args['uris'], [Uri.file('${folder.path}/one.txt').toString()]);
-        final icon = args['icon'] as Map;
-        // The image is the icon as drawn, its grabbed point under the pointer.
-        expect(icon['width'], desktopPitchX);
-        expect(icon['x'], (press.dx - (one.dx - desktopPitchX / 2)).round());
-        expect(icon['y'], (press.dy - (one.dy - desktopSelectionPad)).round());
-        // The embedder cancels the gesture; Ossido drops the files back on the desktop.
-        await drag.cancel();
-        await tester.pump();
-        expect(state.dragged, {'one.txt'});
-        Future<void> fromOssido(String method, Object? args) =>
-            tester.binding.defaultBinaryMessenger.handlePlatformMessage(
-              SilicaDrag.channel.name,
-              SilicaDrag.channel.codec.encodeMethodCall(
-                MethodCall(method, args),
-              ),
-              (_) {},
-            );
-        await fromOssido('drop', {
-          'x': press.dx - 300,
-          'y': press.dy + 100,
-          'uris': [Uri.file('${folder.path}/one.txt').toString()],
-        });
-        await fromOssido('finished', {'action': 'move'});
-        await tester.pump();
-        expect(state.dragged, isEmpty);
-        expect(state.positions['one.txt'], one + const Offset(-300, 100));
-      },
-    );
+          null,
+        ),
+      );
+      final sounds = listenSounds(tester);
+      final press = one + const Offset(10, 40);
+      final drag = await tester.startGesture(press);
+      await tester.pump(const Duration(milliseconds: 600));
+      await drag.moveTo(press + const Offset(-20, 0));
+      await tester.pump();
+      await settleDragStart(tester);
+      expect(starts.single.method, 'start');
+      final args = starts.single.arguments as Map;
+      expect(args['uris'], [Uri.file('${folder.path}/one.txt').toString()]);
+      final icon = args['icon'] as Map;
+      // The image is the icon as drawn, its grabbed point under the pointer.
+      expect(icon['width'], desktopPitchX);
+      expect(icon['x'], (press.dx - (one.dx - desktopPitchX / 2)).round());
+      expect(icon['y'], (press.dy - (one.dy - desktopSelectionPad)).round());
+      // The embedder cancels the gesture; Ossido drops the files back on the desktop.
+      await drag.cancel();
+      await tester.pump();
+      expect(state.dragged, {'one.txt'});
+      Future<void> fromOssido(String method, Object? args) =>
+          tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+            SilicaDrag.channel.name,
+            SilicaDrag.channel.codec.encodeMethodCall(MethodCall(method, args)),
+            (_) {},
+          );
+      await fromOssido('drop', {
+        'x': press.dx - 300,
+        'y': press.dy + 100,
+        'uris': [Uri.file('${folder.path}/one.txt').toString()],
+      });
+      await fromOssido('finished', {'action': 'move'});
+      await tester.pump();
+      expect(state.dragged, isEmpty);
+      expect(state.positions['one.txt'], one + const Offset(-300, 100));
+      // Free desktop: the selection is back ~275 ms after the release, not at once.
+      const square = ValueKey('desktop selection');
+      expect(find.byKey(square), findsNothing);
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(find.byKey(square), findsNothing);
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.byKey(square), findsOneWidget);
+      // Repositioning icons on the desktop is silent.
+      expect(sounds, isEmpty);
+    });
+
+    testWidgets('Duplicate plays the move and copy sound, once', (
+      tester,
+    ) async {
+      final sounds = listenSounds(tester);
+      final state = await pump(tester);
+      await tester.tapAt(state.positions['one.txt']! + const Offset(0, 40));
+      await tester.pump(const Duration(milliseconds: 600));
+      state.runAction('duplicate');
+      await tester.pump();
+      expect(sounds, ['file-transfer']);
+      state.runAction('duplicate');
+      await tester.pump();
+      expect(sounds, ['file-transfer', 'file-transfer']);
+    });
+
+    testWidgets('files moved onto the desktop sound once, when moved', (
+      tester,
+    ) async {
+      final sounds = listenSounds(tester);
+      final state = await pump(tester);
+      final other = Directory.systemTemp.createTempSync('mustache_other');
+      addTearDown(() => other.deleteSync(recursive: true));
+      File('${other.path}/a.txt').writeAsStringSync('a');
+      File('${other.path}/b.txt').writeAsStringSync('b');
+      await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+        SilicaDrag.channel.name,
+        SilicaDrag.channel.codec.encodeMethodCall(
+          MethodCall('drop', {
+            'x': 100.0,
+            'y': 100.0,
+            'uris': [
+              Uri.file('${other.path}/a.txt').toString(),
+              Uri.file('${other.path}/b.txt').toString(),
+            ],
+          }),
+        ),
+        (_) {},
+      );
+      await tester.pump();
+      expect(sounds, ['file-transfer']);
+      expect(state.positions.keys, containsAll(['a.txt', 'b.txt']));
+    });
+
+    testWidgets('the capsule turns grey when the desktop is not active', (
+      tester,
+    ) async {
+      final state = await pump(tester);
+      await tester.tapAt(state.positions['one.txt']! + const Offset(0, 40));
+      await tester.pump(const Duration(milliseconds: 600));
+      BoxDecoration capsule() =>
+          tester
+                  .widget<Container>(
+                    find
+                        .ancestor(
+                          of: find.text('one.txt'),
+                          matching: find.byType(Container),
+                        )
+                        .first,
+                  )
+                  .decoration!
+              as BoxDecoration;
+      expect(capsule().color, desktopCapsule);
+      expect(capsule().borderRadius, BorderRadius.circular(8.5));
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+      expect(capsule().color, const Color(0xFFD0D0D0));
+      // The square stays.
+      expect(find.byKey(const ValueKey('desktop selection')), findsOneWidget);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(capsule().color, desktopCapsule);
+    });
+
+    test('measured values of the band, the badge and the square', () {
+      expect(desktopBandFill.a, closeTo(0.15, 0.01));
+      expect(desktopBandBorder.a, closeTo(0.57, 0.01));
+      expect(desktopSelectionSide, 108);
+      expect(desktopSelectionOutlineWidth, 2);
+      expect(desktopBadgeFromPointer.dx, greaterThan(0));
+      expect(desktopBadgeFromPointer.dy, greaterThan(0));
+    });
 
     testWidgets('Move to Trash plays its sound', (tester) async {
       final sounds = <Object?>[];
@@ -594,4 +683,26 @@ void main() {
       expect(sounds, ['trash-move']);
     });
   });
+}
+
+/// The interface sounds asked of silica-daemon (`PlaySound` on `silica/dbus`): a fake player.
+List<String> listenSounds(WidgetTester tester) {
+  const dbus = MethodChannel('silica/dbus', JSONMethodCodec());
+  final sounds = <String>[];
+  tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(dbus, (
+    call,
+  ) async {
+    final args = call.arguments as Map;
+    if (args['method'] == 'PlaySound') {
+      sounds.add((args['args'] as List).single as String);
+    }
+    return const <Object?>[];
+  });
+  addTearDown(
+    () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      dbus,
+      null,
+    ),
+  );
+  return sounds;
 }

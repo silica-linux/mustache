@@ -162,7 +162,9 @@ Empty Trash alert:
 
 Sounds (FILE-SOUNDS): Silica's own, synthesized in silica-desktop (`tools/sounds/synth.py`) and
 played by silica-daemon (`dev.frascella.Silica.Sound1` › `PlaySound`), which honours "Play user
-interface sound effects". Mustache plays `trash-move` as items leave for the Trash (⌘⌫, menus,
-the desktop) and `file-transfer` when a copy or move finishes (drag and drop, paste); the Dock
-plays `trash-drag` for a drop on its Trash and `trash-empty` once the Trash is emptied. *The
-moments are provisional until FILE-SOUNDS is measured; ⌘⌫'s sound could not be recorded (MU-42).*
+interface sound effects". Only three sounds exist, each played **once, on completion** of the
+operation (never at the drop; an instant operation sounds ~0.15–0.2 s after the release or key, a
+long copy to another volume ~0.1 s after the last byte): `trash-move` for the Trash (⌘⌫, menus,
+script, the desktop, a drop on the Dock's Trash), `file-transfer` for move, copy and Duplicate
+(drag and drop, paste, ⌘D), and `trash-empty` ~0.2 s after the Trash icon turns empty (the Dock).
+Dragging or repositioning icons on the desktop is silent.
