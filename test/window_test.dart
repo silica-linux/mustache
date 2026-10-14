@@ -140,7 +140,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 320));
     await hold.up();
     await tester.pump();
-    // The previous place, in the menu below the segment; the click opens it.
+    // The previous place, in the menu below the segment (rect.bottomLeft); the click opens it.
     final name = root.path.split('/').last;
     final item = find.descendant(
       of: find.byType(MenuPanel),
@@ -148,7 +148,7 @@ void main() {
     );
     expect(item, findsOneWidget);
     final panel = tester.getRect(find.byType(MenuPanel));
-    expect(panel.top, closeTo(7 + 38 - 2, 1));
+    expect(panel.top, closeTo(7 + 38, 1));
     await tester.tap(item);
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 60));

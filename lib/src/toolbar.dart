@@ -73,16 +73,12 @@ class MustacheToolbar extends StatefulWidget {
 class _MustacheToolbarState extends State<MustacheToolbar> {
   bool _hovered = false;
 
-  /// The corner of the history menu below segment `index` (0 Back, 1 Forward).
-  void _history(int index) {
+  /// Opens the history menu below segment `index` (0 Back, 1 Forward), at the segment's corner.
+  void _history(int index, Rect rect) {
     final callback = index == 0
         ? widget.onBackHistory
         : widget.onForwardHistory;
-    final box = context.findRenderObject();
-    if (callback == null || box is! RenderBox) return;
-    // Capsule from y 7, 38 tall; 36 pt segments after the 1 pt outline and the separator.
-    final x = widget.leading + 1 + index * 37;
-    callback(box.localToGlobal(Offset(x, 7 + toolbarCapsuleHeight - 2)));
+    callback?.call(rect.bottomLeft);
   }
 
   /// The silica-icons symbol in a `side` box (symbols draw the 16–20 glyph within 24: the box is
@@ -173,9 +169,9 @@ class _MustacheToolbarState extends State<MustacheToolbar> {
                       width: 36,
                       enabled: widget.canGoBack,
                       onTap: widget.onBack,
-                      onLongPress: widget.onBackHistory == null
+                      onLongPressMenu: widget.onBackHistory == null
                           ? null
-                          : () => _history(0),
+                          : (rect) => _history(0, rect),
                       icon: _icon('chevron-left', 24, '‹'),
                     ),
                     ToolbarSegment(
@@ -183,9 +179,9 @@ class _MustacheToolbarState extends State<MustacheToolbar> {
                       width: 36,
                       enabled: widget.canGoForward,
                       onTap: widget.onForward,
-                      onLongPress: widget.onForwardHistory == null
+                      onLongPressMenu: widget.onForwardHistory == null
                           ? null
-                          : () => _history(1),
+                          : (rect) => _history(1, rect),
                       icon: _icon('chevron-right', 24, '›'),
                     ),
                   ],
