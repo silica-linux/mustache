@@ -18,7 +18,7 @@ const double toolbarTitleMin = 160;
 /// nascosta la barra degli strumenti parte da qui.
 const double windowButtonsEnd = 80;
 
-class MustacheToolbar extends StatelessWidget {
+class MustacheToolbar extends StatefulWidget {
   const MustacheToolbar({
     super.key,
     required this.leading,
@@ -33,7 +33,18 @@ class MustacheToolbar extends StatelessWidget {
     required this.onSearch,
     this.searchField,
     this.iconsDir,
+    this.background,
+    this.onBackHistory,
+    this.onForwardHistory,
   });
+
+  /// Il fondo della barra; in scuro, con il puntatore nella barra, `#2e3030` (MU-07).
+  final Color? background;
+
+  /// Pressione lunga su Indietro / Avanti: il menu della cronologia, con l'angolo in alto a
+  /// sinistra sul bordo sinistro del segmento, 2 pt sopra il fondo della capsula (MU-07).
+  final ValueChanged<Offset>? onBackHistory;
+  final ValueChanged<Offset>? onForwardHistory;
 
   /// Lo spazio a sinistra prima della prima capsula.
   final double leading;
@@ -55,6 +66,25 @@ class MustacheToolbar extends StatelessWidget {
   final Widget? searchField;
   final String? iconsDir;
 
+  @override
+  State<MustacheToolbar> createState() => _MustacheToolbarState();
+}
+
+class _MustacheToolbarState extends State<MustacheToolbar> {
+  bool _hovered = false;
+
+  /// L'angolo del menu della cronologia sotto il segmento `index` (0 Indietro, 1 Avanti).
+  void _history(int index) {
+    final callback = index == 0
+        ? widget.onBackHistory
+        : widget.onForwardHistory;
+    final box = context.findRenderObject();
+    if (callback == null || box is! RenderBox) return;
+    // Capsula da y 7, alta 38; segmenti da 36 dopo il contorno di 1 pt e il separatore.
+    final x = widget.leading + 1 + index * 37;
+    callback(box.localToGlobal(Offset(x, 7 + toolbarCapsuleHeight - 2)));
+  }
+
   /// Il simbolo di silica-icons in un riquadro di `side` (i simboli disegnano in 24 il segno di
   /// 16–20: il riquadro è scelto perché il segno abbia le misure della barra).
   Widget _symbol(String name, double side, String fallback) => SizedBox(
@@ -63,7 +93,7 @@ class MustacheToolbar extends StatelessWidget {
     child: Builder(
       builder: (context) {
         final color = DefaultTextStyle.of(context).style.color;
-        final dir = iconsDir;
+        final dir = widget.iconsDir;
         final file = dir == null
             ? null
             : File('$dir/symbols/regular/$name.svg');
@@ -100,19 +130,39 @@ class MustacheToolbar extends StatelessWidget {
       );
 
   @override
-  Widget build(BuildContext context) => WindowDragArea(
+  Widget build(BuildContext context) {
+    final dark =
+        MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: ToolbarScope(
+        active: widget.active,
+        hovered: _hovered,
+        child: ColoredBox(
+          color: dark && _hovered && widget.active
+              ? const Color(0xFF2E3030)
+              : widget.background ?? const Color(0x00000000),
+          child: _bar(),
+        ),
+      ),
+    );
+  }
+
+  Widget _bar() => WindowDragArea(
     child: SizedBox(
       key: const ValueKey('barra degli strumenti'),
       height: toolbarHeight,
       child: LayoutBuilder(
         builder: (context, box) {
           // Al restringersi escono prima le viste, poi Indietro/Avanti (spec 1.2, R1.7).
-          final room = box.maxWidth - leading;
-          final views = view != null && room >= 75 + 12 + 160 + 162 + 8 + 38;
+          final room = box.maxWidth - widget.leading;
+          final views =
+              widget.view != null && room >= 75 + 12 + 160 + 162 + 8 + 38;
           final navigation = room >= 75 + 12 + toolbarTitleMin + 38 + 14;
           return Row(
             children: [
-              SizedBox(width: leading),
+              SizedBox(width: widget.leading),
               if (navigation) ...[
                 ToolbarCapsule(
                   key: const ValueKey('indietro e avanti'),
@@ -121,35 +171,49 @@ class MustacheToolbar extends StatelessWidget {
                     ToolbarSegment(
                       key: const ValueKey('indietro'),
                       width: 36,
-                      enabled: canGoBack,
-                      onTap: onBack,
+                      enabled: widget.canGoBack,
+                      onTap: widget.onBack,
+                      onLongPress: widget.onBackHistory == null
+                          ? null
+                          : () => _history(0),
                       icon: _icon('chevron-left', 24, '‹'),
                     ),
                     ToolbarSegment(
                       key: const ValueKey('avanti'),
                       width: 36,
-                      enabled: canGoForward,
-                      onTap: onForward,
+                      enabled: widget.canGoForward,
+                      onTap: widget.onForward,
+                      onLongPress: widget.onForwardHistory == null
+                          ? null
+                          : () => _history(1),
                       icon: _icon('chevron-right', 24, '›'),
                     ),
                   ],
                 ),
                 const SizedBox(width: 12),
               ],
+              // Il titolo non sposta la finestra; il vuoto accanto sì (MU-08).
               Expanded(
-                child: Text(
-                  title,
-                  key: const ValueKey('titolo'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: uiFontFamily,
-                    package: 'silica_ui',
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: active
-                        ? ToolbarColors.of(context).title
-                        : ToolbarColors.of(context).titleInactive,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onPanStart: (_) {},
+                    child: Text(
+                      widget.title,
+                      key: const ValueKey('titolo'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: uiFontFamily,
+                        package: 'silica_ui',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: widget.active
+                            ? ToolbarColors.of(context).title
+                            : ToolbarColors.of(context).titleInactive,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -167,20 +231,20 @@ class MustacheToolbar extends StatelessWidget {
                       ToolbarSegment(
                         key: ValueKey('vista ${mode.name}'),
                         width: 40,
-                        chosen: mode == view,
-                        onTap: () => onView(mode),
+                        chosen: mode == widget.view,
+                        onTap: () => widget.onView(mode),
                         icon: _icon(symbol, side, fallback),
                       ),
                   ],
                 ),
               const SizedBox(width: 8),
-              searchField ??
+              widget.searchField ??
                   ToolbarCapsule(
                     key: const ValueKey('cerca'),
                     children: [
                       ToolbarSegment(
                         width: toolbarCapsuleHeight - 2,
-                        onTap: onSearch,
+                        onTap: widget.onSearch,
                         icon: _icon('search', 24, '⌕'),
                       ),
                     ],

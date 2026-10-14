@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -124,6 +125,38 @@ void main() {
       expect(title(), ToolbarColors.light.title);
     },
   );
+
+  testWidgets('pressione lunga su Indietro: il menu della cronologia', (
+    tester,
+  ) async {
+    await pump(tester);
+    await tester.tap(find.text('Alfa'));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+    await tester.pump();
+    expect(find.text('dentro.txt'), findsOneWidget);
+    final back = tester.getCenter(find.byKey(const ValueKey('indietro')));
+    final hold = await tester.startGesture(back, kind: PointerDeviceKind.mouse);
+    await tester.pump(const Duration(milliseconds: 320));
+    await hold.up();
+    await tester.pump();
+    // Il luogo di prima, nel menu sotto il segmento; il clic lo apre.
+    final name = root.path.split('/').last;
+    final item = find.descendant(
+      of: find.byType(MenuPanel),
+      matching: find.text(name),
+    );
+    expect(item, findsOneWidget);
+    final panel = tester.getRect(find.byType(MenuPanel));
+    expect(panel.top, closeTo(7 + 38 - 2, 1));
+    await tester.tap(item);
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 60));
+    }
+    expect(find.text('nota.txt'), findsOneWidget);
+  });
 
   testWidgets('la barra degli strumenti unificata: capsule, viste, Indietro', (
     tester,

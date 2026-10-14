@@ -276,6 +276,22 @@ class History {
     _index = _stack.length - 1;
   }
 
+  /// I luoghi prima di questo, il più recente per primo (il menu di Indietro).
+  List<String> get backList => [
+    for (var i = _index - 1; i >= 0; i--) _stack[i],
+  ];
+
+  /// I luoghi dopo questo, il più vicino per primo (il menu di Avanti).
+  List<String> get forwardList => _stack.sublist(_index + 1);
+
+  /// Salta di `steps` luoghi (negativo: indietro), entro la cronologia.
+  bool jump(int steps) {
+    final target = _index + steps;
+    if (steps == 0 || target < 0 || target >= _stack.length) return false;
+    _index = target;
+    return true;
+  }
+
   bool back() {
     if (!canGoBack) return false;
     _index--;

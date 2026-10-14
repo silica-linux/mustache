@@ -139,4 +139,21 @@ void main() {
     expect(kindLabel(link, 'text/plain'), 'Collegamento');
     expect(entryAt(link.path)?.size, 11);
   });
+
+  test('cronologia: i luoghi prima e dopo, e i salti', () {
+    final h = History('/a')
+      ..go('/b')
+      ..go('/c')
+      ..go('/d');
+    expect(h.backList, ['/c', '/b', '/a']);
+    expect(h.forwardList, isEmpty);
+    expect(h.jump(-2), isTrue);
+    expect(h.current, '/b');
+    expect(h.forwardList, ['/c', '/d']);
+    expect(h.jump(2), isTrue);
+    expect(h.current, '/d');
+    expect(h.jump(1), isFalse);
+    expect(h.jump(-4), isFalse);
+    expect(h.jump(0), isFalse);
+  });
 }

@@ -1018,12 +1018,7 @@ class _MustacheWindowState extends State<MustacheWindow>
                         children: [
                           // Sopra l'elenco la barra ha il fondo dell'intestazione (in scuro
                           // `#2f2f2f`, più chiaro del contenuto); altrove quello del contenuto.
-                          ColoredBox(
-                            color: _searching || _view == ViewMode.list
-                                ? _listColors.header
-                                : WindowColors.of(context).content,
-                            child: _toolbar(visible),
-                          ),
+                          _toolbar(visible),
                           if (widget.dialog?.save ?? false) _saveBar(),
                           ?widget.tabBar,
                           if (_searching) _scopeBar(),
@@ -1104,22 +1099,27 @@ class _MustacheWindowState extends State<MustacheWindow>
                             ),
                           if (widget.dialog != null) _dialogButtons(),
                           // La barra di stato sotto la barra del percorso (spec 1.5).
+                          // La barra di stato sposta la finestra (MU-08).
                           if (_statusBar)
-                            StatusBar(
-                              active: _active,
-                              text: statusText(
-                                count: _entries.length,
-                                selected: _selected.length,
-                                free: _free,
-                                listing: !_searching && _tagView == null,
+                            WindowDragArea(
+                              child: StatusBar(
+                                active: _active,
+                                text: statusText(
+                                  count: _entries.length,
+                                  selected: _selected.length,
+                                  free: _free,
+                                  listing: !_searching && _tagView == null,
+                                ),
+                                slider: _view == ViewMode.icons && !_searching
+                                    ? sliderValueFor(_iconSide)
+                                    : null,
+                                onSlider: (value) {
+                                  setState(
+                                    () => _iconSide = iconSideFor(value),
+                                  );
+                                  widget.settings?.iconSide = _iconSide;
+                                },
                               ),
-                              slider: _view == ViewMode.icons && !_searching
-                                  ? sliderValueFor(_iconSide)
-                                  : null,
-                              onSlider: (value) {
-                                setState(() => _iconSide = iconSideFor(value));
-                                widget.settings?.iconSide = _iconSide;
-                              },
                             ),
                         ],
                       ),
@@ -1254,7 +1254,38 @@ class _MustacheWindowState extends State<MustacheWindow>
   }
 
   /// La barra degli strumenti (spec 1.2); `visible` è la parte visibile della barra laterale.
+  /// Il menu della cronologia (pressione lunga su Indietro o Avanti, MU-07): voci da 24 con
+  /// l'icona della cartella, il luogo più vicino in alto.
+  void _historyMenu(Offset at, {required bool back}) {
+    final places = back ? _history.backList : _history.forwardList;
+    if (places.isEmpty) return;
+    _update(() {
+      _menuAt = at;
+      _menuEntries = [
+        for (var i = 0; i < places.length; i++)
+          MenuAction(
+            displayName(places[i]),
+            icon: (_) =>
+                switch (resolveFolderIcon(places[i], env: widget.iconsEnv)) {
+                  final folder? => SilicaIcon(FolderSource(folder), side: 16),
+                  null => const SizedBox(width: 16, height: 16),
+                },
+            onSelected: () {
+              if (_history.jump(back ? -(i + 1) : i + 1)) _load();
+            },
+          ),
+      ];
+    });
+  }
+
   Widget _toolbar(double visible) => MustacheToolbar(
+    // Sopra l'elenco la barra ha il fondo dell'intestazione (in scuro `#2f2f2f`, più chiaro
+    // del contenuto); altrove quello del contenuto.
+    background: _searching || _view == ViewMode.list
+        ? _listColors.header
+        : WindowColors.of(context).content,
+    onBackHistory: (at) => _historyMenu(at, back: true),
+    onForwardHistory: (at) => _historyMenu(at, back: false),
     // A barra laterale nascosta la barra lascia il posto ai pulsanti della finestra.
     leading: visible < windowButtonsEnd ? windowButtonsEnd - visible + 7 : 7,
     title: widget.dialog != null && widget.dialog!.title.isNotEmpty

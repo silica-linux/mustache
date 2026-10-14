@@ -94,17 +94,30 @@ void main() {
         );
       }
     }
-    // Il vuoto della barra sposta la finestra; il clic su un segmento no.
+    // Il clic su un segmento non sposta la finestra.
     expect(calls, isNot(contains('startMove')));
+    Future<void> drag(Offset from) async {
+      final gesture = await tester.startGesture(
+        from,
+        kind: PointerDeviceKind.mouse,
+      );
+      await gesture.moveBy(const Offset(30, 0));
+      await gesture.up();
+      await tester.pump();
+    }
+
+    // MU-08: dal titolo no; dal vuoto accanto, dalla cima della barra laterale e dalla
+    // barra di stato sì.
     final title = tester.getRect(find.byKey(const ValueKey('titolo')));
-    final gesture = await tester.startGesture(
-      Offset(title.right - 4, title.center.dy),
-      kind: PointerDeviceKind.mouse,
-    );
-    await gesture.moveBy(const Offset(30, 0));
-    await gesture.up();
-    await tester.pump();
-    expect(calls, contains('startMove'));
+    await drag(Offset(title.right - 4, title.center.dy));
+    expect(calls, isNot(contains('startMove')));
+    await drag(Offset(title.right + 20, title.center.dy));
+    expect(calls.where((c) => c == 'startMove'), hasLength(1));
+    await drag(const Offset(100, 30));
+    expect(calls.where((c) => c == 'startMove'), hasLength(2));
+    final status = tester.getRect(find.byKey(const ValueKey('barra di stato')));
+    await drag(status.center + const Offset(-200, 0));
+    expect(calls.where((c) => c == 'startMove'), hasLength(3));
   });
 
   testWidgets('la barra di stato non passa i clic all\'elenco dietro', (
