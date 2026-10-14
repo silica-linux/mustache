@@ -33,6 +33,9 @@ const double labelGap = 2;
 
 /// Le immagini in miniatura occupano ~89 % del lato dell'icona, angoli di ~3 pt (spec 4.4).
 const double thumbnailRatio = 0.89;
+
+/// Il corpo delle icone di cartelle e file rispetto al lato (mu21-size-56-light).
+const double fileIconScale = 0.92;
 const double thumbnailRadius = 3;
 
 /// I colori della selezione (spec 4.2), chiaro e scuro.
@@ -137,8 +140,12 @@ IconGrid iconGrid(
   );
 }
 
-/// Le righe dell'etichetta: al più due; la prima va a capo anche dentro una parola, la seconda
-/// se non entra si tronca al centro (R4.5).
+/// La larghezza massima di un'etichetta: ~104 pt a testo 12 (mu21-sel3: "Beta con un nome"
+/// entra, "configurazione.jso" no), in proporzione al corpo del testo.
+double labelMaxWidth(double text) => 104 * text / defaultLabelSize;
+
+/// Le righe dell'etichetta: al più due; la prima va a capo agli spazi, e dentro una parola solo
+/// se la parola non entra; la seconda se non entra si tronca al centro (R4.5).
 List<String> labelLines(String name, double maxWidth, TextStyle style) {
   double widthOf(String s) {
     final painter = TextPainter(
@@ -152,13 +159,15 @@ List<String> labelLines(String name, double maxWidth, TextStyle style) {
   }
 
   if (widthOf(name) <= maxWidth) return [name];
-  // La prima riga: quanti caratteri entrano, preferendo spezzare dopo uno spazio.
+  // La prima riga: quanti caratteri entrano; si spezza all'ultimo spazio che entra, e dentro
+  // una parola solo se la prima parola da sola non entra (mu21-sel3: "barre / colorate.mov",
+  // "configurazione.js / on").
   var cut = 1;
   while (cut < name.length && widthOf(name.substring(0, cut + 1)) <= maxWidth) {
     cut++;
   }
   final space = name.lastIndexOf(' ', cut);
-  if (space > 0 && space >= cut ~/ 2) cut = space + 1;
+  if (space > 0) cut = space + 1;
   final first = name.substring(0, cut).trimRight();
   var rest = name.substring(cut).trimLeft();
   if (rest.isEmpty) return [first];
@@ -168,7 +177,9 @@ List<String> labelLines(String name, double maxWidth, TextStyle style) {
     String middle(int n) {
       final head = (n + 1) ~/ 2;
       final tail = n - head;
-      return '${rest.substring(0, head)}…${rest.substring(rest.length - tail)}';
+      // Niente spazi attorno al "…" (mu21-sel3: "molto lu…colonna").
+      return '${rest.substring(0, head).trimRight()}…'
+          '${rest.substring(rest.length - tail).trimLeft()}';
     }
 
     while (keep > 1 && widthOf(middle(keep)) > maxWidth) {
@@ -435,7 +446,11 @@ class _IconViewState extends State<IconView> {
         : null;
     final lines = field != null
         ? const ['']
-        : labelLines(entry.name, grid.pitchX - 2 * labelPad - 6, style);
+        : labelLines(
+            entry.name,
+            math.min(labelMaxWidth(widget.text), grid.pitchX - 6),
+            style,
+          );
     final labelTop = iconTop + side + iconSelectionPad + labelGap;
     final bg = side + 2 * iconSelectionPad;
     return Positioned(
@@ -482,10 +497,12 @@ class _IconViewState extends State<IconView> {
                     child: Center(child: field),
                   )
                 else
+                  // La capsula può uscire di qualche pt dalla cella: la riga è già spezzata da
+                  // `labelLines`, qui non va più a capo.
                   for (var i = 0; i < lines.length; i++)
                     Positioned(
-                      left: 0,
-                      right: 0,
+                      left: -labelPad,
+                      right: -labelPad,
                       top:
                           labelTop -
                           (iconTop - iconSelectionPad) +
@@ -510,10 +527,20 @@ class _IconViewState extends State<IconView> {
                                     children: [
                                       TagDots(tags: tags),
                                       const SizedBox(width: 5),
-                                      Text(lines[i], maxLines: 1, style: style),
+                                      Text(
+                                        lines[i],
+                                        maxLines: 1,
+                                        softWrap: false,
+                                        style: style,
+                                      ),
                                     ],
                                   )
-                                : Text(lines[i], maxLines: 1, style: style),
+                                : Text(
+                                    lines[i],
+                                    maxLines: 1,
+                                    softWrap: false,
+                                    style: style,
+                                  ),
                           ),
                         ),
                       ),
@@ -567,6 +594,20 @@ class EntryIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (hasThumbnail(entry.name) && !entry.isDirectory) {
+      return _Thumbnail(entry.path, side);
+    }
+    // Cartelle e documenti: il corpo 824 di silica-icons occupa il 92 % del lato (mu21-size-56:
+    // cartella 118 su 128, documento 96 × 124 con l'ombra), centrato.
+    final body = side * fileIconScale;
+    return SizedBox(
+      width: side,
+      height: side,
+      child: Center(child: _icon(body)),
+    );
+  }
+
+  Widget _icon(double side) {
     final (file, badges) = _resolve();
     if (entry.isDirectory) {
       final folder = resolveFolderIcon(entry.path, env: env);
@@ -580,7 +621,6 @@ class EntryIcon extends StatelessWidget {
       }
       return SizedBox(width: side, height: side);
     }
-    if (hasThumbnail(entry.name)) return _Thumbnail(entry.path, side);
     if (file == null) return SizedBox(width: side, height: side);
     return SilicaIcon(FileSource(file), side: side, badges: badges, env: env);
   }

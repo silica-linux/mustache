@@ -57,6 +57,29 @@ void main() {
     expect(word.join(), 'abcdefghijklmno');
   });
 
+  testWidgets('etichette come mu21-sel3: a capo agli spazi, larghe ~104', (
+    tester,
+  ) async {
+    const style = TextStyle(
+      fontFamily: uiFontFamily,
+      package: 'silica_ui',
+      fontSize: 12,
+    );
+    final width = labelMaxWidth(12);
+    List<String> lines(String name) => labelLines(name, width, style);
+    expect(lines('senza estensione'), ['senza estensione']);
+    expect(lines('barre colorate.mov'), ['barre', 'colorate.mov']);
+    expect(lines('grande 4000x3000.png'), ['grande', '4000x3000.png']);
+    expect(lines('strisce orizzontali.jpg'), ['strisce', 'orizzontali.jpg']);
+    expect(lines('configurazione.json'), ['configurazione.js', 'on']);
+    final beta = lines(
+      'Beta con un nome molto lungo che non entra nella colonna',
+    );
+    expect(beta.first, 'Beta con un nome');
+    expect(beta.last, startsWith('molto lu'));
+    expect(beta.last, endsWith('…colonna'));
+  });
+
   group('nella finestra', () {
     late Directory root;
     late Directory config;
@@ -64,7 +87,11 @@ void main() {
     setUp(() {
       root = Directory.systemTemp.createTempSync('mustache-icone');
       config = Directory.systemTemp.createTempSync('mustache-config');
-      for (final name in ['Alfa', 'Beta']) {
+      for (final name in [
+        'Alfa',
+        'Beta',
+        'Beta con un nome molto lungo che non entra nella colonna',
+      ]) {
         Directory('${root.path}/$name').createSync();
       }
       // Abbastanza file per due righe.
@@ -179,6 +206,20 @@ void main() {
       await tester.pump();
       expect(find.byType(IconView), findsOneWidget);
     });
+
+    testWidgets(
+      'l\'etichetta lunga si vede intera, coda compresa (mu21-sel3)',
+      (tester) async {
+        await pump(tester);
+        final second = find.textContaining('colonna');
+        expect(second, findsOneWidget);
+        final text = tester.widget<Text>(second);
+        expect(text.data, startsWith('molto lu'));
+        expect(text.softWrap, isFalse);
+        // La riga sta su una sola riga di testo (17 pt).
+        expect(tester.getSize(second).height, lessThan(17));
+      },
+    );
   });
 
   test('miniature solo per le immagini', () {
