@@ -48,6 +48,38 @@ const Color textColor = Color(0xFF000000);
 const Color secondaryText = Color(0xFF808182);
 const Color contentFill = Color(0xFFFFFFFF);
 
+/// I colori di fondo e del testo della finestra, chiaro e scuro (mustache.md MU-20, MU-03,
+/// MU-04: contenuto `#272728`, barra degli strumenti e intestazione `#2f2f2f` in scuro).
+@immutable
+class WindowColors {
+  const WindowColors({
+    required this.content,
+    required this.text,
+    required this.secondary,
+  });
+
+  final Color content;
+  final Color text;
+  final Color secondary;
+
+  static const WindowColors light = WindowColors(
+    content: contentFill,
+    text: textColor,
+    secondary: secondaryText,
+  );
+
+  static const WindowColors dark = WindowColors(
+    content: Color(0xFF272728),
+    text: Color(0xFFDFDFE0),
+    secondary: Color(0xFF9E9E9E),
+  );
+
+  static WindowColors of(BuildContext context) =>
+      MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark
+      ? dark
+      : light;
+}
+
 const Color selectionFill = accent;
 const Color selectionText = Color(0xFFFFFFFF);
 
@@ -955,11 +987,18 @@ class _MustacheWindowState extends State<MustacheWindow>
                     right: 0,
                     bottom: 0,
                     child: ColoredBox(
-                      color: contentFill,
+                      color: WindowColors.of(context).content,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _toolbar(visible),
+                          // Sopra l'elenco la barra ha il fondo dell'intestazione (in scuro
+                          // `#2f2f2f`, più chiaro del contenuto); altrove quello del contenuto.
+                          ColoredBox(
+                            color: _searching || _view == ViewMode.list
+                                ? _listColors.header
+                                : WindowColors.of(context).content,
+                            child: _toolbar(visible),
+                          ),
                           if (widget.dialog?.save ?? false) _saveBar(),
                           ?widget.tabBar,
                           if (_searching) _scopeBar(),
@@ -1042,6 +1081,7 @@ class _MustacheWindowState extends State<MustacheWindow>
                           // La barra di stato sotto la barra del percorso (spec 1.5).
                           if (_statusBar)
                             StatusBar(
+                              active: widget.active,
                               text: statusText(
                                 count: _entries.length,
                                 selected: _selected.length,

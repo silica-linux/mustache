@@ -130,6 +130,55 @@ String _date(DateTime? t) {
   return '${t.day} ${months[t.month - 1]} ${t.year}, ${two(t.hour)}:${two(t.minute)}';
 }
 
+/// I colori della finestra (MU-60); in scuro da mu60-info-file-dark: fondo `#272728`, testo
+/// bianco, secondario `#9e9e9e`, titolo `#a1a1a1`, linee `#3c3c3d`; il collegamento in scuro
+/// è *stimato*.
+@immutable
+class InfoColors {
+  const InfoColors({
+    required this.fill,
+    required this.text,
+    required this.secondary,
+    required this.title,
+    required this.line,
+    required this.fieldBorder,
+    required this.link,
+  });
+
+  final Color fill;
+  final Color text;
+  final Color secondary;
+  final Color title;
+  final Color line;
+  final Color fieldBorder;
+  final Color link;
+
+  static const InfoColors light = InfoColors(
+    fill: Color(0xFFFFFFFF),
+    text: Color(0xFF1A1A1A),
+    secondary: Color(0xFF6E6E73),
+    title: Color(0xFF4D4D4D),
+    line: Color(0xFFE6E6E6),
+    fieldBorder: Color(0xFFD0D0D0),
+    link: Color(0xFF0064E1),
+  );
+
+  static const InfoColors dark = InfoColors(
+    fill: Color(0xFF272728),
+    text: Color(0xFFFFFFFF),
+    secondary: Color(0xFF9E9E9E),
+    title: Color(0xFFA1A1A1),
+    line: Color(0xFF3C3C3D),
+    fieldBorder: Color(0xFF353535),
+    link: Color(0xFF0A84FF),
+  );
+
+  static InfoColors of(BuildContext context) =>
+      MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark
+      ? dark
+      : light;
+}
+
 class InfoPanel extends StatefulWidget {
   const InfoPanel({
     super.key,
@@ -209,17 +258,16 @@ class _InfoPanelState extends State<InfoPanel> {
     super.dispose();
   }
 
-  TextStyle _text({
-    double size = 11,
-    FontWeight? weight,
-    Color color = const Color(0xFF1A1A1A),
-  }) => TextStyle(
-    fontFamily: uiFontFamily,
-    package: 'silica_ui',
-    fontSize: size,
-    fontWeight: weight,
-    color: color,
-  );
+  InfoColors get _c => InfoColors.of(context);
+
+  TextStyle _text({double size = 11, FontWeight? weight, Color? color}) =>
+      TextStyle(
+        fontFamily: uiFontFamily,
+        package: 'silica_ui',
+        fontSize: size,
+        fontWeight: weight,
+        color: color ?? _c.text,
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -228,7 +276,7 @@ class _InfoPanelState extends State<InfoPanel> {
       key: ValueKey('informazioni ${entry.path}'),
       width: infoWidth,
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFFFF),
+        color: _c.fill,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0x40000000), width: 0.5),
         boxShadow: const [
@@ -281,11 +329,7 @@ class _InfoPanelState extends State<InfoPanel> {
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: _text(
-              size: 12,
-              weight: FontWeight.w600,
-              color: const Color(0xFF4D4D4D),
-            ),
+            style: _text(size: 12, weight: FontWeight.w600, color: _c.title),
           ),
         ),
         const SizedBox(width: 22),
@@ -318,16 +362,13 @@ class _InfoPanelState extends State<InfoPanel> {
                     ),
                   ),
                   if (!entry.isDirectory)
-                    Text(
-                      formatSize(entry),
-                      style: _text(color: const Color(0xFF6E6E73)),
-                    ),
+                    Text(formatSize(entry), style: _text(color: _c.secondary)),
                 ],
               ),
               const SizedBox(height: 2),
               Text(
                 'Modificato: ${_date(entry.modified)}',
-                style: _text(color: const Color(0xFF6E6E73)),
+                style: _text(color: _c.secondary),
               ),
             ],
           ),
@@ -341,7 +382,7 @@ class _InfoPanelState extends State<InfoPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(height: 1, color: const Color(0xFFE6E6E6)),
+        Container(height: 1, color: _c.line),
         GestureDetector(
           key: ValueKey('sezione ${infoSectionTitle(section)}'),
           behavior: HitTestBehavior.opaque,
@@ -355,7 +396,7 @@ class _InfoPanelState extends State<InfoPanel> {
                   width: 15,
                   child: Text(
                     open ? '⌄' : '›',
-                    style: _text(size: 12, color: const Color(0xFF6E6E73)),
+                    style: _text(size: 12, color: _c.secondary),
                   ),
                 ),
                 Expanded(
@@ -389,7 +430,7 @@ class _InfoPanelState extends State<InfoPanel> {
           child: Text(
             '$label:',
             textAlign: TextAlign.right,
-            style: _text(color: const Color(0xFF6E6E73)),
+            style: _text(color: _c.secondary),
           ),
         ),
         const SizedBox(width: infoValueLeft - infoLabelRight),
@@ -493,10 +534,7 @@ class _InfoPanelState extends State<InfoPanel> {
                 // Senza chmod resta com'era.
               }
             },
-            child: Text(
-              privilegeLabel(current),
-              style: _text(color: const Color(0xFF0064E1)),
-            ),
+            child: Text(privilegeLabel(current), style: _text(color: _c.link)),
           ),
         ],
       ),
@@ -513,7 +551,7 @@ class _InfoPanelState extends State<InfoPanel> {
     key: ValueKey(key),
     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
     decoration: BoxDecoration(
-      border: Border.all(color: const Color(0xFFD0D0D0)),
+      border: Border.all(color: _c.fieldBorder),
       borderRadius: BorderRadius.circular(5),
     ),
     child: DefaultTextEditingShortcuts(
@@ -521,8 +559,8 @@ class _InfoPanelState extends State<InfoPanel> {
         controller: controller,
         focusNode: focus,
         style: _text(size: 12),
-        cursorColor: const Color(0xFF1A1A1A),
-        backgroundCursorColor: const Color(0xFF1A1A1A),
+        cursorColor: _c.text,
+        backgroundCursorColor: _c.text,
         selectionColor: const Color(0xFFB3D7FF),
         selectAllOnFocus: false,
         maxLines: lines,

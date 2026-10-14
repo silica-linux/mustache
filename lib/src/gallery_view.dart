@@ -16,10 +16,17 @@ const double galleryThumb = 48;
 const double galleryPitch = 59;
 const double galleryStrip = 54;
 const Color galleryOutline = Color(0xFFF2F2F2);
+const Color galleryOutlineDark = Color(0xFF313132);
 
 /// L'icona grande rispetto al lato corto dell'anteprima (mu23-gallery-folder-light).
 const double galleryIconRatio = 0.94;
 const Color galleryChosen = Color(0xFFBDBDBD);
+
+/// La scelta in scuro (mu23-gallery-image-dark).
+const Color galleryChosenDark = Color(0xFF5C5C5D);
+
+bool _dark(BuildContext context) =>
+    MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark;
 
 class GalleryView extends StatefulWidget {
   const GalleryView({
@@ -114,7 +121,11 @@ class _GalleryViewState extends State<GalleryView> {
                           height: galleryStrip,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: chosen ? galleryChosen : null,
+                            color: chosen
+                                ? (_dark(context)
+                                      ? galleryChosenDark
+                                      : galleryChosen)
+                                : null,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: SizedBox(
@@ -147,7 +158,11 @@ class _GalleryViewState extends State<GalleryView> {
         child: DecoratedBox(
           key: const ValueKey('anteprima grande'),
           position: DecorationPosition.foreground,
-          decoration: BoxDecoration(border: Border.all(color: galleryOutline)),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: _dark(context) ? galleryOutlineDark : galleryOutline,
+            ),
+          ),
           child: Image.file(
             File(entry.path),
             fit: BoxFit.contain,

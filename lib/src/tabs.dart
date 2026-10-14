@@ -150,6 +150,65 @@ class TabsHostState extends State<TabsHost> {
   }
 }
 
+/// I colori della barra delle schede (MU-01), chiaro e scuro.
+@immutable
+class TabColors {
+  const TabColors({
+    required this.rail,
+    required this.railBorder,
+    required this.active,
+    required this.hovered,
+    required this.separator,
+    required this.plus,
+    required this.plusGlyph,
+    required this.title,
+    required this.titleInactive,
+    required this.close,
+  });
+
+  final Color rail;
+  final Color railBorder;
+  final Color active;
+  final Color hovered;
+  final Color separator;
+  final Color plus;
+  final Color plusGlyph;
+  final Color title;
+  final Color titleInactive;
+  final Color close;
+
+  static const TabColors light = TabColors(
+    rail: Color(0xFFE8E8E8),
+    railBorder: Color(0xFFDCDCDC),
+    active: Color(0xFFFEFDFE),
+    hovered: Color(0xFFDCDCDC),
+    separator: Color(0xFFCCCCCC),
+    plus: Color(0xFFF8F8F8),
+    plusGlyph: Color(0xFF282828),
+    title: Color(0xFF4C4B4C),
+    titleInactive: Color(0xFF828282),
+    close: Color(0xFF7B7B7B),
+  );
+
+  static const TabColors dark = TabColors(
+    rail: Color(0xFF404041),
+    railBorder: Color(0xFF4F4F50),
+    active: Color(0xFF464648),
+    hovered: Color(0xFF4B4B4B),
+    separator: Color(0xFF575758),
+    plus: Color(0xFF474748),
+    plusGlyph: Color(0xFFDADADA),
+    title: Color(0xFFECECEC),
+    titleInactive: Color(0xFF8B8B8C),
+    close: Color(0xFF909091),
+  );
+
+  static TabColors of(BuildContext context) =>
+      MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark
+      ? dark
+      : light;
+}
+
 class _TabBar extends StatefulWidget {
   const _TabBar({required this.host});
   final TabsHostState host;
@@ -161,17 +220,18 @@ class _TabBar extends StatefulWidget {
 class _TabBarState extends State<_TabBar> {
   int? _hovered;
 
-  TextStyle _title(bool active) => TextStyle(
+  TextStyle _title(TabColors colors, bool active) => TextStyle(
     fontFamily: uiFontFamily,
     package: 'silica_ui',
     fontSize: 11,
-    color: active ? const Color(0xFF4C4B4C) : const Color(0xFF828282),
+    color: active ? colors.title : colors.titleInactive,
   );
 
   @override
   Widget build(BuildContext context) {
     final host = widget.host;
     final tabs = host.tabs;
+    final colors = TabColors.of(context);
     return SizedBox(
       key: const ValueKey('barra delle schede'),
       height: tabRailHeight + 8,
@@ -183,9 +243,9 @@ class _TabBarState extends State<_TabBar> {
               child: Container(
                 height: tabRailHeight,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8E8E8),
+                  color: colors.rail,
                   borderRadius: BorderRadius.circular(tabRailHeight / 2),
-                  border: Border.all(color: const Color(0xFFDCDCDC)),
+                  border: Border.all(color: colors.railBorder),
                 ),
                 padding: const EdgeInsets.all(1),
                 child: LayoutBuilder(
@@ -198,7 +258,7 @@ class _TabBarState extends State<_TabBar> {
                       child: Row(
                         children: [
                           for (var i = 0; i < tabs.length; i++)
-                            SizedBox(width: each, child: _tab(i)),
+                            SizedBox(width: each, child: _tab(colors, i)),
                         ],
                       ),
                     );
@@ -214,15 +274,15 @@ class _TabBarState extends State<_TabBar> {
                 width: tabPlusSide,
                 height: tabPlusSide,
                 alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF8F8F8),
+                decoration: BoxDecoration(
+                  color: colors.plus,
                   shape: BoxShape.circle,
                 ),
-                child: const Text(
+                child: Text(
                   '+',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Color(0xFF282828),
+                    color: colors.plusGlyph,
                     height: 1,
                   ),
                 ),
@@ -234,7 +294,7 @@ class _TabBarState extends State<_TabBar> {
     );
   }
 
-  Widget _tab(int i) {
+  Widget _tab(TabColors colors, int i) {
     final host = widget.host;
     final active = i == host.active;
     final hovered = _hovered == i;
@@ -262,9 +322,7 @@ class _TabBarState extends State<_TabBar> {
                 child: Container(
                   margin: const EdgeInsets.all(1),
                   decoration: BoxDecoration(
-                    color: active
-                        ? const Color(0xFFFEFDFE)
-                        : const Color(0xFFDCDCDC),
+                    color: active ? colors.active : colors.hovered,
                     borderRadius: BorderRadius.circular(tabPillHeight / 2),
                   ),
                 ),
@@ -277,7 +335,7 @@ class _TabBarState extends State<_TabBar> {
                     displayName(host.tabs[i].location),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: _title(active),
+                    style: _title(colors, active),
                   ),
                 ),
               ),
@@ -292,12 +350,12 @@ class _TabBarState extends State<_TabBar> {
                 child: GestureDetector(
                   key: ValueKey('chiudi la scheda ${host.tabs[i].id}'),
                   onTap: () => host.closeTab(i),
-                  child: const Center(
+                  child: Center(
                     child: Text(
                       '×',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Color(0xFF7B7B7B),
+                        color: colors.close,
                         height: 1,
                       ),
                     ),
@@ -310,7 +368,7 @@ class _TabBarState extends State<_TabBar> {
                 top: (tabRailHeight - 2 - 16) / 2,
                 width: 1,
                 height: 16,
-                child: const ColoredBox(color: Color(0xFFCCCCCC)),
+                child: ColoredBox(color: colors.separator),
               ),
           ],
         ),

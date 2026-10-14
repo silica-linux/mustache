@@ -39,6 +39,74 @@ const Color paneValue = Color(0xFF353537);
 const Color paneHeading = Color(0xFF1A1A1A);
 const Color panePlaceholder = Color(0xFFB4B4B4);
 
+/// I colori del pannello (MU-05), chiaro e scuro (i testi in scuro dai pixel più chiari di
+/// mu05-list-image-dark).
+@immutable
+class PaneColors {
+  const PaneColors({
+    required this.fill,
+    required this.line,
+    required this.name,
+    required this.kind,
+    required this.label,
+    required this.value,
+    required this.heading,
+    required this.placeholder,
+    required this.actions,
+    required this.actionText,
+    required this.actionIcon,
+    required this.field,
+  });
+
+  final Color fill;
+  final Color line;
+  final Color name;
+  final Color kind;
+  final Color label;
+  final Color value;
+  final Color heading;
+  final Color placeholder;
+  final Color actions;
+  final Color actionText;
+  final Color actionIcon;
+  final Color field;
+
+  static const PaneColors light = PaneColors(
+    fill: paneFill,
+    line: paneLine,
+    name: paneName,
+    kind: paneKind,
+    label: paneLabel,
+    value: paneValue,
+    heading: paneHeading,
+    placeholder: panePlaceholder,
+    actions: Color(0xFFFFFFFF),
+    actionText: Color(0xFF6E6E6E),
+    actionIcon: Color(0xFF6E6E6E),
+    field: Color(0xFFFFFFFF),
+  );
+
+  static const PaneColors dark = PaneColors(
+    fill: Color(0xFF2A2A2B),
+    line: Color(0xFF474748),
+    name: Color(0xFFEAEAEA),
+    kind: Color(0xFF5B5B5C),
+    label: Color(0xFF7E7E80),
+    value: Color(0xFFE9E9E9),
+    heading: Color(0xFFEAEAEA),
+    placeholder: Color(0xFF5C5C5D),
+    actions: Color(0xFF272728),
+    actionText: Color(0xFF939393),
+    actionIcon: Color(0xFF9E9E9E),
+    field: Color(0xFF272728),
+  );
+
+  static PaneColors of(BuildContext context) =>
+      MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark
+      ? dark
+      : light;
+}
+
 TextStyle _text(double size, {FontWeight? weight, Color color = paneHeading}) =>
     TextStyle(
       fontFamily: uiFontFamily,
@@ -106,26 +174,27 @@ class PreviewPane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = PaneColors.of(context);
     final content = items.isEmpty
         ? const SizedBox.expand()
         : items.length > 1
-        ? _many()
-        : _one(items.single);
+        ? _many(c)
+        : _one(c, items.single);
     return Container(
       key: const ValueKey('pannello di anteprima'),
       width: width,
-      color: paneFill,
+      color: c.fill,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(child: content),
-          if (items.isNotEmpty && actions.isNotEmpty) _actionsBar(),
+          if (items.isNotEmpty && actions.isNotEmpty) _actionsBar(c),
         ],
       ),
     );
   }
 
-  Widget _many() {
+  Widget _many(PaneColors c) {
     final total = items.fold<int>(
       0,
       (sum, e) => sum + (e.isDirectory ? 0 : e.size),
@@ -158,12 +227,12 @@ class PreviewPane extends StatelessWidget {
             children: [
               Text(
                 '${items.length} elementi',
-                style: _text(15, weight: FontWeight.w600, color: paneName),
+                style: _text(15, weight: FontWeight.w600, color: c.name),
               ),
               const SizedBox(height: 6),
               Text(
                 '${items.length} documenti - ${formatSize(Entry(name: '', path: '', isDirectory: false, size: total, modified: DateTime(0)))}',
-                style: _text(12, color: paneKind),
+                style: _text(12, color: c.kind),
               ),
             ],
           ),
@@ -178,7 +247,7 @@ class PreviewPane extends StatelessWidget {
   String _when(DateTime? t) =>
       t == null ? '--' : formatDate(t, now ?? DateTime.now());
 
-  Widget _one(Entry entry) {
+  Widget _one(PaneColors c, Entry entry) {
     final key = '${entry.path}\u0000${entry.modified.microsecondsSinceEpoch}';
     if (_stats.length > 500) _stats.clear();
     final stat = _stats[key] ??= StatDetails.of(entry.path);
@@ -189,13 +258,13 @@ class PreviewPane extends StatelessWidget {
       entry.name,
       maxLines: compact ? 1 : 2,
       overflow: TextOverflow.ellipsis,
-      style: _text(15, weight: FontWeight.w600, color: paneName),
+      style: _text(15, weight: FontWeight.w600, color: c.name),
     );
     final subtitle = Text(
       kind,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: _text(12, color: paneKind),
+      style: _text(12, color: c.kind),
     );
     return SingleChildScrollView(
       child: Column(
@@ -261,24 +330,36 @@ class PreviewPane extends StatelessWidget {
                   child: _onBaseline(
                     Text(
                       'Informazioni',
-                      style: _text(13, weight: FontWeight.w700),
+                      style: _text(
+                        13,
+                        weight: FontWeight.w700,
+                        color: c.heading,
+                      ),
                     ),
                     24,
                   ),
                 ),
-                _row('Creato', _when(stat.created)),
+                _row(c, 'Creato', _when(stat.created)),
                 _row(
+                  c,
                   'Modificato',
                   _when(entry.modified),
                   last: !hasThumbnail(entry.name),
                 ),
                 if (hasThumbnail(entry.name))
-                  _row('Dimensioni', formatSize(entry), last: true),
+                  _row(c, 'Dimensioni', formatSize(entry), last: true),
                 if (tagsOf != null) ...[
                   SizedBox(
                     height: 37,
                     child: _onBaseline(
-                      Text('Tag', style: _text(13, weight: FontWeight.w700)),
+                      Text(
+                        'Tag',
+                        style: _text(
+                          13,
+                          weight: FontWeight.w700,
+                          color: c.heading,
+                        ),
+                      ),
                       27,
                     ),
                   ),
@@ -298,40 +379,41 @@ class PreviewPane extends StatelessWidget {
 
   /// Una riga da 23: etichetta a sinistra, valore a destra, base a 15; una linea di 1 pt la
   /// separa dalla riga dopo (sotto l'ultima niente, mu23-gallery-folder).
-  Widget _row(String label, String value, {bool last = false}) => Container(
-    height: paneRow,
-    decoration: BoxDecoration(
-      border: last ? null : const Border(bottom: BorderSide(color: paneLine)),
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _onBaseline(Text(label, style: _text(11, color: paneLabel)), 15),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _onBaseline(
-            // Larga quanto la riga: il valore sta sul bordo destro.
-            SizedBox(
-              width: double.infinity,
-              child: Text(
-                value,
-                textAlign: TextAlign.right,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: _text(11, weight: FontWeight.w600, color: paneValue),
+  Widget _row(PaneColors c, String label, String value, {bool last = false}) =>
+      Container(
+        height: paneRow,
+        decoration: BoxDecoration(
+          border: last ? null : Border(bottom: BorderSide(color: c.line)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _onBaseline(Text(label, style: _text(11, color: c.label)), 15),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _onBaseline(
+                // Larga quanto la riga: il valore sta sul bordo destro.
+                SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    value,
+                    textAlign: TextAlign.right,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: _text(11, weight: FontWeight.w600, color: c.value),
+                  ),
+                ),
+                15,
               ),
             ),
-            15,
-          ),
+          ],
         ),
-      ],
-    ),
-  );
+      );
 
-  Widget _actionsBar() => Container(
+  Widget _actionsBar(PaneColors c) => Container(
     key: const ValueKey('azioni del pannello'),
     height: paneActionsHeight,
-    color: const Color(0xFFFFFFFF),
+    color: c.actions,
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
@@ -346,13 +428,13 @@ class PreviewPane extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _symbol(action.symbol),
+                  _symbol(c, action.symbol),
                   const SizedBox(height: 6),
                   Text(
                     action.label,
                     maxLines: 2,
                     textAlign: TextAlign.center,
-                    style: _text(11, color: const Color(0xFF6E6E6E)),
+                    style: _text(11, color: c.actionText),
                   ),
                 ],
               ),
@@ -362,7 +444,7 @@ class PreviewPane extends StatelessWidget {
     ),
   );
 
-  Widget _symbol(String name) {
+  Widget _symbol(PaneColors c, String name) {
     final dir = iconsDir;
     final file = dir == null ? null : File('$dir/symbols/regular/$name.svg');
     if (file == null || !file.existsSync()) {
@@ -372,7 +454,7 @@ class PreviewPane extends StatelessWidget {
       file,
       width: 18,
       height: 18,
-      colorFilter: const ColorFilter.mode(Color(0xFF6E6E6E), BlendMode.srcIn),
+      colorFilter: ColorFilter.mode(c.actionIcon, BlendMode.srcIn),
     );
   }
 
@@ -458,12 +540,13 @@ class _TagFieldState extends State<_TagField> {
   Widget build(BuildContext context) {
     final existing = widget.tags.join(', ');
     final placeholder = existing.isEmpty ? 'Aggiungi un tag…' : existing;
+    final c = PaneColors.of(context);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: _focus.requestFocus,
       child: Container(
         height: paneTagField,
-        color: const Color(0xFFFFFFFF),
+        color: c.field,
         // Il testo in alto a sinistra (mu23-gallery-folder: base a ~12 dalla cima del campo).
         padding: const EdgeInsets.fromLTRB(4, 3, 4, 0),
         alignment: Alignment.topLeft,
@@ -478,7 +561,7 @@ class _TagFieldState extends State<_TagField> {
                   overflow: TextOverflow.ellipsis,
                   style: _text(
                     12,
-                    color: existing.isEmpty ? panePlaceholder : paneValue,
+                    color: existing.isEmpty ? c.placeholder : c.value,
                   ),
                 ),
               ),
@@ -486,9 +569,9 @@ class _TagFieldState extends State<_TagField> {
               child: EditableText(
                 controller: _controller,
                 focusNode: _focus,
-                style: _text(12, color: paneValue),
-                cursorColor: paneValue,
-                backgroundCursorColor: paneValue,
+                style: _text(12, color: c.value),
+                cursorColor: c.value,
+                backgroundCursorColor: c.value,
                 selectionColor: const Color(0xFFB3D7FF),
                 maxLines: 1,
                 onSubmitted: _submit,

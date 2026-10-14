@@ -148,8 +148,8 @@ class MustacheToolbar extends StatelessWidget {
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: active
-                        ? ToolbarColors.title
-                        : ToolbarColors.titleInactive,
+                        ? ToolbarColors.of(context).title
+                        : ToolbarColors.of(context).titleInactive,
                   ),
                 ),
               ),

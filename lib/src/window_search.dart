@@ -105,16 +105,23 @@ extension _Search on _MustacheWindowState {
     if (token == _searchToken && mounted) show();
   }
 
-  /// Il campo della ricerca nella barra: 242 × 38 con l'anello di focus (spec 13).
+  bool get _dark =>
+      MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark;
+
+  /// Il campo della ricerca nella barra: 242 × 38 con l'anello di focus (spec 13); in scuro
+  /// fondo `#4b4b4b` e anello `#3a6996` (mu70-empty-dark).
   Widget _searchField() => Container(
     key: const ValueKey('campo di ricerca'),
     width: 242,
     height: toolbarCapsuleHeight,
     padding: const EdgeInsets.symmetric(horizontal: 14),
     decoration: BoxDecoration(
-      color: const Color(0xFFF2F2F7),
+      color: _dark ? const Color(0xFF4B4B4B) : const Color(0xFFF2F2F7),
       borderRadius: BorderRadius.circular(toolbarCapsuleHeight / 2),
-      border: Border.all(color: const Color(0xFF8FB4FB), width: 2),
+      border: Border.all(
+        color: _dark ? const Color(0xFF3A6996) : const Color(0xFF8FB4FB),
+        width: 2,
+      ),
     ),
     alignment: Alignment.centerLeft,
     child: Focus(
@@ -130,9 +137,9 @@ extension _Search on _MustacheWindowState {
         child: EditableText(
           controller: _searchQuery,
           focusNode: _searchFocus,
-          style: text(13),
-          cursorColor: textColor,
-          backgroundCursorColor: textColor,
+          style: text(13, color: WindowColors.of(context).text),
+          cursorColor: WindowColors.of(context).text,
+          backgroundCursorColor: WindowColors.of(context).text,
           selectionColor: const Color(0xFFB3D7FF),
           maxLines: 1,
           onChanged: (_) => _queryChanged(),
@@ -141,8 +148,12 @@ extension _Search on _MustacheWindowState {
     ),
   );
 
-  /// La barra dell'ambito: 32 pt, "Cerca in:" e le due capsule alte 22.
+  /// La barra dell'ambito: 32 pt, "Cerca in:" e le due capsule alte 22; la scelta su un fondo
+  /// grigio con il testo scuro, l'altra in grigio (mu70-empty: chiaro `#222222` / `#808080`,
+  /// scuro `#e3e3e3` / `#a1a1a1` su `#494949`; la barra `#2f2f2f`).
   Widget _scopeBar() {
+    final dark = _dark;
+    final minor = dark ? const Color(0xFFA1A1A1) : secondaryText;
     Widget capsule(String label, SearchScope scope) {
       final chosen = _searchScope == scope;
       return GestureDetector(
@@ -157,21 +168,34 @@ extension _Search on _MustacheWindowState {
           margin: const EdgeInsets.only(right: 6),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: chosen ? const Color(0x1F000000) : null,
+            color: chosen
+                ? (dark ? const Color(0xFF494949) : const Color(0xFFDFDFDF))
+                : null,
             borderRadius: BorderRadius.circular(11),
           ),
-          child: Text(label, style: text(12)),
+          child: Text(
+            label,
+            style: text(
+              12,
+              color: !chosen
+                  ? minor
+                  : dark
+                  ? const Color(0xFFE3E3E3)
+                  : const Color(0xFF222222),
+            ),
+          ),
         ),
       );
     }
 
-    return SizedBox(
+    return Container(
       key: const ValueKey('barra dell\'ambito'),
       height: 32,
+      color: _listColors.header,
       child: Row(
         children: [
           const SizedBox(width: 14),
-          Text('Cerca in:', style: text(12, color: secondaryText)),
+          Text('Cerca in:', style: text(12, color: minor)),
           const SizedBox(width: 8),
           capsule('Questo computer', SearchScope.computer),
           capsule('«${displayName(_searchFolder)}»', SearchScope.folder),

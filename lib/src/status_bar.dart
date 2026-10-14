@@ -84,10 +84,71 @@ String statusText({
   return '$head, ${formatFree(free)} disponibili';
 }
 
+/// I colori della barra di stato (MU-04), chiaro e scuro.
+@immutable
+class StatusBarColors {
+  const StatusBarColors({
+    required this.fill,
+    required this.line,
+    required this.text,
+    required this.textInactive,
+    required this.track,
+    required this.filled,
+    required this.knob,
+    required this.knobShadow,
+  });
+
+  final Color fill;
+  final Color line;
+  final Color text;
+  final Color textInactive;
+  final Color track;
+  final Color filled;
+  final Color knob;
+  final Color? knobShadow;
+
+  static const StatusBarColors light = StatusBarColors(
+    fill: Color(0xFFFFFFFF),
+    line: Color(0xFFD9D9D9),
+    text: Color(0xFF858585),
+    textInactive: Color(0xFFBDBDBD),
+    track: Color(0xFFE5E5E5),
+    filled: Color(0xFF0176F7),
+    knob: Color(0xFFFFFFFF),
+    knobShadow: Color(0x40000000),
+  );
+
+  /// Scuro: manopola `#dfdfdf` piena, senza ombra.
+  static const StatusBarColors dark = StatusBarColors(
+    fill: Color(0xFF2F2F2F),
+    line: Color(0xFF000000),
+    text: Color(0xFFA1A1A1),
+    textInactive: Color(0xFF636363),
+    track: Color(0xFF434343),
+    filled: Color(0xFF0D7BFB),
+    knob: Color(0xFFDFDFDF),
+    knobShadow: null,
+  );
+
+  static StatusBarColors of(BuildContext context) =>
+      MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark
+      ? dark
+      : light;
+}
+
 class StatusBar extends StatelessWidget {
-  const StatusBar({super.key, required this.text, this.slider, this.onSlider});
+  const StatusBar({
+    super.key,
+    required this.text,
+    this.slider,
+    this.onSlider,
+    this.active = true,
+  });
 
   final String text;
+
+  /// Finestra attiva: in quella inattiva il testo è più tenue.
+  final bool active;
 
   /// Il valore del cursore delle icone (null: nessun cursore).
   final double? slider;
@@ -96,23 +157,24 @@ class StatusBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final value = slider;
+    final colors = StatusBarColors.of(context);
     return Container(
       key: const ValueKey('barra di stato'),
       height: statusBarHeight,
-      decoration: const BoxDecoration(
-        color: Color(0xFFFFFFFF),
-        border: Border(top: BorderSide(color: Color(0xFFD9D9D9))),
+      decoration: BoxDecoration(
+        color: colors.fill,
+        border: Border(top: BorderSide(color: colors.line)),
       ),
       child: Stack(
         children: [
           Center(
             child: Text(
               text,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: uiFontFamily,
                 package: 'silica_ui',
                 fontSize: 11,
-                color: Color(0xFF858585),
+                color: active ? colors.text : colors.textInactive,
               ),
             ),
           ),
@@ -122,7 +184,7 @@ class StatusBar extends StatelessWidget {
               top: 0,
               bottom: 0,
               width: 82,
-              child: _Slider(value: value, onChanged: onSlider),
+              child: _Slider(value: value, onChanged: onSlider, colors: colors),
             ),
         ],
       ),
@@ -131,8 +193,9 @@ class StatusBar extends StatelessWidget {
 }
 
 class _Slider extends StatelessWidget {
-  const _Slider({required this.value, this.onChanged});
+  const _Slider({required this.value, required this.colors, this.onChanged});
   final double value;
+  final StatusBarColors colors;
   final ValueChanged<double>? onChanged;
 
   @override
@@ -157,7 +220,7 @@ class _Slider extends StatelessWidget {
               child: Container(
                 height: 4,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE5E5E5),
+                  color: colors.track,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -168,7 +231,7 @@ class _Slider extends StatelessWidget {
               child: Container(
                 height: 4,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0176F7),
+                  color: colors.filled,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -179,14 +242,15 @@ class _Slider extends StatelessWidget {
                 width: 18,
                 height: 14,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFFFFF),
+                  color: colors.knob,
                   borderRadius: BorderRadius.circular(7),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x40000000),
-                      blurRadius: 2,
-                      offset: Offset(0, 0.5),
-                    ),
+                  boxShadow: [
+                    if (colors.knobShadow case final shadow?)
+                      BoxShadow(
+                        color: shadow,
+                        blurRadius: 2,
+                        offset: const Offset(0, 0.5),
+                      ),
                   ],
                 ),
               ),
