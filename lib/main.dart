@@ -84,6 +84,8 @@ void main(List<String> args) {
   // The file manager keeps running with no window and has no Quit (DOCK-02, APP-LC); a
   // reopen (the Dock, the Launcher) opens a new window at the home folder.
   SilicaApp.quitEnabled = false;
+  // The buttons never move as a window narrows: the window stops where they stay clear.
+  SilicaWindow.setSizeLimits(min: minimumWindowSize).ignore();
   var opensAt = start;
   runApp(
     AppLocalizationsScope(

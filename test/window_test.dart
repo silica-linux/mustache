@@ -12,6 +12,10 @@ import 'package:mustache/src/window.dart';
 import 'package:silica_ui/silica_ui.dart';
 
 void main() {
+  test('the minimum window keeps the window buttons clear', () {
+    expect(minimumWindowSize, const Size(516, 252));
+  });
+
   late Directory root;
 
   setUp(() {

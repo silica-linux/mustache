@@ -56,6 +56,14 @@ part 'window_transfers.dart';
 /// by 36, MU-01).
 const double tabBarHeight = 36;
 
+/// The narrowest window that keeps the window buttons clear (516 pt, titlebar.md).
+const double minimumWindowWidth = 516;
+
+/// The shortest window (252 pt, mustache.md).
+const double minimumWindowHeight = 252;
+
+const Size minimumWindowSize = Size(minimumWindowWidth, minimumWindowHeight);
+
 const Color accent = Color(0xFF0075F2);
 const Color textColor = Color(0xFF000000);
 const Color secondaryText = Color(0xFF808182);
