@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="360" viewBox="0 0 560 360" font-family="Inter, sans-serif" font-size="11">
+  <title>Window resize zones (MU-08), not to scale</title>
+  <rect width="560" height="360" fill="#ffffff"/>
+  <!-- window -->
+  <rect x="80" y="60" width="400" height="240" rx="18" fill="#f4f4f4" stroke="#888" stroke-width="1"/>
+  <!-- sidebar -->
+  <rect x="80" y="60" width="110" height="240" rx="18" fill="#ececed"/>
+  <rect x="172" y="60" width="18" height="240" fill="#ececed"/>
+  <!-- toolbar band -->
+  <rect x="190" y="60" width="290" height="40" fill="#ffffff" opacity="0.7"/>
+  <text x="300" y="84" fill="#555">toolbar 52 pt (moves the window)</text>
+  <!-- left/top zone: 2 out + 3 in -->
+  <rect x="74" y="80" width="10" height="200" fill="#0a84ff" opacity="0.25"/>
+  <rect x="100" y="54" width="360" height="10" fill="#0a84ff" opacity="0.25"/>
+  <!-- right/bottom zone: 4 out + 3 in -->
+  <rect x="474" y="80" width="14" height="200" fill="#ff9500" opacity="0.3"/>
+  <rect x="100" y="294" width="360" height="14" fill="#ff9500" opacity="0.3"/>
+  <!-- corners 16 pt -->
+  <rect x="440" y="260" width="48" height="48" fill="none" stroke="#ff3b30" stroke-dasharray="3 2"/>
+  <!-- divider 5 pt -->
+  <rect x="187" y="100" width="6" height="200" fill="#34c759" opacity="0.4"/>
+  <text x="10" y="40" fill="#0a5ec2">left and top edge: 2 pt outside + 3 pt inside</text>
+  <text x="300" y="335" fill="#b35f00">right and bottom edge: 4 pt outside + 3 pt inside</text>
+  <text x="392" y="252" fill="#c0281f">corner: 16 pt</text>
+  <line x1="190" y1="200" x2="230" y2="230" stroke="#2a8a3e"/>
+  <text x="232" y="236" fill="#2a8a3e">sidebar divider: 5 pt centered</text>
+  <text x="96" y="140" fill="#555">sidebar top</text>
+  <text x="96" y="154" fill="#555">moves the window</text>
+</svg>

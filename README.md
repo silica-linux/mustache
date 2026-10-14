@@ -43,7 +43,7 @@ is built for the Silica embedder.
 
 ## Documents
 
-- [`docs/spec.md`](docs/spec.md): what Mustache does and how it behaves.
+- [`docs/spec/`](docs/spec/README.md): what Mustache does and how it behaves (`product.md`), and the measured reference, component by component.
 - [`docs/parity.md`](docs/parity.md): measured parity with the reference.
 - [`docs/plan.md`](docs/plan.md): the tasks.
 - [`AGENTS.md`](AGENTS.md): rules for people and agents working on the repository.

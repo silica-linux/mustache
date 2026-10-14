@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="150" viewBox="0 0 760 150" font-family="Inter, sans-serif" font-size="10">
+  <title>Toolbar of a 900 pt window (MU-02): capsules 38 pt tall, 7 pt margins, x and widths in pt; scale 0.8</title>
+  <rect width="760" height="150" fill="#ffffff"/>
+  <g transform="translate(-150,20) scale(0.8)">
+    <rect x="192" y="0" width="708" height="52" fill="#fafafa" stroke="#ddd"/>
+    <rect x="199" y="7" width="75" height="38" rx="19" fill="#f8f8f8" stroke="#c1c1c1"/>
+    <line x1="236.5" y1="16" x2="236.5" y2="37" stroke="#c7c7c7"/>
+    <text x="210" y="30">‹   ›</text>
+    <text x="286" y="34" font-weight="600" font-size="14">Title</text>
+    <rect x="513" y="7" width="162" height="38" rx="19" fill="#f8f8f8" stroke="#c1c1c1"/>
+    <rect x="518" y="12" width="34" height="28" rx="14" fill="#e2e2e2"/>
+    <rect x="682" y="7" width="48" height="38" rx="19" fill="#f8f8f8" stroke="#c1c1c1"/>
+    <rect x="736" y="7" width="113" height="38" rx="19" fill="#f8f8f8" stroke="#c1c1c1"/>
+    <circle cx="874" cy="26" r="19" fill="#f8f8f8" stroke="#c1c1c1"/>
+    <line x1="192" y1="52" x2="900" y2="52" stroke="#e5e5e5"/>
+  </g>
+  <text x="10" y="110" fill="#333">Back/Forward 199·75 · views 513·162 (selected pill 34 × 28, inset 5) · Group 682·48 · Share+Tags+Action 736·113 · Search 855·38 (circle)</text>
+  <text x="10" y="128" fill="#333">bar 52 · capsule 38 · margin 7 · gap 7–8 · line at y 52 only when content has scrolled (R1.9)</text>
+</svg>

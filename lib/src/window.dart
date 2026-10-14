@@ -100,7 +100,7 @@ TextStyle text(double size, {Color color = textColor, FontWeight? weight}) =>
       color: color,
     );
 
-/// Intents of the window shortcuts (`mustache.*` commands, docs/spec.md).
+/// Intents of the window shortcuts (`mustache.*` commands, docs/spec/product.md).
 class OpenIntent extends Intent {
   const OpenIntent();
 }

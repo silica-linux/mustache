@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="300" viewBox="0 0 420 300" font-family="Inter, sans-serif" font-size="10">
+  <title>Sidebar (MU-10): width 192, rows at a 32 pt pitch, selection radius 8 from x 10, icon center x 29, text from x 47</title>
+  <rect width="420" height="300" fill="#ffffff"/>
+  <rect x="0" y="0" width="192" height="300" fill="#ececed"/>
+  <text x="17" y="76" fill="#808182" font-weight="600">Pinned</text>
+  <rect x="10" y="84" width="161" height="32" rx="8" fill="#d7d7d7"/>
+  <circle cx="29" cy="100" r="7" fill="#0070eb"/>
+  <text x="47" y="104" font-weight="600">Documents</text>
+  <circle cx="29" cy="132" r="7" fill="#0070eb"/>
+  <text x="47" y="136">Downloads</text>
+  <circle cx="29" cy="164" r="7" fill="#0070eb"/>
+  <text x="47" y="168">Pictures</text>
+  <text x="17" y="220" fill="#808182" font-weight="600">Places</text>
+  <circle cx="29" cy="244" r="7" fill="#7c7c82"/>
+  <text x="47" y="248">Trash</text>
+  <line x1="200" y1="84" x2="200" y2="116" stroke="#333"/>
+  <text x="206" y="104">row 32 (pitch)</text>
+  <line x1="10" y1="290" x2="10" y2="270" stroke="#0a64e1"/>
+  <text x="14" y="285" fill="#0a64e1">x 10: selection</text>
+  <line x1="29" y1="60" x2="29" y2="66" stroke="#0a64e1"/>
+  <line x1="47" y1="60" x2="47" y2="66" stroke="#0a64e1"/>
+  <text x="200" y="64">icon center x 29 · text from x 47 · heading from x 17</text>
+  <text x="200" y="180">heading → first row 24 · last row → next heading 40</text>
+  <text x="200" y="196">selection radius ~8, full row height</text>
+  <text x="200" y="212">no line toward the content: tone step only</text>
+</svg>

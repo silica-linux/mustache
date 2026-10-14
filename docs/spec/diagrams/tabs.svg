@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="120" viewBox="0 0 640 120" font-family="Inter, sans-serif" font-size="10">
+  <title>Tab bar (MU-01): track 28 pt, active pill 24 pt inset 2, new-tab circle 30 pt</title>
+  <rect width="640" height="120" fill="#ffffff"/>
+  <rect x="20" y="20" width="540" height="28" rx="14" fill="#e8e8e8" stroke="#dcdcdc"/>
+  <rect x="22" y="22" width="270" height="24" rx="12" fill="#fefdfe"/>
+  <text x="140" y="38" fill="#4c4b4c">Active</text>
+  <text x="400" y="38" fill="#828282">Inactive</text>
+  <circle cx="578" cy="34" r="15" fill="#f6f6f6" stroke="#ddd"/>
+  <text x="574" y="38" fill="#282828">+</text>
+  <text x="20" y="72" fill="#333">track: 28 tall, radius 14, 1 pt border, from x +8 of the content to 3 pt before the button</text>
+  <text x="20" y="88" fill="#333">active pill: 24 tall, inset 2 · separators 1 × 16 between inactive tabs · button: circle 30, 7 pt from the right edge</text>
+  <text x="20" y="104" fill="#333">close × on hover: 18 × 18 target at x +4 of the tab (left side)</text>
+</svg>

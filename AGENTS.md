@@ -16,7 +16,7 @@ repository:
 
 ## Work
 
-- Start of a session: `docs/plan.md` (next task), then `docs/spec.md`.
+- Start of a session: `docs/plan.md` (next task), then `docs/spec/product.md` and the measured spec in `docs/spec/`.
 - Before every commit: `dart format`, `flutter analyze --fatal-infos`, `flutter test`,
   `tool/check_assets.sh`. One task per commit (`MU.3: icon view`).
 - Everything in the repository is in English (code, comments, tests, docs, commits). Interface
@@ -26,7 +26,7 @@ repository:
   `useLocale(const Locale('it'))`.
 - For visual work: screenshots inside Ossido (`ui.screenshot`), comparison with the reference
   in `silica-reference`, and the metric in `docs/parity.md` only if measured.
-- Every user action is a `mustache.*` command (id, label, shortcut), listed in `docs/spec.md`.
+- Every user action is a `mustache.*` command (id, label, shortcut), listed in `docs/spec/product.md`.
 - `silica_ui` is used from a tag (`ref` in `pubspec.yaml`); a widget that other apps need too
   goes into `silica-ui`, not here.
 - Never crash: an unreadable file, a vanished folder, an odd name are normal cases, with a

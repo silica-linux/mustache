@@ -19,5 +19,5 @@ work a screenshot inside Ossido compared with the reference.
 | MU.12 | Gallery view | MU-23 | done (0.16.0): ⌘4, large preview at 32 pt with a 1 pt outline, 48/59 thumbnail strip with the 54 × 54 choice that stays visible, 250 pane on the right, ← →. Left: options (⌘J: thumbnail size, names), PDF and video |
 | MU.13 | Open and Save dialogs for the Silica portal | MU-95 | done (0.17.0): dialog mode (`--dialog=open|save`, title, label, multiple files, folders, name, folder) with the name field, Cancel and Open/Save, confirmation before replacing, URIs on stdout; `silica-portal` backend in Silica (docs/portal.md). Left: the compact 413 × 218 Save with its expansion, portal filters, "New Folder" in the dialog, the child window above the requesting app |
 
-Dependencies on Silica (open in `docs/spec.md`): unified toolbar, global menu (M7), app command
+Dependencies on Silica (open in `docs/spec/product.md`): unified toolbar, global menu (M7), app command
 channel.
