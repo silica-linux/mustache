@@ -56,7 +56,7 @@ provvisorio e lo dice.
 | A icone | `mustache.view.icons` | ⌘1 | griglia che riempie la larghezza, etichette su due righe troncate al centro, selezione con fondo e capsula, miniature delle immagini; la vista predefinita e l'ultima scelta restano nelle impostazioni (MU-21, MU-80) |
 | A elenco | `mustache.view.list` | ⌘2 | geometria e colori misurati: intestazione di 28 con separatori e freccia, righe da 20, colonne Nome 364, Data 181, Dimensioni 97, Tipo 121 (allargabili trascinando il separatore), righe alternate fino in fondo, selezione a blocchi, anello del clic destro; cartelle aperte nel posto con il triangolo (⌥ tutto il sottoalbero, → e ←), rientro 15; Data e Dimensioni ordinano dal più grande; nomi e tipi troncati al centro (MU-20). Da fare: animazione dell'apertura, riordino delle colonne trascinando l'intestazione, barra di scorrimento, scuro dall'embedder |
 | A colonne | `mustache.view.columns` | ⌘3 | una colonna per cartella dalla voce della barra laterale, selezione attenuata a sinistra, → e ←, scorrimento orizzontale (MU-22) |
-| Galleria | `mustache.view.gallery` | ⌘4 | anteprima grande e striscia delle miniature (MU-23) |
+| Galleria | `mustache.view.gallery` | ⌘4 | anteprima grande (le icone a 0,94 del riquadro), striscia delle miniature, sempre un elemento scelto, pannello con icona 50, nome e tipo, Informazioni, campo dei tag e azioni (Modifica, Altro) (MU-23). Da fare: Ruota, Mostra altro, dimensione delle cartelle |
 
 - Ordinamento naturale (`file 2` prima di `file 10`), senza distinguere maiuscole e minuscole;
   a parità, per nome.

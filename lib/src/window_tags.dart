@@ -51,6 +51,41 @@ extension _Tags on _MustacheWindowState {
     }
   }
 
+  /// Un'etichetta scritta nel campo del pannello di anteprima.
+  void _addTag(Entry entry, String tag) {
+    final tags = [..._tagsOf(entry)];
+    if (tags.contains(tag)) return;
+    tags.add(tag);
+    if (writeTags(entry.path, tags)) {
+      _update(() => _tagCache[entry.path] = tags);
+    } else {
+      _showError(
+        'Non si può assegnare l\'etichetta.',
+        'Il disco non permette gli attributi estesi.',
+      );
+    }
+  }
+
+  /// Le azioni in fondo al pannello di anteprima, secondo la scelta (spec 1.6): Modifica per
+  /// immagini e PDF (con l'app predefinita), Altro (il menu dell'elemento) sempre.
+  List<PaneAction> _paneActions() {
+    final items = _selection;
+    if (items.isEmpty) return const [];
+    final one = items.length == 1 ? items.single : null;
+    final editable =
+        one != null &&
+        !one.isDirectory &&
+        (hasThumbnail(one.name) || one.extension == 'pdf');
+    return [
+      if (editable) PaneAction('Modifica', 'pencil', (_) => _openEntry(one)),
+      PaneAction(
+        'Altro',
+        'ellipsis-circle',
+        (at) => _openContextMenu(items.first, at),
+      ),
+    ];
+  }
+
   /// La fila dei cerchi del menu contestuale.
   MenuEntry _tagMenuRow() => MenuCustom(
     height: 25,

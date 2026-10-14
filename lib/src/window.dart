@@ -483,6 +483,7 @@ class _MustacheWindowState extends State<MustacheWindow>
             !_ordered.any((e) => e.path == path) &&
             !(_view == ViewMode.columns && entryAt(path) != null),
       );
+      _galleryChoice();
     });
   }
 
@@ -552,8 +553,23 @@ class _MustacheWindowState extends State<MustacheWindow>
       if (view != ViewMode.gallery) setState(() => _view = view);
       return;
     }
-    setState(() => _view = view);
+    setState(() {
+      _view = view;
+      _galleryChoice();
+    });
     widget.settings?.view = view.name;
+  }
+
+  /// In galleria c'è sempre un elemento scelto, quello in grande (mu23): senza scelta, il primo.
+  void _galleryChoice() {
+    if (_view != ViewMode.gallery || _searching) return;
+    final shown = _cursor ?? (_selected.isEmpty ? null : _selected.last);
+    if (shown != null && _entries.any((e) => e.path == shown)) return;
+    if (_entries.isEmpty) return;
+    _selected
+      ..clear()
+      ..add(_entries.first.path);
+    _anchor = _cursor = _entries.first.path;
   }
 
   /// Le frecce: il cursore si sposta di `delta` nell'ordine di lettura. Senza ⇧ seleziona
@@ -988,9 +1004,15 @@ class _MustacheWindowState extends State<MustacheWindow>
                                           width: _view == ViewMode.gallery
                                               ? 250
                                               : previewPaneWidth,
+                                          compact: _view == ViewMode.gallery,
                                           items: _selection,
                                           kindOf: _kind,
                                           env: widget.iconsEnv,
+                                          now: widget.now,
+                                          tagsOf: _tagsOf,
+                                          onAddTag: _addTag,
+                                          actions: _paneActions(),
+                                          iconsDir: widget.iconsDir,
                                         ),
                                       ],
                                     );

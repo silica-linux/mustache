@@ -10,6 +10,8 @@ cita la richiesta da cui viene il riferimento.
 | Elenco | separatori delle colonne (x del contenuto) | uguali al pixel: 373, 554, 651, 772 | MU-20 | 2026-10-14 |
 | Icone | cartella a 64: riquadro e centro | 59 × 48 contro 58 × 46, stesso centro verticale (y 107,5) | MU-21 · mu21-sel3-light | 2026-10-14 |
 | Icone | a capo delle etichette: "barre / colorate.mov", "grande / 4000x3000.png", "configurazione.js / on", "molto lu…colonna" | uguale | MU-21 · mu21-sel3-light | 2026-10-14 |
+| Galleria | icona grande di una cartella (x, y) | 307–734 × 221–564 contro 308–733 × 221–561 | MU-23 · mu23-gallery-folder-light | 2026-10-14 |
+| Galleria | pannello: icona 50, nome, Informazioni, Creato, Tag (riquadri dell'inchiostro) | entro 1–3 pt | MU-23 · mu23-gallery-folder-light | 2026-10-14 |
 | Elenco | freccia d'ordinamento | x uguale, y +1 px in cima (64–67 contro 63–67) | MU-20 | 2026-10-14 |
 | Elenco | linea sotto l'intestazione, inizio e passo delle righe alternate | uguali al pixel (79–81; strisce 105–125, passo 40) | MU-20 | 2026-10-14 |
 | Elenco | triangolo, icona, nome della prima riga | x uguali; y del testo +1 px in cima | MU-20 | 2026-10-14 |

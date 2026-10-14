@@ -59,4 +59,43 @@ void main() {
     );
     expect(thumbs.height, galleryStrip + 12);
   });
+
+  testWidgets(
+    'senza scelta la galleria sceglie il primo; l\'icona riempie l\'anteprima',
+    (tester) async {
+      final home = Directory.systemTemp.createTempSync('mustache-galleria');
+      addTearDown(() => home.deleteSync(recursive: true));
+      Directory('${home.path}/Alfa').createSync();
+      File('${home.path}/b.txt').writeAsStringSync('b');
+      tester.view.physicalSize = const Size(1000, 700);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final settings = Settings('${home.path}/.s.json')..view = 'gallery';
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: MustacheWindow(
+            start: home.path,
+            places: [Place('casa', home.path, PlaceKind.home)],
+            trash: Place('Cestino', '${home.path}/Cestino', PlaceKind.trash),
+            settings: settings,
+          ),
+        ),
+      );
+      await tester.pump();
+      // Il pannello descrive la cartella scelta (mu23-gallery-folder).
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('pannello di anteprima')),
+          matching: find.text('Alfa'),
+        ),
+        findsOneWidget,
+      );
+      // L'icona grande è quanto il lato corto dell'anteprima (non 256 fissi).
+      final big = tester.getSize(
+        find.byKey(const ValueKey('anteprima grande')),
+      );
+      expect(big.shortestSide, greaterThan(400));
+    },
+  );
 }

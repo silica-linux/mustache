@@ -16,6 +16,9 @@ const double galleryThumb = 48;
 const double galleryPitch = 59;
 const double galleryStrip = 54;
 const Color galleryOutline = Color(0xFFF2F2F2);
+
+/// L'icona grande rispetto al lato corto dell'anteprima (mu23-gallery-folder-light).
+const double galleryIconRatio = 0.94;
 const Color galleryChosen = Color(0xFFBDBDBD);
 
 class GalleryView extends StatefulWidget {
@@ -137,7 +140,7 @@ class _GalleryViewState extends State<GalleryView> {
   }
 
   /// L'anteprima grande: l'immagine adattata e centrata con il contorno di 1 pt, o l'icona
-  /// grande (cartelle, file senza anteprima, R6.2).
+  /// grande, quanto il quadrato dell'anteprima (cartelle, file senza anteprima, R6.2).
   Widget _big(Entry entry) {
     if (hasThumbnail(entry.name)) {
       return Center(
@@ -149,15 +152,30 @@ class _GalleryViewState extends State<GalleryView> {
             File(entry.path),
             fit: BoxFit.contain,
             gaplessPlayback: true,
-            errorBuilder: (_, _, _) =>
-                EntryIcon(entry: entry, side: 256, env: widget.env),
+            errorBuilder: (_, _, _) => LayoutBuilder(
+              builder: (context, box) => EntryIcon(
+                entry: entry,
+                side: math.max(16.0, math.min(box.maxWidth, box.maxHeight)),
+                env: widget.env,
+              ),
+            ),
           ),
         ),
       );
     }
-    return Center(
-      key: const ValueKey('anteprima grande'),
-      child: EntryIcon(entry: entry, side: 256, env: widget.env),
+    // L'icona occupa ~0,94 del quadrato dell'anteprima (mu23-gallery-folder: riquadro 494 ×
+    // 525, cartella larga 427, cioè un'icona di ~464; le immagini invece lo riempiono).
+    return LayoutBuilder(
+      builder: (context, box) {
+        final side = math.max(
+          16.0,
+          math.min(box.maxWidth, box.maxHeight) * galleryIconRatio,
+        );
+        return Center(
+          key: const ValueKey('anteprima grande'),
+          child: EntryIcon(entry: entry, side: side, env: widget.env),
+        );
+      },
     );
   }
 }
