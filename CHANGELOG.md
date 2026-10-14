@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+Full folders: a folder with at least one visible item (hidden files do not count) is drawn with
+the `full` variant of the silica-icons folder, on the Desktop and in every view of the window;
+the symbol and tint stay on top. The check is one directory listing per folder, cached until the
+folder's modification time changes.
+
 Localization: English is the source language and Italian the first translation (Flutter
 gen-l10n, `lib/l10n`). The window follows the system languages passed by the embedder, falling
 back to English; sizes, dates and types are formatted for the language. Default tag names are
