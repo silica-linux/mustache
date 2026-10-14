@@ -6,14 +6,16 @@ import 'package:mustache/src/xattr.dart';
 void main() {
   test('tags and comments in extended attributes', () {
     // /tmp may be tmpfs (user xattrs not always supported): the test runs in home.
-    final dir = Directory(
-      '${Platform.environment['HOME']}/.cache',
-    ).createTempSync('mustache-xattr');
+    final cache = Directory('${Platform.environment['HOME']}/.cache')
+      ..createSync(recursive: true);
+    final dir = cache.createTempSync('mustache-xattr');
     addTearDown(() => dir.deleteSync(recursive: true));
     final file = File('${dir.path}/nota.txt')..writeAsStringSync('x');
     expect(readTags(file.path), isEmpty);
     if (!writeTags(file.path, ['Red', 'Lavoro'])) {
-      markTestSkipped('il file system non supporta gli attributi user');
+      markTestSkipped(
+        'the file system does not support user extended attributes',
+      );
       return;
     }
     expect(readTags(file.path), ['Red', 'Lavoro']);

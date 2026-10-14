@@ -30,13 +30,13 @@ void main() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(GlassRegistry.channel, (call) async => true);
     // Under home: /tmp may not support user attributes.
-    final home = Directory(
-      '${Platform.environment['HOME']}/.cache',
-    ).createTempSync('mustache-etichette');
+    final cache = Directory('${Platform.environment['HOME']}/.cache')
+      ..createSync(recursive: true);
+    final home = cache.createTempSync('mustache-tags');
     addTearDown(() => home.deleteSync(recursive: true));
     final file = File('${home.path}/Doc/nota.txt')..createSync(recursive: true);
     if (!writeTags(file.path, [])) {
-      markTestSkipped('niente attributi estesi su questo disco');
+      markTestSkipped('no extended attributes on this file system');
       return;
     }
     tester.view.physicalSize = const Size(1000, 700);
