@@ -3,7 +3,9 @@
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart' show kPrimaryButton;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
@@ -17,6 +19,7 @@ import 'drag.dart';
 import 'gallery_view.dart';
 import 'icon_view.dart';
 import 'info.dart';
+import 'list_view.dart';
 import 'operations.dart';
 import 'path_bar.dart';
 import 'preview_pane.dart';
@@ -34,6 +37,7 @@ part 'window_columns.dart';
 part 'window_context.dart';
 part 'window_dialog.dart';
 part 'window_drag.dart';
+part 'window_list.dart';
 part 'window_operations.dart';
 part 'window_search.dart';
 part 'window_tags.dart';
@@ -44,9 +48,6 @@ const Color textColor = Color(0xFF000000);
 const Color secondaryText = Color(0xFF808182);
 const Color contentFill = Color(0xFFFFFFFF);
 
-/// Provvisori (MU-20): righe da 24 pt, intestazione delle colonne da 28.
-const double listRow = 24;
-const double listHeader = 28;
 const Color selectionFill = accent;
 const Color selectionText = Color(0xFFFFFFFF);
 
@@ -327,6 +328,16 @@ class _MustacheWindowState extends State<MustacheWindow>
   final Set<String> _selected = {};
   String? _anchor;
 
+  /// Le colonne dell'elenco, allargate trascinando i separatori (R3.6).
+  final List<double> _listWidths = [for (final c in listColumns) c.width];
+
+  /// Le cartelle aperte nel posto nell'elenco e il loro contenuto, letto una volta.
+  final Set<String> _expanded = {};
+  final Map<String, List<Entry>> _childCache = {};
+
+  /// La riga del clic destro su un elemento non scelto: l'anello, la selezione resta (R3.9).
+  String? _contextRing;
+
   @override
   void initState() {
     super.initState();
@@ -456,12 +467,20 @@ class _MustacheWindowState extends State<MustacheWindow>
     setState(() {
       _columnCache.clear();
       _tagCache.clear();
-      _entries = sortEntries(result.entries, _sort, descending: _descending);
+      _childCache.clear();
+      _entries = sortEntries(
+        result.entries,
+        _sort,
+        descending: _descending,
+        kindOf: _kind,
+      );
+      // Le cartelle aperte che non ci sono più si dimenticano.
+      _expanded.removeWhere((path) => !Directory(path).existsSync());
       _error = result.error;
       // Nelle colonne la scelta può essere la cartella aperta, che non è nel suo contenuto.
       _selected.removeWhere(
         (path) =>
-            !_entries.any((e) => e.path == path) &&
+            !_ordered.any((e) => e.path == path) &&
             !(_view == ViewMode.columns && entryAt(path) != null),
       );
     });
@@ -510,6 +529,11 @@ class _MustacheWindowState extends State<MustacheWindow>
     final columns = _view == ViewMode.icons
         ? iconGrid(_contentWidth, side: _iconSide).columns
         : 1;
+    // Nell'elenco → e ← aprono e chiudono la cartella (R3.7).
+    if ((move == Move.left || move == Move.right) &&
+        _expandAtCursor(open: move == Move.right)) {
+      return;
+    }
     final across = _view == ViewMode.icons || _view == ViewMode.gallery;
     final delta = switch (move) {
       // In galleria la striscia è una riga: su e giù non la muovono.
@@ -536,27 +560,28 @@ class _MustacheWindowState extends State<MustacheWindow>
   /// solo il cursore; con ⇧ l'intervallo lineare dall'àncora al cursore (R7.6). Oltre la prima
   /// o l'ultima riga nella griglia non succede niente.
   void _moveBy(int delta, {bool extend = false}) {
-    if (_entries.isEmpty) return;
-    final current = _entries.indexWhere((e) => e.path == (_cursor ?? _anchor));
+    final order = _ordered;
+    if (order.isEmpty) return;
+    final current = order.indexWhere((e) => e.path == (_cursor ?? _anchor));
     int next;
     if (current < 0) {
-      next = delta > 0 ? 0 : _entries.length - 1;
+      next = delta > 0 ? 0 : order.length - 1;
     } else {
       next = current + delta;
-      if (next < 0 || next >= _entries.length) {
+      if (next < 0 || next >= order.length) {
         // Nella griglia, su e giù oltre il bordo non si muovono; nell'elenco si ferma lì.
         if (delta.abs() > 1) return;
-        next = next.clamp(0, _entries.length - 1);
+        next = next.clamp(0, order.length - 1);
       }
     }
     setState(() {
-      _cursor = _entries[next].path;
-      final anchor = _entries.indexWhere((e) => e.path == _anchor);
+      _cursor = order[next].path;
+      final anchor = order.indexWhere((e) => e.path == _anchor);
       if (extend && anchor >= 0) {
         final (a, b) = anchor < next ? (anchor, next) : (next, anchor);
         _selected
           ..clear()
-          ..addAll([for (var i = a; i <= b; i++) _entries[i].path]);
+          ..addAll([for (var i = a; i <= b; i++) order[i].path]);
       } else {
         _anchor = _cursor;
         _selected
@@ -599,14 +624,15 @@ class _MustacheWindowState extends State<MustacheWindow>
             : _selected.add(entry.path);
         _anchor = _cursor = entry.path;
       } else if (keys.isShiftPressed && _anchor != null) {
-        final a = _entries.indexWhere((e) => e.path == _anchor);
-        final b = _entries.indexOf(entry);
+        final order = _ordered;
+        final a = order.indexWhere((e) => e.path == _anchor);
+        final b = order.indexWhere((e) => e.path == entry.path);
         if (a >= 0) {
           _selected
             ..clear()
             ..addAll([
               for (var i = a < b ? a : b; i <= (a < b ? b : a); i++)
-                _entries[i].path,
+                order[i].path,
             ]);
         }
       } else {
@@ -617,14 +643,6 @@ class _MustacheWindowState extends State<MustacheWindow>
       }
     });
     _focus.requestFocus();
-  }
-
-  void _sortBy(SortKey key) {
-    setState(() {
-      _descending = _sort == key && !_descending;
-      _sort = key;
-      _entries = sortEntries(_entries, _sort, descending: _descending);
-    });
   }
 
   @override
@@ -929,8 +947,6 @@ class _MustacheWindowState extends State<MustacheWindow>
                           if (widget.dialog?.save ?? false) _saveBar(),
                           ?widget.tabBar,
                           if (_searching) _scopeBar(),
-                          if (_view == ViewMode.list || _searching)
-                            _columnsHeader(),
                           Expanded(
                             // La cartella aperta come destinazione: linea di 2 pt lungo il bordo.
                             child: FolderDropTarget(
@@ -950,10 +966,10 @@ class _MustacheWindowState extends State<MustacheWindow>
                                     _contentWidth = box.maxWidth;
                                     // I risultati della ricerca sono sempre un elenco.
                                     final view = _searching
-                                        ? _list()
+                                        ? _listView()
                                         : switch (_view) {
                                             ViewMode.icons => _icons(),
-                                            ViewMode.list => _list(),
+                                            ViewMode.list => _listView(),
                                             ViewMode.columns => _columnsView(),
                                             ViewMode.gallery => _galleryView(),
                                           };
@@ -1180,47 +1196,6 @@ class _MustacheWindowState extends State<MustacheWindow>
     iconsDir: widget.iconsDir,
   );
 
-  static const List<(SortKey, String, int)> _columns = [
-    (SortKey.name, 'Nome', 5),
-    (SortKey.modified, 'Data di modifica', 3),
-    (SortKey.size, 'Dimensione', 2),
-    (SortKey.kind, 'Tipo', 2),
-  ];
-
-  Widget _columnsHeader() {
-    return SizedBox(
-      height: listHeader,
-      child: Row(
-        children: [
-          for (final (key, label, flex) in _columns)
-            Expanded(
-              flex: flex,
-              child: GestureDetector(
-                onTap: () => _sortBy(key),
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      _sort == key
-                          ? '$label ${_descending ? '↓' : '↑'}'
-                          : label,
-                      style: text(
-                        11.5,
-                        color: secondaryText,
-                        weight: _sort == key ? FontWeight.w600 : null,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
   Widget _renameField(Entry entry, {double maxWidth = 400}) => RenameField(
     key: ValueKey('rinomina ${entry.path}'),
     name: entry.name,
@@ -1272,7 +1247,7 @@ class _MustacheWindowState extends State<MustacheWindow>
   );
 
   Widget _icons() {
-    if (_error != null || _entries.isEmpty) return _list();
+    if (_error != null) return _listView();
     return IconView(
       side: _iconSide,
       entries: _entries,
@@ -1306,117 +1281,6 @@ class _MustacheWindowState extends State<MustacheWindow>
         _selected.clear();
         _anchor = null;
       }),
-    );
-  }
-
-  Widget _list() {
-    if (_error != null) {
-      return Center(
-        child: Text(
-          'Non si può aprire: $_error',
-          style: text(13, color: secondaryText),
-        ),
-      );
-    }
-    if (_entries.isEmpty) {
-      // In ricerca, senza risultati: l'elenco vuoto, nessun testo (R13.3).
-      if (_searching) return const SizedBox.expand();
-      return Center(
-        child: Text('Cartella vuota', style: text(13, color: secondaryText)),
-      );
-    }
-    final now = widget.now ?? DateTime.now();
-    return ListView.builder(
-      itemCount: _entries.length,
-      itemExtent: listRow,
-      itemBuilder: (context, index) {
-        final entry = _entries[index];
-        final selected = _selected.contains(entry.path);
-        // Un elemento ancora in copia: nome attenuato e torta (spec 9.2).
-        final pending = _pendingTransfer(entry.path);
-        final color = selected
-            ? selectionText
-            : pending != null
-            ? secondaryText
-            : textColor;
-        final secondary = selected ? selectionText : secondaryText;
-        final cells = [
-          entry.isDirectory ? '${entry.name}/' : entry.name,
-          formatDate(entry.modified, now),
-          formatSize(entry),
-          _kind(entry),
-        ];
-        // La selezione alla pressione, subito (non dopo l'attesa del doppio clic). Le cartelle
-        // sono destinazioni: la riga si colora d'accento sotto il trascinamento.
-        return _draggable(
-          entry,
-          _folderTarget(
-            entry,
-            (context, dropActive) => Listener(
-              onPointerDown: (_) => _tap(entry),
-              child: GestureDetector(
-                key: ValueKey(entry.path),
-                onTap: () {},
-                onDoubleTap: () => _openEntry(entry),
-                onSecondaryTapDown: (d) =>
-                    _openContextMenu(entry, d.globalPosition),
-                behavior: HitTestBehavior.opaque,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: selected || dropActive ? selectionFill : null,
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: Row(
-                    children: [
-                      for (var i = 0; i < _columns.length; i++)
-                        Expanded(
-                          flex: _columns[i].$3,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: i == 0 && entry.path == _renaming
-                                ? Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: _renameField(entry),
-                                  )
-                                : Row(
-                                    children: [
-                                      // I pallini delle etichette prima del nome.
-                                      if (i == 0 &&
-                                          _tagsOf(entry).isNotEmpty) ...[
-                                        TagDots(
-                                          tags: _tagsOf(entry),
-                                          background: selected
-                                              ? selectionFill
-                                              : contentFill,
-                                        ),
-                                        const SizedBox(width: 5),
-                                      ],
-                                      Expanded(
-                                        child: Text(
-                                          cells[i],
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: text(
-                                            13,
-                                            color: i == 0 ? color : secondary,
-                                          ),
-                                        ),
-                                      ),
-                                      if (i == 0 && pending != null)
-                                        ProgressPie(pending.fraction),
-                                    ],
-                                  ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }

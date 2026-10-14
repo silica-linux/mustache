@@ -5,6 +5,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
+import 'link_stat.dart';
+
 /// Un elemento di una cartella.
 @immutable
 class Entry {
@@ -56,15 +58,17 @@ enum SortKey { name, modified, size, kind }
       );
       if (!showHidden && name.startsWith('.')) continue;
       final link = item is Link;
-      // Per i collegamenti conta la destinazione (una cartella collegata si apre).
+      // Per i collegamenti la destinazione dice se è una cartella (si apre); data e dimensione
+      // sono del collegamento (R3.2).
       final stat = link ? FileStat.statSync(item.path) : item.statSync();
+      final own = link ? linkStat(item.path) : null;
       entries.add(
         Entry(
           name: Uri.decodeComponent(name),
           path: item.path,
           isDirectory: stat.type == FileSystemEntityType.directory,
-          size: stat.size < 0 ? 0 : stat.size,
-          modified: stat.modified,
+          size: own?.size ?? (stat.size < 0 ? 0 : stat.size),
+          modified: own?.modified ?? stat.modified,
           isLink: link,
         ),
       );
@@ -116,7 +120,9 @@ List<Entry> sortEntries(
   Iterable<Entry> entries,
   SortKey key, {
   bool descending = false,
+  String Function(Entry)? kindOf,
 }) {
+  final kind = kindOf ?? kindLabel;
   int compare(Entry a, Entry b) {
     final byName = naturalCompare(a.name, b.name);
     final primary = switch (key) {
@@ -126,7 +132,7 @@ List<Entry> sortEntries(
         a.isDirectory != b.isDirectory
             ? (a.isDirectory ? -1 : 1)
             : a.size.compareTo(b.size),
-      SortKey.kind => kindLabel(a).compareTo(kindLabel(b)),
+      SortKey.kind => kind(a).compareTo(kind(b)),
     };
     return primary != 0 ? primary : byName;
   }
@@ -137,20 +143,22 @@ List<Entry> sortEntries(
 
 const List<String> _units = ['KB', 'MB', 'GB', 'TB'];
 
-/// Dimensione in unità decimali ("12 byte", "3,4 MB"); le cartelle hanno "--".
+/// Dimensione in unità decimali (1 KB = 1000 byte, R3.2): "N byte" sotto 1000, KB e MB interi,
+/// GB e TB con due decimali e la virgola; "Zero byte" per un file vuoto, "--" per le cartelle.
 String formatSize(Entry entry) {
   if (entry.isDirectory) return '--';
   final bytes = entry.size;
+  if (bytes == 0) return 'Zero byte';
   if (bytes < 1000) return '$bytes byte';
   var value = bytes / 1000;
   var unit = 0;
-  while (value >= 1000 && unit < _units.length - 1) {
+  while (value.round() >= 1000 && unit < _units.length - 1) {
     value /= 1000;
     unit++;
   }
-  final text = value >= 100 || value == value.roundToDouble()
+  final text = unit < 2
       ? value.round().toString()
-      : value.toStringAsFixed(1).replaceAll('.', ',');
+      : value.toStringAsFixed(2).replaceAll('.', ',');
   return '$text ${_units[unit]}';
 }
 
@@ -169,32 +177,83 @@ const List<String> _months = [
   'dic',
 ];
 
-/// "Oggi, 10:22", "Ieri, 18:05", altrimenti "3 ott 2026, 09:14" (formato da verificare:
-/// MU-20).
+/// "oggi, 10:22", "ieri, 18:05", altrimenti "3 ott 2026, 09:14" (R3.1: minuscolo, anno
+/// sempre).
 String formatDate(DateTime t, DateTime now) {
   final hh = t.hour.toString().padLeft(2, '0');
   final mm = t.minute.toString().padLeft(2, '0');
   final day = DateTime(t.year, t.month, t.day);
   final today = DateTime(now.year, now.month, now.day);
   final days = today.difference(day).inDays;
-  if (days == 0) return 'Oggi, $hh:$mm';
-  if (days == 1) return 'Ieri, $hh:$mm';
+  if (days == 0) return 'oggi, $hh:$mm';
+  if (days == 1) return 'ieri, $hh:$mm';
   return '${t.day} ${_months[t.month - 1]} ${t.year}, $hh:$mm';
 }
 
-/// Il tipo per la colonna Tipo (provvisorio finché non c'è shared-mime-info).
-String kindLabel(Entry entry) {
+const Map<String, String> _formats = {
+  'png': 'PNG',
+  'jpeg': 'JPEG',
+  'gif': 'GIF',
+  'webp': 'WebP',
+  'svg+xml': 'SVG',
+  'tiff': 'TIFF',
+  'bmp': 'BMP',
+  'heic': 'HEIC',
+  'avif': 'AVIF',
+  'x-tga': 'TGA',
+  'wav': 'WAV',
+  'x-wav': 'WAV',
+  'vnd.wave': 'WAV',
+  'aiff': 'AIFF',
+  'x-aiff': 'AIFF',
+  'mpeg': 'MP3',
+  'flac': 'FLAC',
+  'x-flac': 'FLAC',
+  'ogg': 'Ogg',
+  'x-vorbis+ogg': 'Ogg',
+  'opus': 'Opus',
+  'aac': 'AAC',
+  'mp4': 'AAC',
+};
+
+const Set<String> _archives = {
+  'application/zip',
+  'application/gzip',
+  'application/x-tar',
+  'application/x-compressed-tar',
+  'application/x-xz',
+  'application/x-xz-compressed-tar',
+  'application/x-bzip2',
+  'application/x-bzip2-compressed-tar',
+  'application/x-7z-compressed',
+  'application/vnd.rar',
+  'application/x-rar',
+  'application/zstd',
+  'application/x-zstd-compressed-tar',
+};
+
+/// La colonna Tipo: un nome breve per famiglia (R3.3), con parole nostre: cartella,
+/// collegamento, testo, archivio, video, PDF, immagine e audio col formato, documento per il
+/// resto. `mime` è il tipo del contenuto (della destinazione, per un collegamento).
+String kindLabel(Entry entry, [String? mime]) {
+  if (entry.isLink) return 'Collegamento';
   if (entry.isDirectory) return 'Cartella';
-  return switch (entry.extension) {
-    '' => 'Documento',
-    'png' || 'jpg' || 'jpeg' || 'gif' || 'webp' || 'svg' => 'Immagine',
-    'pdf' => 'Documento PDF',
-    'txt' || 'md' => 'Testo',
-    'zip' || 'tar' || 'gz' || 'xz' || '7z' => 'Archivio',
-    'mp3' || 'flac' || 'ogg' || 'wav' => 'Audio',
-    'mp4' || 'mkv' || 'webm' || 'mov' => 'Video',
-    final ext => 'Documento ${ext.toUpperCase()}',
-  };
+  final type = mime ?? 'application/octet-stream';
+  final slash = type.indexOf('/');
+  final top = slash < 0 ? type : type.substring(0, slash);
+  final sub = slash < 0 ? '' : type.substring(slash + 1);
+  if (type == 'application/pdf') return 'PDF';
+  if (top == 'image') return 'Immagine ${_formats[sub] ?? sub.toUpperCase()}';
+  if (top == 'audio') return 'Audio ${_formats[sub] ?? sub.toUpperCase()}';
+  if (top == 'video') return 'Video';
+  if (_archives.contains(type)) {
+    final ext = entry.extension;
+    return ext.isEmpty ? 'Archivio' : 'Archivio $ext';
+  }
+  if (type == 'application/json') return 'JSON';
+  if (type == 'text/markdown') return 'Markdown';
+  if (top == 'text') return 'Testo';
+  return 'Documento';
 }
 
 /// La cronologia di una finestra: indietro e avanti come in un navigatore.
@@ -315,12 +374,13 @@ Entry? entryAt(String path) {
     if (type == FileSystemEntityType.notFound) return null;
     final link = type == FileSystemEntityType.link;
     final stat = FileStat.statSync(path);
+    final own = link ? linkStat(path) : null;
     return Entry(
       name: displayName(path),
       path: path,
       isDirectory: stat.type == FileSystemEntityType.directory,
-      size: stat.size < 0 ? 0 : stat.size,
-      modified: stat.modified,
+      size: own?.size ?? (stat.size < 0 ? 0 : stat.size),
+      modified: own?.modified ?? stat.modified,
       isLink: link,
     );
   } on FileSystemException {

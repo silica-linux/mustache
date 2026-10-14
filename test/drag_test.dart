@@ -99,16 +99,16 @@ void main() {
       await drag(
         tester,
         tester.getCenter(find.text('nota.txt')),
-        tester.getCenter(find.text('Dentro/')),
+        tester.getCenter(find.text('Dentro')),
       );
       await settle(tester);
       expect(File('${home.path}/Doc/Dentro/nota.txt').existsSync(), isTrue);
       expect(File('${home.path}/Doc/nota.txt').existsSync(), isFalse);
 
       // Di nuovo fuori, sulla casa nella barra laterale, con ⌥: copia.
-      await tester.tap(find.text('Dentro/'));
+      await tester.tap(find.text('Dentro'));
       await tester.pump(const Duration(milliseconds: 50));
-      await tester.tap(find.text('Dentro/'));
+      await tester.tap(find.text('Dentro'));
       await tester.pump(const Duration(milliseconds: 400));
       await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
       await drag(
@@ -130,11 +130,15 @@ void main() {
       );
       await mouse.moveBy(const Offset(6, 0));
       await tester.pump();
-      await mouse.moveTo(tester.getCenter(find.text('Dentro/')));
+      await mouse.moveTo(tester.getCenter(find.text('Dentro')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 800));
       // Ora la finestra mostra Dentro (vuota).
-      expect(find.text('Cartella vuota'), findsOneWidget);
+      // Una cartella vuota non scrive niente (R3.10): lo dice il titolo.
+      expect(
+        tester.widget<Text>(find.byKey(const ValueKey('titolo'))).data,
+        'Dentro',
+      );
       await mouse.cancel();
       await tester.pump();
     });

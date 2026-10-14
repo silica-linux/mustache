@@ -105,19 +105,22 @@ void main() {
     expect(find.byType(MenuPanel), findsNothing);
   });
 
-  testWidgets('la colonna Tipo usa la descrizione di shared-mime-info', (
-    tester,
-  ) async {
-    File('${home.path}/sys/mime/text/plain.xml')
-      ..createSync(recursive: true)
-      ..writeAsStringSync(
-        '<mime-type type="text/plain"><comment>Plain text</comment>'
-        '<comment xml:lang="it">Testo semplice</comment></mime-type>',
-      );
-    File(
-      '${home.path}/sys/mime/globs2',
-    ).writeAsStringSync('50:text/plain:*.txt\n');
-    await pump(tester);
-    expect(find.text('Testo semplice'), findsOneWidget);
-  });
+  testWidgets(
+    'la colonna Tipo è la famiglia del tipo di shared-mime-info (R3.3)',
+    (tester) async {
+      File('${home.path}/sys/mime/text/plain.xml')
+        ..createSync(recursive: true)
+        ..writeAsStringSync(
+          '<mime-type type="text/plain"><comment>Plain text</comment>'
+          '<comment xml:lang="it">Testo semplice</comment></mime-type>',
+        );
+      File(
+        '${home.path}/sys/mime/globs2',
+      ).writeAsStringSync('50:text/plain:*.txt\n');
+      await pump(tester);
+      // Il tipo viene da shared-mime-info, il nome è quello breve della famiglia.
+      expect(find.text('Testo'), findsWidgets);
+      expect(find.text('Testo semplice'), findsNothing);
+    },
+  );
 }

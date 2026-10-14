@@ -105,6 +105,7 @@ extension _Tags on _MustacheWindowState {
             [...found],
             _sort,
             descending: _descending,
+            kindOf: _kind,
           ),
         );
       }

@@ -23,6 +23,7 @@ extension _Columns on _MustacheWindowState {
     listDirectory(dir, showHidden: _showHidden).entries,
     _sort,
     descending: _descending,
+    kindOf: _kind,
   );
 
   /// L'elemento scelto delle colonne: quello selezionato, o la cartella aperta.

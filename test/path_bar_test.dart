@@ -79,6 +79,6 @@ void main() {
     expect(settings.pathBar, isTrue);
     await tester.tap(find.byKey(ValueKey('segmento ${home.path}/Documenti')));
     await tester.pump();
-    expect(find.text('Lettere/'), findsOneWidget);
+    expect(find.text('Lettere'), findsOneWidget);
   });
 }

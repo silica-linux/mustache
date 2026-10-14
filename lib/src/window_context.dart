@@ -19,12 +19,8 @@ extension _Context on _MustacheWindowState {
     return _types[key] ??= systemMime.typeOf(entry.path);
   }
 
-  /// La colonna Tipo: la descrizione di shared-mime-info, o quella per estensione.
-  String _kind(Entry entry) {
-    if (entry.isDirectory) return 'Cartella';
-    return mimeComment(_typeOf(entry), env: widget.iconsEnv) ??
-        kindLabel(entry);
-  }
+  /// La colonna Tipo: il nome della famiglia del tipo (R3.3).
+  String _kind(Entry entry) => kindLabel(entry, _typeOf(entry));
 
   /// Apre dei file con un'app (o la predefinita del primo), con un avviso se non si può.
   Future<void> _openWith(List<Entry> files, [DesktopApp? app]) async {
@@ -50,10 +46,21 @@ extension _Context on _MustacheWindowState {
 
   void _openContextMenu(Entry? entry, Offset position) {
     _slowClick?.cancel();
-    if (entry != null && !_selected.contains(entry.path)) {
+    // Nell'elenco il clic destro su una riga non scelta non cambia la selezione: la riga
+    // riceve l'anello e il menu vale per lei sola (R3.9).
+    final ring =
+        entry != null &&
+        !_selected.contains(entry.path) &&
+        _view == ViewMode.list;
+    if (entry != null && !_selected.contains(entry.path) && !ring) {
       _update(() => _select([entry.path]));
     }
-    final items = entry == null ? const <Entry>[] : _selection;
+    final items = entry == null
+        ? const <Entry>[]
+        : ring
+        ? [entry]
+        : _selection;
+    _contextRing = ring ? entry.path : null;
     _update(() {
       _menuAt = position + contextMenuOffset;
       _menuEntries = items.isEmpty ? _backgroundMenu() : _itemsMenu(items);
@@ -71,6 +78,7 @@ extension _Context on _MustacheWindowState {
     _update(() {
       _menuAt = null;
       _menuEntries = const [];
+      _contextRing = null;
     });
     _focus.requestFocus();
   }
@@ -203,7 +211,7 @@ extension _Context on _MustacheWindowState {
             onSelected: () => _update(() {
               _sort = key;
               _descending = false;
-              _entries = sortEntries(_entries, _sort);
+              _entries = sortEntries(_entries, _sort, kindOf: _kind);
             }),
           ),
       ],

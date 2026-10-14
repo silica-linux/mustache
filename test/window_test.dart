@@ -50,16 +50,16 @@ void main() {
     tester,
   ) async {
     final opened = await pump(tester);
-    expect(find.text('Alfa/'), findsOneWidget);
+    expect(find.text('Alfa'), findsOneWidget);
     expect(find.text('nota.txt'), findsOneWidget);
     expect(find.text('.nascosto'), findsNothing);
 
     // La barra laterale: larga 192, il testo delle righe a 47 pt.
     expect(tester.getTopLeft(find.text('Prova').first).dx, sidebarTextLeft);
 
-    await tester.tap(find.text('Alfa/'));
+    await tester.tap(find.text('Alfa'));
     await tester.pump(const Duration(milliseconds: 50));
-    await tester.tap(find.text('Alfa/'));
+    await tester.tap(find.text('Alfa'));
     await tester.pumpAndSettle();
     expect(find.text('dentro.txt'), findsOneWidget);
 
@@ -100,10 +100,10 @@ void main() {
   testWidgets('clic sull\'intestazione inverte l\'ordinamento', (tester) async {
     await pump(tester);
     double y(String name) => tester.getTopLeft(find.text(name)).dy;
-    expect(y('Alfa/'), lessThan(y('nota.txt')));
-    await tester.tap(find.text('Nome ↑'));
+    expect(y('Alfa'), lessThan(y('nota.txt')));
+    await tester.tap(find.byKey(const ValueKey('intestazione name')));
     await tester.pump();
-    expect(y('Alfa/'), greaterThan(y('nota.txt')));
+    expect(y('Alfa'), greaterThan(y('nota.txt')));
   });
 
   testWidgets('la barra degli strumenti unificata: capsule, viste, Indietro', (
@@ -120,7 +120,7 @@ void main() {
     );
     expect(tester.getTopRight(find.byKey(const ValueKey('cerca'))).dx, 993);
 
-    await tester.tap(find.text('Alfa/'));
+    await tester.tap(find.text('Alfa'));
     await tester.pump(const Duration(milliseconds: 50));
     await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
@@ -134,7 +134,10 @@ void main() {
     // Il gruppo delle viste: la griglia toglie l'intestazione delle colonne.
     await tester.tap(find.byKey(const ValueKey('vista icons')));
     await tester.pump(const Duration(milliseconds: 500));
-    expect(find.text('Nome ↑'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('intestazione delle colonne')),
+      findsNothing,
+    );
 
     // A barra laterale nascosta la barra lascia il posto ai pulsanti della finestra.
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);

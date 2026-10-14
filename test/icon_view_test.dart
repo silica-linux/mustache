@@ -170,7 +170,7 @@ void main() {
       await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
       await tester.pump();
       expect(find.byType(IconView), findsNothing);
-      expect(find.text('Alfa/'), findsOneWidget);
+      expect(find.text('Alfa'), findsOneWidget);
       expect(settings.view, 'list');
       expect(Settings(settings.path).view, 'list');
       await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);

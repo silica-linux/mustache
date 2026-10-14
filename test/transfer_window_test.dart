@@ -84,9 +84,9 @@ void main() {
     // In B due volte: la seconda è un conflitto.
     await tester.tap(find.text('casa'));
     await tester.pump();
-    await tester.tap(find.text('B/'));
+    await tester.tap(find.text('B'));
     await tester.pump(const Duration(milliseconds: 50));
-    await tester.tap(find.text('B/'));
+    await tester.tap(find.text('B'));
     await tester.pump();
     await keys(tester, LogicalKeyboardKey.keyV);
     await settle(tester);

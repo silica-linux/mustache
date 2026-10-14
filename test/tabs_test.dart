@@ -67,9 +67,9 @@ void main() {
     await keys(LogicalKeyboardKey.digit2, meta: true);
     expect(settings.view, 'list');
     // Nella seconda scheda si entra in Alfa: la prima resta nella home.
-    await tester.tap(find.text('Alfa/'));
+    await tester.tap(find.text('Alfa'));
     await tester.pump(const Duration(milliseconds: 50));
-    await tester.tap(find.text('Alfa/'));
+    await tester.tap(find.text('Alfa'));
     await tester.pump();
     await tester.pump();
     final host = tester.state<TabsHostState>(find.byType(TabsHost));
@@ -80,12 +80,16 @@ void main() {
     // ⌃⇥: la prima scheda, ancora nella home.
     await keys(LogicalKeyboardKey.tab, control: true);
     expect(host.active, 0);
-    expect(find.text('Beta/'), findsOneWidget);
+    expect(find.text('Beta'), findsOneWidget);
     // ⌘W chiude la scheda attiva: resta Alfa, la barra sparisce.
     await keys(LogicalKeyboardKey.keyW, meta: true);
     expect(host.tabs.length, 1);
     expect(bar, findsNothing);
-    expect(find.text('Cartella vuota'), findsOneWidget);
+    // Una cartella vuota non scrive niente (R3.10): lo dice il titolo.
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('titolo'))).data,
+      'Alfa',
+    );
     await tester.pump(const Duration(milliseconds: 500));
   });
 }

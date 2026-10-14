@@ -49,12 +49,16 @@ void main() {
 
   test('dimensioni e date nei formati della vista a elenco', () {
     expect(formatSize(file('x', size: 12)), '12 byte');
-    expect(formatSize(file('x', size: 3400000)), '3,4 MB');
-    expect(formatSize(file('x', size: 2000000000)), '2 GB');
+    expect(formatSize(file('x', size: 3400000)), '3 MB');
+    // Come le righe di mu20-list-rows (R3.2).
+    expect(formatSize(file('x', size: 2967)), '3 KB');
+    expect(formatSize(file('x', size: 461000)), '461 KB');
+    expect(formatSize(file('x', size: 2150000000)), '2,15 GB');
+    expect(formatSize(file('x', size: 0)), 'Zero byte');
     expect(formatSize(file('x', dir: true)), '--');
     final now = DateTime(2026, 10, 13, 12);
-    expect(formatDate(DateTime(2026, 10, 13, 10, 22), now), 'Oggi, 10:22');
-    expect(formatDate(DateTime(2026, 10, 12, 18, 5), now), 'Ieri, 18:05');
+    expect(formatDate(DateTime(2026, 10, 13, 10, 22), now), 'oggi, 10:22');
+    expect(formatDate(DateTime(2026, 10, 12, 18, 5), now), 'ieri, 18:05');
     expect(formatDate(DateTime(2024, 3, 3, 9, 14), now), '3 mar 2024, 09:14');
   });
 
@@ -62,8 +66,14 @@ void main() {
     expect(file('foto.JPG').extension, 'jpg');
     expect(file('.nascosto').extension, '');
     expect(file('senza').extension, '');
-    expect(kindLabel(file('a.pdf')), 'Documento PDF');
-    expect(kindLabel(file('a.rs')), 'Documento RS');
+    // Famiglie brevi (R3.3): il formato per immagini e audio, l'estensione per gli archivi.
+    expect(kindLabel(file('a.pdf'), 'application/pdf'), 'PDF');
+    expect(kindLabel(file('a.png'), 'image/png'), 'Immagine PNG');
+    expect(kindLabel(file('a.wav'), 'audio/x-wav'), 'Audio WAV');
+    expect(kindLabel(file('a.zip'), 'application/zip'), 'Archivio zip');
+    expect(kindLabel(file('a.rs'), 'text/rust'), 'Testo');
+    expect(kindLabel(file('a.mov'), 'video/quicktime'), 'Video');
+    expect(kindLabel(file('dati')), 'Documento');
     expect(kindLabel(file('Gamma', dir: true)), 'Cartella');
   });
 
@@ -111,5 +121,22 @@ void main() {
     final result = listDirectory('/non/esiste/davvero');
     expect(result.error, isNotNull);
     expect(result.entries, isEmpty);
+  });
+
+  test('un collegamento ha la sua data e la sua dimensione (R3.2)', () {
+    final dir = Directory.systemTemp.createTempSync('mustache-link');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final target = File('${dir.path}/appunti.txt')..writeAsStringSync('x' * 31);
+    target.setLastModifiedSync(DateTime(2024, 10, 13, 12, 56));
+    Link('${dir.path}/collegamento').createSync('appunti.txt');
+    final link = listDirectory(
+      dir.path,
+    ).entries.firstWhere((e) => e.name == 'collegamento');
+    expect(link.isLink, isTrue);
+    // La destinazione è lunga 11 byte ("appunti.txt"); la data è di adesso, non del 2024.
+    expect(link.size, 11);
+    expect(link.modified.year, DateTime.now().year);
+    expect(kindLabel(link, 'text/plain'), 'Collegamento');
+    expect(entryAt(link.path)?.size, 11);
   });
 }
