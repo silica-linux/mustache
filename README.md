@@ -1,3 +1,5 @@
+![Mustache](.github/banner.png)
+
 # Mustache
 
 Il gestore dei file di [Silica](https://github.com/silica-linux/silica-desktop): cartelle e file in
