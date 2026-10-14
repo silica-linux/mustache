@@ -1,6 +1,6 @@
 # Mustache
 
-Il gestore dei file di [Silica](https://github.com/silica-linux/silica): cartelle e file in
+Il gestore dei file di [Silica](https://github.com/silica-linux/silica-desktop): cartelle e file in
 viste a elenco, icone, colonne e galleria, barra laterale con i luoghi, anteprima rapida,
 etichette, ricerca. Scritto in Flutter su [`silica_ui`](https://github.com/silica-linux/silica-ui).
 
