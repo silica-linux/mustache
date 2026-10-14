@@ -100,13 +100,38 @@ void main() {
 
   testWidgets('⌥⌘V moves; ⌘Z puts it back', (tester) async {
     FileClipboard.paths = ['${home.path}/A/nota.txt'];
+    final sounds = listenSounds(tester);
     await pump(tester, '${home.path}/B');
     await keys(tester, LogicalKeyboardKey.keyV, alt: true);
     await settle(tester);
     expect(File('${home.path}/B/nota.txt').existsSync(), isTrue);
+    // The move is done: its sound (FILE-SOUNDS).
+    expect(sounds, ['file-transfer']);
     expect(File('${home.path}/A/nota.txt').existsSync(), isFalse);
     await keys(tester, LogicalKeyboardKey.keyZ);
     await tester.pump();
     expect(File('${home.path}/A/nota.txt').existsSync(), isTrue);
   });
+}
+
+/// The interface sounds asked of silica-daemon (`PlaySound` on `silica/dbus`).
+List<String> listenSounds(WidgetTester tester) {
+  const dbus = MethodChannel('silica/dbus', JSONMethodCodec());
+  final sounds = <String>[];
+  tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(dbus, (
+    call,
+  ) async {
+    final args = call.arguments as Map;
+    if (args['method'] == 'PlaySound') {
+      sounds.add((args['args'] as List).single as String);
+    }
+    return const <Object?>[];
+  });
+  addTearDown(
+    () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      dbus,
+      null,
+    ),
+  );
+  return sounds;
 }

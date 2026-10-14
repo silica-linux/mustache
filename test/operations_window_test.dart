@@ -185,10 +185,12 @@ void main() {
   testWidgets(
     '⌘⌫ to the Trash, the selection moves to the next; ⌘Z puts it back',
     (tester) async {
+      final sounds = listenSounds(tester);
       await pump(tester);
       await select(tester, 'bozza.txt');
       await keys(tester, LogicalKeyboardKey.backspace, meta: true);
       expect(File(p('bozza.txt')).existsSync(), isFalse);
+      expect(sounds, ['trash-move']);
       final trashed = File('${home.path}/.local/share/Trash/files/bozza.txt');
       expect(trashed.existsSync(), isTrue);
       // The next item (conto.txt) is selected: another ⌘⌫ moves it.
@@ -231,4 +233,26 @@ void main() {
     await tester.pump(const Duration(milliseconds: 60));
     expect(find.byType(RenameField), findsOneWidget);
   });
+}
+
+/// The interface sounds asked of silica-daemon (`PlaySound` on `silica/dbus`).
+List<String> listenSounds(WidgetTester tester) {
+  const dbus = MethodChannel('silica/dbus', JSONMethodCodec());
+  final sounds = <String>[];
+  tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(dbus, (
+    call,
+  ) async {
+    final args = call.arguments as Map;
+    if (args['method'] == 'PlaySound') {
+      sounds.add((args['args'] as List).single as String);
+    }
+    return const <Object?>[];
+  });
+  addTearDown(
+    () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      dbus,
+      null,
+    ),
+  );
+  return sounds;
 }

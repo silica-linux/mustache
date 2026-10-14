@@ -14,9 +14,11 @@ silica-desktop#146), Paste Item (silica-desktop#150), volumes (R15.4, R15.6).
 | First icon | at (2446, 40) on a 2560 pt primary display: its right edge **18 pt** from the screen edge, 40 pt from the top |
 | Pitch | vertical **148**, horizontal **124** |
 | Labels | **white, bold** (9 pt capital height, *≈ 12 pt provisional*), centered ~10 pt below the icon, with a soft dark shadow (~1 pt down, blur ~2–3 pt; darkest pixel `#535357` over `#7a7b80`); the same in light and dark |
-| Selection | a rounded square **108 × 107** (6 pt around) `#545559` (black ~30 %) with a light **2 pt** outline `#88898c`; the same in light and dark |
-| Selected name capsule | **17** tall, `#0064e1` / `#0059d1`, white text |
-| Selection radius | *~8 pt (provisional: scaled from 6 at 64 in the icon view)* |
+| Selection | a rounded square **108 × 107** (6 pt around; 108 × 108 in the close-up capture) `#545559` (black ~30 %) with a light **2 pt** outline `#88898c` (white ~10 %, outside the fill); the same in light and dark. Drawn behind the icon: it never moves the icon or its name |
+| Selected name capsule | **17** tall, its top **104 pt** below the icon's top (8 below the icon), `#0064e1` / `#0059d1`, white text |
+| Selection radius | *~10 pt outside (provisional: read from one close-up capture; DESKTOP-SEL)* |
+| Capsule side padding, radius | *~5 pt, ~5 pt (provisional: read from one close-up capture; DESKTOP-SEL)* |
+| Rubber band | *white ~10 % fill, white ~50 % 1 pt outline (provisional: not measured on the desktop; DESKTOP-SEL)*; selects by intersection with the icon or the lines of its name |
 
 ![Desktop grid](diagrams/desktop.svg)
 
@@ -50,3 +52,21 @@ silica-desktop#146), Paste Item (silica-desktop#150), volumes (R15.4, R15.6).
 - **R15.8** An open stack takes the cells below it and moves the other items.
 - Drag threshold: **4–5 pt** (R7.7). The image in flight over the desktop (96 pt icon + pill)
   and dropping onto the desktop: R9.13 in [operations.md](operations.md).
+
+Dragging desktop icons (MU-40, R9.13):
+
+- The image is the dragged icons as they are drawn (icon and name in its capsule) at **~90 %**,
+  keeping their arrangement and where the pointer grabbed them; with several items a **20 pt**
+  red count badge sits by the pointer (*placed as in the windows, provisional on the desktop*).
+  Ossido carries it (`silica/drag` › `start` with the grab point `x`, `y`), over windows, the Dock
+  and other apps.
+- The icons stay in place, *dimmed to ~50 % (provisional, DESKTOP-SEL)*, until the drag ends.
+- Dropped on the desktop with free positions, each icon appears where its image was, in the next
+  frame, selected. On an ordered desktop (a sort order, stacks) the icons travel back to their
+  cells in **~250 ms**, decelerating (R15.7); so does an icon that would land off the screen.
+- Not yet: a cancelled drag (Esc, a drop nowhere) loses its image at once; the reference slides
+  it back to the origin (~260 ms) and fades it (~190 ms).
+
+Sounds (FILE-SOUNDS, played by silica-daemon's `PlaySound`): `trash-move` when icons go to the
+Trash from the menu or ⌘⌫, `file-transfer` when files dropped from elsewhere are moved or copied
+onto the desktop. A drop on the Dock's Trash sounds from the Dock (`trash-drag`).

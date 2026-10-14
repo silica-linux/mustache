@@ -195,7 +195,11 @@ extension _Operations on _MustacheWindowState {
       }
       moves.add((entry.path, result.path!));
     }
-    if (moves.isNotEmpty) _undo.push(TrashOp(moves));
+    if (moves.isNotEmpty) {
+      _undo.push(TrashOp(moves));
+      // As the items leave the window (FILE-SOUNDS).
+      unawaited(playUiSound(UiSound.trashMove));
+    }
     // The item after the last removed one, if any, otherwise the one before.
     final gone = {for (final (from, _) in moves) from};
     final rest = [

@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mustache/src/desktop.dart';
+import 'package:mustache/src/icon_view.dart' show EntryIcon;
+import 'package:silica_ui/silica_ui.dart' show SilicaDrag;
 import 'package:mustache/src/icon_arrange.dart';
 import 'package:mustache/src/l10n.dart';
 import 'package:mustache/src/model.dart';
@@ -174,6 +176,16 @@ void main() {
       return tester.state<DesktopViewState>(find.byType(DesktopView));
     }
 
+    /// Lets the drag's start finish: reading the image back is real asynchronous work.
+    Future<void> settleDragStart(WidgetTester tester) async {
+      for (var i = 0; i < 5; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 40)),
+        );
+        await tester.pump();
+      }
+    }
+
     testWidgets('icons start at the top right, a click selects', (
       tester,
     ) async {
@@ -241,6 +253,239 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
       await tester.pump();
       expect(state.selected, {'two.txt'});
+    });
+
+    testWidgets('selecting never moves the icon or its name', (tester) async {
+      final state = await pump(tester);
+      final at = state.positions['one.txt']!;
+      Finder inIcon(Finder f) => find.descendant(
+        of: find.byKey(const ValueKey('desktop one.txt')),
+        matching: f,
+      );
+      final icon = tester.getRect(inIcon(find.byType(EntryIcon)));
+      final name = tester.getRect(find.text('one.txt'));
+      expect(icon, Rect.fromLTWH(at.dx - 48, at.dy, 96, 96));
+      await tester.tapAt(at + const Offset(0, 40));
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(state.selected, {'one.txt'});
+      expect(tester.getRect(inIcon(find.byType(EntryIcon))), icon);
+      expect(tester.getRect(find.text('one.txt')), name);
+      // The square: 108 × 108, 6 pt around the icon (MU-90).
+      expect(
+        tester.getRect(find.byKey(const ValueKey('desktop selection'))),
+        Rect.fromLTWH(at.dx - 54, at.dy - 6, 108, 108),
+      );
+      // The capsule's top 104 pt below the icon's top, 17 pt tall.
+      final capsule = tester.getRect(
+        find
+            .ancestor(
+              of: find.text('one.txt'),
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      expect(capsule.top, at.dy + 104);
+      expect(capsule.height, 17);
+    });
+
+    testWidgets(
+      'the rubber band selects by the icon or the name, not around them',
+      (tester) async {
+        final state = await pump(tester);
+        final at = state.positions['one.txt']!;
+        // On the name's line only.
+        expect(state.keysIn(Rect.fromLTWH(at.dx - 4, at.dy + 110, 8, 4)), {
+          'one.txt',
+        });
+        // Between the icon and the name, or beside the short name: nothing.
+        expect(
+          state.keysIn(Rect.fromLTWH(at.dx - 4, at.dy + 98, 8, 4)),
+          isEmpty,
+        );
+        expect(
+          state.keysIn(Rect.fromLTWH(at.dx + 44, at.dy + 110, 4, 4)),
+          isEmpty,
+        );
+        // Drawn while dragging from empty desktop.
+        final gesture = await tester.startGesture(at + const Offset(-200, 20));
+        await gesture.moveTo(at + const Offset(0, 50));
+        await tester.pump();
+        expect(
+          find.byKey(const ValueKey('desktop rubber band')),
+          findsOneWidget,
+        );
+        expect(state.selected, {'one.txt'});
+        await gesture.up();
+        await tester.pump();
+        expect(find.byKey(const ValueKey('desktop rubber band')), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'a drag: the image follows the pointer, the icons stay dimmed, the drop moves them',
+      (tester) async {
+        final state = await pump(tester);
+        final one = state.positions['one.txt']!;
+        final two = state.positions['two.txt']!;
+        await tester.tapAt(one + const Offset(0, 40));
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+        await tester.tapAt(two + const Offset(0, 40));
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+        await tester.pump(const Duration(milliseconds: 600));
+        expect(state.selected, {'one.txt', 'two.txt'});
+
+        final drag = await tester.startGesture(one + const Offset(0, 40));
+        await tester.pump(const Duration(milliseconds: 100));
+        for (var i = 1; i <= 6; i++) {
+          await drag.moveTo(
+            one + const Offset(0, 40) + Offset(-30.0 * i, 10.0 * i),
+          );
+          await tester.pump();
+        }
+        // Outside Silica the image travels inside the desktop.
+        await settleDragStart(tester);
+        expect(state.dragged, {'one.txt', 'two.txt'});
+        expect(state.positions['one.txt'], one);
+        expect(
+          find.byKey(const ValueKey('desktop drag image')),
+          findsOneWidget,
+        );
+        final dimmed = tester.widget<Opacity>(
+          find
+              .descendant(
+                of: find.byKey(const ValueKey('desktop two.txt')),
+                matching: find.byType(Opacity),
+              )
+              .first,
+        );
+        expect(dimmed.opacity, desktopDragDim);
+        await drag.up();
+        await tester.pump();
+        // Each icon where its image was: moved by the whole movement of the pointer.
+        expect(state.dragged, isEmpty);
+        expect(state.positions['one.txt'], one + const Offset(-180, 60));
+        expect(state.positions['two.txt'], two + const Offset(-180, 60));
+        expect(find.byKey(const ValueKey('desktop drag image')), findsNothing);
+        expect(state.selected, {'one.txt', 'two.txt'});
+      },
+    );
+
+    testWidgets('on a sorted desktop a dropped icon travels back to its cell', (
+      tester,
+    ) async {
+      final state = await pump(tester);
+      state.runAction('sort:name');
+      await tester.pump();
+      final one = state.positions['one.txt']!;
+      final drag = await tester.startGesture(one + const Offset(0, 40));
+      await tester.pump(const Duration(milliseconds: 600));
+      for (var i = 1; i <= 4; i++) {
+        await drag.moveTo(one + const Offset(0, 40) + Offset(-50.0 * i, 0));
+        await tester.pump();
+      }
+      await settleDragStart(tester);
+      await drag.up();
+      await tester.pump();
+      expect(state.positions['one.txt'], one);
+      await tester.pump(const Duration(milliseconds: 100));
+      final left = tester
+          .getTopLeft(find.byKey(const ValueKey('desktop one.txt')))
+          .dx;
+      expect(left, lessThan(one.dx - desktopPitchX / 2 - 1));
+      expect(left, greaterThan(one.dx - desktopPitchX / 2 - 200));
+      await tester.pumpAndSettle();
+      expect(
+        tester.getTopLeft(find.byKey(const ValueKey('desktop one.txt'))).dx,
+        one.dx - desktopPitchX / 2,
+      );
+    });
+
+    testWidgets(
+      'dropped back by Ossido, the icons keep where they were grabbed',
+      (tester) async {
+        final state = await pump(tester);
+        final one = state.positions['one.txt']!;
+        // Ossido takes the drag.
+        final starts = <MethodCall>[];
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SilicaDrag.channel,
+          (call) async {
+            starts.add(call);
+            return true;
+          },
+        );
+        addTearDown(
+          () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            SilicaDrag.channel,
+            null,
+          ),
+        );
+        final press = one + const Offset(10, 40);
+        final drag = await tester.startGesture(press);
+        await tester.pump(const Duration(milliseconds: 600));
+        await drag.moveTo(press + const Offset(-20, 0));
+        await tester.pump();
+        await settleDragStart(tester);
+        expect(starts.single.method, 'start');
+        final args = starts.single.arguments as Map;
+        expect(args['uris'], [Uri.file('${folder.path}/one.txt').toString()]);
+        final icon = args['icon'] as Map;
+        // The image is the icon as drawn, its grabbed point under the pointer.
+        expect(icon['width'], desktopPitchX);
+        expect(icon['x'], (press.dx - (one.dx - desktopPitchX / 2)).round());
+        expect(icon['y'], (press.dy - (one.dy - desktopSelectionPad)).round());
+        // The embedder cancels the gesture; Ossido drops the files back on the desktop.
+        await drag.cancel();
+        await tester.pump();
+        expect(state.dragged, {'one.txt'});
+        Future<void> fromOssido(String method, Object? args) =>
+            tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+              SilicaDrag.channel.name,
+              SilicaDrag.channel.codec.encodeMethodCall(
+                MethodCall(method, args),
+              ),
+              (_) {},
+            );
+        await fromOssido('drop', {
+          'x': press.dx - 300,
+          'y': press.dy + 100,
+          'uris': [Uri.file('${folder.path}/one.txt').toString()],
+        });
+        await fromOssido('finished', {'action': 'move'});
+        await tester.pump();
+        expect(state.dragged, isEmpty);
+        expect(state.positions['one.txt'], one + const Offset(-300, 100));
+      },
+    );
+
+    testWidgets('Move to Trash plays its sound', (tester) async {
+      final sounds = <Object?>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        const MethodChannel('silica/dbus', JSONMethodCodec()),
+        (call) async {
+          final args = call.arguments as Map;
+          if (args['method'] == 'PlaySound')
+            sounds.add((args['args'] as List).single);
+          return const <Object?>[];
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          const MethodChannel('silica/dbus', JSONMethodCodec()),
+          null,
+        ),
+      );
+      final state = await pump(tester);
+      await tester.tapAt(state.positions['one.txt']! + const Offset(0, 40));
+      await tester.pump(const Duration(milliseconds: 600));
+      state.runAction('trash');
+      await tester.pump();
+      expect(sounds, ['trash-move']);
+      // Nothing selected, nothing moved: no sound.
+      state.runAction('trash');
+      await tester.pump();
+      expect(sounds, ['trash-move']);
     });
   });
 }

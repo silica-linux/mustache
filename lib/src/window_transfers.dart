@@ -82,6 +82,8 @@ extension _Transfers on _MustacheWindowState {
       if (_progress == transfer) _progress = null;
     });
     if (transfer.completed.isNotEmpty) {
+      // When the copy or move is done (FILE-SOUNDS).
+      unawaited(playUiSound(UiSound.fileTransfer));
       if (kind == TransferKind.move) {
         _undo.push(MoveOp([...transfer.completed]));
       } else {

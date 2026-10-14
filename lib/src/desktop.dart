@@ -10,6 +10,10 @@
 // folder); Clean Up moves the off-grid ones to the nearest free cell; Use Stacks groups items by
 // kind (R15.2), a stack opening in place (R15.3).
 //
+// Selecting paints a square behind the icon and a capsule behind its name, outside the layout.
+// Dragging hands the files to Ossido with an image of the icons as drawn, translucent, grabbed
+// where the pointer pressed (MU-40); the icons stay in place, dimmed, until the drag ends.
+//
 // The context menu is drawn by the shell's menu bar (the desktop is below the windows, its menu
 // is not): the desktop announces the click (`desktopmenu` = "x y desktop" or "x y items") and its
 // state (`desktop.state`), and runs the items the menu sends back (`desktop.action`).
@@ -18,18 +22,22 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/gestures.dart' show kPrimaryButton, kSecondaryButton;
+import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
 
 import 'apps.dart';
+import 'drag.dart' show dragAlpha, dragCountBadge;
 import 'icon_arrange.dart';
 import 'icon_view.dart' show EntryIcon, labelLines;
 import 'model.dart';
 import 'operations.dart';
 import 'rename_field.dart';
+import 'sounds.dart';
 
 /// The desktop's icon size, label size and grid (MU-90).
 const double desktopIconSide = 96;
@@ -42,21 +50,54 @@ const double desktopTop = 40;
 /// The space kept free at the bottom for the Dock: 8 rows on a 1440 pt display (R15.1).
 const double desktopBottom = 84;
 
-/// The selection around the icon: 108 × 107 (6 pt around), ~8 pt corners (provisional), black at
-/// ~30 % with a 2 pt light outline; the selected name sits in a 17 pt blue capsule.
+/// The selection around the icon (MU-90): a rounded square of 108 × 108, 6 pt around the 96 pt
+/// icon, whose outer 2 pt are a light outline (white ~10 %) and the inside black ~30 % (`#545559`
+/// and `#88898c` over the measured wallpaper), the same in light and dark. It is painted behind
+/// the icon and never takes part in the layout: selecting moves neither the icon nor its name.
+/// The corner radius (~10 outside) is read from one capture: provisional until DESKTOP-SEL.
 const double desktopSelectionPad = 6;
-const double desktopSelectionRadius = 8;
-const Color desktopSelectionFill = Color(0xFF545559);
-const Color desktopSelectionOutline = Color(0xFF88898C);
+const double desktopSelectionSide = desktopIconSide + 2 * desktopSelectionPad;
+const double desktopSelectionRadius = 10;
+const double desktopSelectionOutlineWidth = 2;
+const Color desktopSelectionFill = Color(0x4D000000);
+const Color desktopSelectionOutline = Color(0x1AFFFFFF);
+
+/// The selected name's capsule (MU-90): 17 pt tall, accent blue, white text; ~5 pt of side padding
+/// and a ~5 pt radius are read from one capture (provisional, DESKTOP-SEL).
 const Color desktopCapsule = Color(0xFF0064E1);
 const Color desktopCapsuleDark = Color(0xFF0059D1);
+const double desktopCapsulePad = 5;
+const double desktopCapsuleRadius = 5;
 
-/// Where the label starts below the icon, and its line height.
-const double desktopLabelGap = 10;
+/// The name starts 8 pt below the icon (its capsule's top 104 pt below the icon's top, MU-90), one
+/// line of 17 pt per row of text.
+const double desktopLabelGap = 8;
 const double desktopLabelLine = 17;
+
+/// The widest a line of the name gets.
+const double desktopLabelWidth = desktopPitchX - 12;
+
+/// The rubber band on the desktop: white veil and outline (provisional, DESKTOP-SEL).
+const Color desktopBandFill = Color(0x1AFFFFFF);
+const Color desktopBandBorder = Color(0x80FFFFFF);
 
 /// The drag threshold on the desktop (R7.7: 4–5 pt).
 const double desktopDragThreshold = 4.5;
+
+/// The dragged icons left in place while the image travels: dimmed (provisional, DESKTOP-SEL).
+const double desktopDragDim = 0.5;
+
+/// An icon that has to reach its cell after a drop (an ordered desktop, a place off the screen)
+/// travels there decelerating in ~250 ms (R15.7).
+const Duration desktopSettle = Duration(milliseconds: 250);
+
+/// The count badge of a drag with several items: 20 pt red circle with white digits (MU-40); its
+/// center sits up and left of the pointer as in the windows (provisional on the desktop).
+const double desktopBadgeSide = 20;
+const Offset desktopBadgeFromPointer = Offset(-2, -2);
+
+/// The largest drag image, per side (the embedder's limit).
+const double desktopDragImageMax = 1024;
 
 /// The double click: a second press within this time on the same icon opens it.
 const Duration desktopDoubleClick = Duration(milliseconds: 500);
@@ -367,7 +408,64 @@ class DesktopView extends StatefulWidget {
   State<DesktopView> createState() => DesktopViewState();
 }
 
-class DesktopViewState extends State<DesktopView> {
+/// A drag of desktop icons in progress (MU-40): the dragged keys, where the press was, and the
+/// image on the pointer with the point of it under the pointer.
+class _DesktopDrag {
+  _DesktopDrag({
+    required this.keys,
+    required this.paths,
+    required this.from,
+    required this.pointer,
+    required this.image,
+    required this.hotspot,
+  });
+
+  final Set<String> keys;
+  final Set<String> paths;
+  final Offset from;
+  Offset pointer;
+  final ui.Image? image;
+  final Offset hotspot;
+
+  /// Outside Silica (no Ossido to take it) the image travels inside the desktop.
+  bool local = false;
+}
+
+/// Hands the files to Ossido's drag (the embedder's `silica/drag` › `start`) with `image` on the
+/// pointer and its point `hotspot` under it, so the image stays where the pointer grabbed the
+/// icons. True if Ossido took it.
+Future<bool> startDesktopDrag(
+  List<String> paths,
+  ui.Image? image,
+  Offset hotspot,
+) async {
+  final args = <String, Object?>{
+    'uris': [for (final p in paths) Uri.file(p).toString()],
+  };
+  if (image != null) {
+    // rawRgba: premultiplied, as Wayland wants.
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    if (bytes != null) {
+      args['icon'] = {
+        'width': image.width,
+        'height': image.height,
+        'rgba': base64Encode(bytes.buffer.asUint8List()),
+        'x': hotspot.dx.round(),
+        'y': hotspot.dy.round(),
+      };
+    }
+  }
+  try {
+    return await SilicaDrag.channel.invokeMethod<bool>('start', args) ?? false;
+  } on MissingPluginException {
+    return false;
+  } on PlatformException {
+    return false;
+  }
+}
+
+class DesktopViewState extends State<DesktopView>
+    with SingleTickerProviderStateMixin {
   List<Entry> _entries = const [];
   Map<String, Offset> _positions = const {};
   final Set<String> _selected = {};
@@ -383,19 +481,40 @@ class DesktopViewState extends State<DesktopView> {
   String? _pressKey;
   Offset? _pressAt;
   bool _dragging = false;
-  bool _localDrag = false;
-  Offset _dragDelta = Offset.zero;
   Offset? _bandStart;
   Offset? _bandEnd;
   Set<String> _bandBase = const {};
   String? _lastClickKey;
   DateTime _lastClick = DateTime.fromMillisecondsSinceEpoch(0);
 
+  /// The drag of icons in progress, and the last one: its drop back on the desktop may arrive
+  /// after Ossido has already said the drag finished.
+  _DesktopDrag? _drag;
+  _DesktopDrag? _lastDrag;
+
+  /// What each icon paints (icon and name, no selection square): the drag image is made of
+  /// them.
+  final Map<String, GlobalKey> _faces = {};
+
+  /// Icons travelling to their place after a drop: where each one starts.
+  Map<String, Offset> _settleFrom = const {};
+  late final AnimationController _settle = AnimationController(
+    vsync: this,
+    duration: desktopSettle,
+  )..addListener(() => setState(() {}));
+
+  /// Text measures, kept: hit tests and the rubber band ask for them on every move.
+  final Map<String, double> _lineWidths = {};
+  final Map<String, List<String>> _lines = {};
+
   /// Selected keys, for tests.
   Set<String> get selected => Set.unmodifiable(_selected);
 
   /// Positions by key, for tests.
   Map<String, Offset> get positions => Map.unmodifiable(_positions);
+
+  /// The keys being dragged (dimmed in place), for tests.
+  Set<String> get dragged => Set.unmodifiable(_drag?.keys ?? const {});
 
   DesktopGrid get _grid => DesktopGrid(_size);
   bool get _free => widget.choices.sort == 'none' && !widget.choices.stacks;
@@ -437,6 +556,8 @@ class DesktopViewState extends State<DesktopView> {
     _drags?.cancel();
     _reload?.cancel();
     _focus.dispose();
+    _settle.dispose();
+    _drag?.image?.dispose();
     super.dispose();
   }
 
@@ -478,6 +599,7 @@ class DesktopViewState extends State<DesktopView> {
       stored: stored,
       openStack: _openStack,
     );
+    _faces.removeWhere((key, _) => !_positions.containsKey(key));
     if (_free) _store();
   }
 
@@ -543,9 +665,12 @@ class DesktopViewState extends State<DesktopView> {
         _open(_selection);
       case 'trash':
         final trash = Trash.forUser(widget.env ?? Platform.environment);
+        var trashed = false;
         for (final e in _selection) {
-          trash.put(e.path);
+          trashed |= trash.put(e.path).error == null;
         }
+        // As the icons leave the desktop (FILE-SOUNDS).
+        if (trashed) unawaited(playUiSound(UiSound.trashMove));
         _selected.clear();
         _load();
       case 'rename':
@@ -606,22 +731,81 @@ class DesktopViewState extends State<DesktopView> {
     }
   }
 
-  /// The icon under a point, by its box and label.
+  static const TextStyle _labelStyle = TextStyle(
+    fontFamily: uiFontFamily,
+    package: 'silica_ui',
+    fontSize: desktopLabelSize,
+    fontWeight: FontWeight.w600,
+    color: Color(0xFFFFFFFF),
+  );
+
+  /// The lines of an icon's name, by key (an item's key is its name, a stack's `stack:<kind>`).
+  List<String> _linesOf(String key) => _lines.putIfAbsent(
+    key,
+    () => labelLines(
+      key.startsWith('stack:') ? key.substring(6) : key,
+      desktopLabelWidth,
+      _labelStyle,
+    ),
+  );
+
+  double _lineWidth(String line) => _lineWidths.putIfAbsent(line, () {
+    final painter = TextPainter(
+      text: TextSpan(text: line, style: _labelStyle),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+    final width = painter.width;
+    painter.dispose();
+    return width;
+  });
+
+  /// The icon's square (96 pt, its top at `at.dy`).
+  static Rect _iconRect(Offset at) => Rect.fromLTWH(
+    at.dx - desktopIconSide / 2,
+    at.dy,
+    desktopIconSide,
+    desktopIconSide,
+  );
+
+  /// The rectangles of the name's lines (the capsules when selected).
+  List<Rect> _labelRects(String key, Offset at) {
+    final lines = _linesOf(key);
+    return [
+      for (var i = 0; i < lines.length; i++)
+        Rect.fromCenter(
+          center: Offset(
+            at.dx,
+            at.dy +
+                desktopIconSide +
+                desktopLabelGap +
+                desktopLabelLine * i +
+                desktopLabelLine / 2,
+          ),
+          width: _lineWidth(lines[i]) + 2 * desktopCapsulePad,
+          height: desktopLabelLine,
+        ),
+    ];
+  }
+
+  /// The icon under a point: its selection square or one of the lines of its name.
   String? keyAt(Offset p) {
     for (final MapEntry(:key, :value) in _positions.entries.toList().reversed) {
-      final box = Rect.fromLTWH(
-        value.dx - desktopIconSide / 2 - desktopSelectionPad,
-        value.dy - desktopSelectionPad,
-        desktopIconSide + 2 * desktopSelectionPad,
-        desktopIconSide +
-            2 * desktopSelectionPad +
-            desktopLabelGap +
-            2 * desktopLabelLine,
-      );
-      if (box.contains(p)) return key;
+      if (_iconRect(value).inflate(desktopSelectionPad).contains(p) ||
+          _labelRects(key, value).any((r) => r.contains(p))) {
+        return key;
+      }
     }
     return null;
   }
+
+  /// The icons the rubber band touches: by the icon or by its name (MU-30).
+  Set<String> keysIn(Rect band) => {
+    for (final MapEntry(:key, :value) in _positions.entries)
+      if (_iconRect(value).overlaps(band) ||
+          _labelRects(key, value).any((r) => r.overlaps(band)))
+        key,
+  };
 
   bool get _extend =>
       HardwareKeyboard.instance.isMetaPressed ||
@@ -630,6 +814,9 @@ class DesktopViewState extends State<DesktopView> {
 
   void _pointerDown(PointerDownEvent e) {
     _focus.requestFocus();
+    // A drag Ossido never reported back on: over.
+    if (_drag != null && !(_drag?.local ?? false)) _endDrag();
+    _lastDrag = null;
     final key = keyAt(e.localPosition);
     if (e.buttons & kSecondaryButton != 0) {
       if (key != null && !_selected.contains(key)) {
@@ -692,99 +879,262 @@ class DesktopViewState extends State<DesktopView> {
   }
 
   void _pointerMove(PointerMoveEvent e) {
-    if (_bandStart != null) {
+    if (_bandStart case final start?) {
       setState(() {
         _bandEnd = e.localPosition;
-        final rect = Rect.fromPoints(_bandStart!, _bandEnd!);
         _selected
           ..clear()
-          ..addAll(_bandBase);
-        for (final MapEntry(:key, :value) in _positions.entries) {
-          final box = Rect.fromLTWH(
-            value.dx - desktopIconSide / 2,
-            value.dy,
-            desktopIconSide,
-            desktopIconSide + desktopLabelGap + desktopLabelLine,
-          );
-          if (box.overlaps(rect)) _selected.add(key);
-        }
+          ..addAll(_bandBase)
+          ..addAll(keysIn(Rect.fromPoints(start, e.localPosition)));
       });
       return;
     }
     final from = _pressAt;
     if (_pressKey == null || from == null) return;
     if (_dragging) {
-      if (_localDrag) setState(() => _dragDelta = e.localPosition - from);
+      if (_drag case final drag? when drag.local) {
+        setState(() => drag.pointer = e.localPosition);
+      }
       return;
     }
     if ((e.localPosition - from).distance < desktopDragThreshold) return;
     _dragging = true;
-    // The files go to Ossido's drag (other apps, the Dock, the Trash, or back onto the desktop);
-    // outside Silica the icons move here.
+    _beginDrag(from, e.localPosition);
+  }
+
+  /// The drag starts (MU-40): an image of the dragged icons and names, translucent, follows the
+  /// pointer with a count badge for several items, while the icons stay in place, dimmed. The
+  /// files go to Ossido's drag (other apps, Mustache windows, the Dock and its Trash, or back
+  /// onto the desktop); outside Silica the image travels here.
+  void _beginDrag(Offset from, Offset pointer) {
+    final keys = {
+      for (final k in _selected)
+        if (_positions.containsKey(k)) k,
+    };
     final paths = [for (final s in _selection) s.path];
-    SilicaDrag.start(paths).then((taken) {
-      if (!taken && mounted) {
-        setState(() {
-          _localDrag = true;
-          _dragDelta = e.localPosition - from;
-        });
+    if (keys.isEmpty || paths.isEmpty) return;
+    final (image, hotspot) = _dragImage(keys, from, paths.length);
+    _drag?.image?.dispose();
+    final drag = _DesktopDrag(
+      keys: keys,
+      paths: paths.toSet(),
+      from: from,
+      pointer: pointer,
+      image: image,
+      hotspot: hotspot,
+    );
+    setState(() => _drag = drag);
+    startDesktopDrag(paths, image, hotspot).then((taken) {
+      if (!taken && mounted && identical(_drag, drag)) {
+        setState(() => drag.local = true);
       }
     });
   }
+
+  /// The image of the dragged icons as they are on the desktop (icon and name in its capsule),
+  /// at ~90 % (MU-40), with the count badge by `grab` (the press point); and the point of it
+  /// that stays under the pointer: the press point, so the icons move with the pointer from where
+  /// they were taken.
+  (ui.Image?, Offset) _dragImage(Set<String> keys, Offset grab, int count) {
+    final pieces = <(Offset, ui.Image)>[];
+    try {
+      for (final key in keys) {
+        final boundary = _faces[key]?.currentContext?.findRenderObject();
+        final at = _positions[key];
+        if (boundary is! RenderRepaintBoundary || at == null) continue;
+        if (!boundary.hasSize) continue;
+        pieces.add((_faceOrigin(at), boundary.toImageSync()));
+      }
+      final badge = count > 1
+          ? Rect.fromCircle(
+              center: grab + desktopBadgeFromPointer,
+              radius: desktopBadgeSide / 2,
+            )
+          : null;
+      var bounds = badge;
+      for (final (origin, image) in pieces) {
+        final rect =
+            origin & Size(image.width.toDouble(), image.height.toDouble());
+        bounds = bounds?.expandToInclude(rect) ?? rect;
+      }
+      if (bounds == null) return (null, Offset.zero);
+      // Within the largest image, around the press.
+      bounds = bounds.intersect(
+        Rect.fromCenter(
+          center: grab,
+          width: desktopDragImageMax,
+          height: desktopDragImageMax,
+        ),
+      );
+      bounds = Rect.fromLTRB(
+        bounds.left.floorToDouble(),
+        bounds.top.floorToDouble(),
+        bounds.right.ceilToDouble(),
+        bounds.bottom.ceilToDouble(),
+      );
+      if (bounds.isEmpty) return (null, Offset.zero);
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder)..translate(-bounds.left, -bounds.top);
+      final translucent = Paint()
+        ..color = const Color(0xFFFFFFFF).withValues(alpha: dragAlpha);
+      for (final (origin, image) in pieces) {
+        canvas.drawImage(image, origin, translucent);
+      }
+      if (badge != null) {
+        canvas.drawCircle(
+          badge.center,
+          desktopBadgeSide / 2,
+          Paint()..color = dragCountBadge,
+        );
+        final digits = TextPainter(
+          text: TextSpan(
+            text: '$count',
+            style: const TextStyle(
+              fontFamily: uiFontFamily,
+              package: 'silica_ui',
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFFFFFFFF),
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        digits.paint(
+          canvas,
+          badge.center - Offset(digits.width / 2, digits.height / 2),
+        );
+        digits.dispose();
+      }
+      final picture = recorder.endRecording();
+      final image = picture.toImageSync(
+        bounds.width.toInt(),
+        bounds.height.toInt(),
+      );
+      picture.dispose();
+      return (image, grab - bounds.topLeft);
+    } on Object {
+      // No image (a renderer that cannot read back): the drag goes on without one.
+      return (null, Offset.zero);
+    } finally {
+      for (final (_, image) in pieces) {
+        image.dispose();
+      }
+    }
+  }
+
+  /// The top left corner of what an icon paints (its face), from its position.
+  static Offset _faceOrigin(Offset at) =>
+      Offset(at.dx - desktopPitchX / 2, at.dy - desktopSelectionPad);
 
   void _pointerUp(PointerEvent e) {
     if (_bandStart != null) {
       setState(() => _bandStart = _bandEnd = null);
       _announce();
     }
-    if (_localDrag && _free) {
-      _moveSelected(_dragDelta);
+    final drag = _drag;
+    if (drag != null && drag.local && e is PointerUpEvent) {
+      _dropOnDesktop(drag.keys, e.localPosition - drag.from);
     }
+    // A cancel here is the embedder handing the drag to Ossido: the drag goes on there.
+    if (drag != null && (drag.local || e is PointerUpEvent)) _endDrag();
     _pressKey = null;
     _pressAt = null;
     _dragging = false;
-    _localDrag = false;
-    _dragDelta = Offset.zero;
     if (mounted) setState(() {});
   }
 
-  void _moveSelected(Offset delta) {
-    final grid = _grid;
-    final keys = _selected.where(_positions.containsKey).toList();
+  void _endDrag() {
+    final drag = _drag;
+    if (drag == null) return;
+    _lastDrag = drag;
+    drag.image?.dispose();
+    if (mounted) {
+      setState(() => _drag = null);
+    } else {
+      _drag = null;
+    }
+  }
+
+  /// Dragged icons released on the desktop, `delta` from where they were. With free positions
+  /// each one lands where its image was, in the same frame (R9.13); on an ordered desktop
+  /// (sorted, stacks) they travel back to their cells (R15.7), as does any icon that would land
+  /// off the screen.
+  void _dropOnDesktop(Set<String> keys, Offset delta) {
+    final released = {
+      for (final k in keys)
+        if (_positions[k] case final p?) k: p + delta,
+    };
+    if (released.isEmpty) return;
+    setState(() {
+      _selected
+        ..clear()
+        ..addAll(released.keys);
+    });
+    if (_free) _moveTo(released);
+    _settleFromAt({
+      for (final MapEntry(:key, :value) in released.entries)
+        if (_positions[key] case final p? when (p - value).distance > 0.5)
+          key: value,
+    });
+    _announce();
+  }
+
+  /// Puts icons at `targets`, kept on the screen, and stores the positions.
+  void _moveTo(Map<String, Offset> targets) {
     final next = {..._positions};
-    for (final k in keys) {
-      final p = (_positions[k] ?? Offset.zero) + delta;
-      next[k] = Offset(
-        p.dx.clamp(
+    for (final MapEntry(:key, :value) in targets.entries) {
+      next[key] = Offset(
+        value.dx.clamp(
           desktopIconSide / 2,
           math.max(desktopIconSide / 2, _size.width - desktopIconSide / 2),
         ),
-        p.dy.clamp(0, math.max(0, _size.height - desktopIconSide)),
+        value.dy.clamp(0, math.max(0, _size.height - desktopIconSide)),
       );
     }
     setState(() => _positions = next);
-    if (grid.size == _size) _store();
+    _store();
+  }
+
+  /// Icons drawn from `from` travelling to their positions.
+  void _settleFromAt(Map<String, Offset> from) {
+    if (from.isEmpty) return;
+    _settleFrom = from;
+    _settle.forward(from: 0);
   }
 
   /// Files dropped by another app or by the desktop itself.
   void _externalDrag(SilicaDragEvent event) {
-    if (event is! SilicaDrop || !mounted) return;
+    if (!mounted) return;
+    if (event is SilicaDragFinished) {
+      // The drag that left from here is over: dropped elsewhere (the files go there, the
+      // folder watcher removes the icons), here (the drop moves them), or cancelled.
+      _endDrag();
+      return;
+    }
+    if (event is! SilicaDrop) return;
     final paths = event.paths;
     if (paths.isEmpty) return;
     final inside = paths.every((p) => File(p).parent.path == widget.folder);
     if (inside) {
-      // Moved on the desktop: the first item lands at the drop, the others keep their offsets.
+      final names = paths.map(displayName).toSet();
+      // Our own icons came back: they keep where the pointer grabbed them.
+      final own = _drag ?? _lastDrag;
+      if (own != null && own.paths.containsAll(paths)) {
+        _dropOnDesktop(own.keys, event.position - own.from);
+        _endDrag();
+        _lastDrag = null;
+        return;
+      }
+      // From a window showing the desktop folder: the first item lands at the drop, the
+      // others keep their offsets.
       final first = displayName(paths.first);
       final anchor = _positions[first];
-      if (anchor == null || !_free) return;
+      if (anchor == null) return;
       final to = event.position - const Offset(0, desktopIconSide / 2);
-      final delta = to - anchor;
-      setState(() {
-        _selected
-          ..clear()
-          ..addAll(paths.map(displayName));
-      });
-      _moveSelected(delta);
+      _dropOnDesktop({
+        for (final n in names)
+          if (_positions.containsKey(n)) n,
+      }, to - anchor);
       return;
     }
     final moved = <String>[];
@@ -797,14 +1147,18 @@ class DesktopViewState extends State<DesktopView> {
             : File(p).renameSync(target);
         moved.add(name);
       } on FileSystemException {
-        // Another disk: copied instead, as the windows do across disks.
-        Process.start(
-          'cp',
-          ['-a', p, target],
-          mode: ProcessStartMode.detached,
-        ).then((_) => moved.add(name)).ignore();
+        // Another disk: copied instead, as the windows do across disks; the sound once done.
+        Process.start('cp', [
+          '-a',
+          p,
+          target,
+        ]).then((process) => process.exitCode).then((code) {
+          if (code == 0) unawaited(playUiSound(UiSound.fileTransfer));
+        }).ignore();
       }
     }
+    // The move is done (FILE-SOUNDS).
+    if (moved.isNotEmpty) unawaited(playUiSound(UiSound.fileTransfer));
     _load();
     if (_free && moved.isNotEmpty) {
       final grid = _grid;
@@ -880,6 +1234,14 @@ class DesktopViewState extends State<DesktopView> {
     _ => null,
   };
 
+  /// Where an icon is drawn: its position, or on its way there after a drop.
+  Offset _drawnAt(String key, Offset at) {
+    final from = _settleFrom[key];
+    if (from == null || !_settle.isAnimating) return at;
+    return Offset.lerp(from, at, Curves.decelerate.transform(_settle.value)) ??
+        at;
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -899,6 +1261,7 @@ class DesktopViewState extends State<DesktopView> {
         for (final m in byKey[open]?.members ?? const <Entry>[])
           m.name: DesktopIcon.item(m),
     };
+    final drag = _drag;
     return Focus(
       focusNode: _focus,
       autofocus: true,
@@ -916,10 +1279,9 @@ class DesktopViewState extends State<DesktopView> {
                 if (byKey[key] ?? members[key] case final icon?)
                   _iconAt(
                     icon,
-                    _localDrag && _selected.contains(key)
-                        ? value + _dragDelta
-                        : value,
+                    _drawnAt(key, value),
                     dark: dark,
+                    dimmed: drag?.keys.contains(key) ?? false,
                   ),
               if (band != null)
                 Positioned.fromRect(
@@ -928,11 +1290,22 @@ class DesktopViewState extends State<DesktopView> {
                     child: DecoratedBox(
                       key: ValueKey('desktop rubber band'),
                       decoration: BoxDecoration(
-                        color: Color(0x1AFFFFFF),
+                        color: desktopBandFill,
                         border: Border.fromBorderSide(
-                          BorderSide(color: Color(0x80FFFFFF)),
+                          BorderSide(color: desktopBandBorder),
                         ),
                       ),
+                    ),
+                  ),
+                ),
+              if (drag != null && drag.local && drag.image != null)
+                Positioned(
+                  left: drag.pointer.dx - drag.hotspot.dx,
+                  top: drag.pointer.dy - drag.hotspot.dy,
+                  child: IgnorePointer(
+                    child: RawImage(
+                      key: const ValueKey('desktop drag image'),
+                      image: drag.image,
                     ),
                   ),
                 ),
@@ -943,91 +1316,140 @@ class DesktopViewState extends State<DesktopView> {
     );
   }
 
-  Widget _iconAt(DesktopIcon icon, Offset at, {required bool dark}) {
+  Widget _iconAt(
+    DesktopIcon icon,
+    Offset at, {
+    required bool dark,
+    required bool dimmed,
+  }) {
     final isSelected = _selected.contains(icon.key);
-    const style = TextStyle(
-      fontFamily: uiFontFamily,
-      package: 'silica_ui',
-      fontSize: desktopLabelSize,
-      fontWeight: FontWeight.w600,
-      color: Color(0xFFFFFFFF),
-    );
-    final shadowed = style.copyWith(
+    final shadowed = _labelStyle.copyWith(
       shadows: const [
         Shadow(color: Color(0xB3000000), offset: Offset(0, 1), blurRadius: 2.5),
       ],
     );
-    final lines = labelLines(icon.label, desktopPitchX - 12, style);
-    final box = desktopIconSide + 2 * desktopSelectionPad;
+    final lines = labelLines(icon.label, desktopLabelWidth, _labelStyle);
     final renaming = icon.entry != null && icon.entry?.name == _renaming;
+    final face = Column(
+      children: [
+        const SizedBox(height: desktopSelectionPad),
+        SizedBox.square(
+          dimension: desktopIconSide,
+          child: icon.entry != null
+              ? EntryIcon(
+                  entry: icon.entry!,
+                  side: desktopIconSide,
+                  env: widget.env,
+                )
+              : _StackIcon(members: icon.members, env: widget.env),
+        ),
+        const SizedBox(height: desktopLabelGap),
+        if (renaming)
+          RenameField(
+            name: icon.entry!.name,
+            isDirectory: icon.entry!.isDirectory,
+            maxWidth: desktopPitchX,
+            onCommit: (name) {
+              renameEntry(icon.entry!.path, name);
+              setState(() => _renaming = null);
+              _load();
+            },
+            onCancel: () => setState(() => _renaming = null),
+          )
+        else
+          for (final line in lines)
+            Container(
+              height: desktopLabelLine,
+              padding: const EdgeInsets.symmetric(
+                horizontal: desktopCapsulePad,
+              ),
+              decoration: isSelected
+                  ? BoxDecoration(
+                      color: dark ? desktopCapsuleDark : desktopCapsule,
+                      borderRadius: BorderRadius.circular(desktopCapsuleRadius),
+                    )
+                  : null,
+              child: Center(
+                widthFactor: 1,
+                child: Text(
+                  line,
+                  maxLines: 1,
+                  softWrap: false,
+                  style: isSelected ? _labelStyle : shadowed,
+                ),
+              ),
+            ),
+      ],
+    );
+    final height =
+        desktopSelectionPad +
+        desktopIconSide +
+        desktopLabelGap +
+        desktopLabelLine * math.max(lines.length, 2) +
+        4;
     return Positioned(
       key: ValueKey('desktop ${icon.key}'),
       left: at.dx - desktopPitchX / 2,
       top: at.dy - desktopSelectionPad,
       width: desktopPitchX,
-      height: box + desktopLabelGap + desktopLabelLine * 2 + 4,
-      child: Column(
-        children: [
-          Container(
-            width: box,
-            height: box - 1,
-            decoration: isSelected
-                ? BoxDecoration(
-                    color: desktopSelectionFill.withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(desktopSelectionRadius),
-                    border: Border.all(
-                      color: desktopSelectionOutline,
-                      width: 2,
-                    ),
-                  )
-                : null,
-            padding: const EdgeInsets.all(desktopSelectionPad),
-            child: icon.entry != null
-                ? EntryIcon(
-                    entry: icon.entry!,
-                    side: desktopIconSide,
-                    env: widget.env,
-                  )
-                : _StackIcon(members: icon.members, env: widget.env),
-          ),
-          SizedBox(height: desktopLabelGap - desktopSelectionPad + 1),
-          if (renaming)
-            RenameField(
-              name: icon.entry!.name,
-              isDirectory: icon.entry!.isDirectory,
-              maxWidth: desktopPitchX,
-              onCommit: (name) {
-                renameEntry(icon.entry!.path, name);
-                setState(() => _renaming = null);
-                _load();
-              },
-              onCancel: () => setState(() => _renaming = null),
-            )
-          else
-            for (final line in lines)
-              Container(
-                height: desktopLabelLine,
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                decoration: isSelected
-                    ? BoxDecoration(
-                        color: dark ? desktopCapsuleDark : desktopCapsule,
-                        borderRadius: BorderRadius.circular(5),
-                      )
-                    : null,
-                child: Center(
-                  widthFactor: 1,
-                  child: Text(
-                    line,
-                    maxLines: 1,
-                    softWrap: false,
-                    style: isSelected ? style : shadowed,
-                  ),
-                ),
+      height: height,
+      child: Opacity(
+        opacity: dimmed ? desktopDragDim : 1,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // Behind the icon, outside the layout: it never moves the icon or the name.
+            if (isSelected)
+              const Positioned(
+                left: (desktopPitchX - desktopSelectionSide) / 2,
+                top: 0,
+                width: desktopSelectionSide,
+                height: desktopSelectionSide,
+                child: _SelectionSquare(),
               ),
-        ],
+            Positioned.fill(
+              child: RepaintBoundary(
+                key: _faces.putIfAbsent(icon.key, GlobalKey.new),
+                child: face,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+}
+
+/// The square behind a selected icon: the outline in the outer 2 pt, the dark fill inside it.
+class _SelectionSquare extends StatelessWidget {
+  const _SelectionSquare();
+
+  @override
+  Widget build(BuildContext context) => const DecoratedBox(
+    key: ValueKey('desktop selection'),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.all(Radius.circular(desktopSelectionRadius)),
+      border: Border.fromBorderSide(
+        BorderSide(
+          color: desktopSelectionOutline,
+          width: desktopSelectionOutlineWidth,
+        ),
+      ),
+    ),
+    child: Padding(
+      padding: EdgeInsets.all(desktopSelectionOutlineWidth),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: desktopSelectionFill,
+          borderRadius: BorderRadius.all(
+            Radius.circular(
+              desktopSelectionRadius - desktopSelectionOutlineWidth,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 /// A closed stack: 2–3 of its items' icons overlapping, slightly rotated, no count (R15.2).

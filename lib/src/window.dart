@@ -29,6 +29,7 @@ import 'preview_pane.dart';
 import 'quick_preview.dart';
 import 'status_bar.dart';
 import 'rename_field.dart';
+import 'sounds.dart';
 import 'transfer.dart';
 import 'transfer_ui.dart';
 import 'xattr.dart';

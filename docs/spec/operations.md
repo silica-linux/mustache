@@ -159,3 +159,10 @@ Empty Trash alert:
   - ⌥⇧⌘⌫ empties without asking.
   - On confirmation the Trash empties in one frame, a window showing it closes, and a short
     sound plays. Silica plays a sound of its own with a similar length and level.
+
+Sounds (FILE-SOUNDS): Silica's own, synthesized in silica-desktop (`tools/sounds/synth.py`) and
+played by silica-daemon (`dev.frascella.Silica.Sound1` › `PlaySound`), which honours "Play user
+interface sound effects". Mustache plays `trash-move` as items leave for the Trash (⌘⌫, menus,
+the desktop) and `file-transfer` when a copy or move finishes (drag and drop, paste); the Dock
+plays `trash-drag` for a drop on its Trash and `trash-empty` once the Trash is emptied. *The
+moments are provisional until FILE-SOUNDS is measured; ⌘⌫'s sound could not be recorded (MU-42).*
