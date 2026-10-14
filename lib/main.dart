@@ -59,23 +59,30 @@ void main(List<String> args) {
     );
     return;
   }
+  // The file manager keeps running with no window and has no Quit (DOCK-02, APP-LC); a
+  // reopen (the Dock, the Launcher) opens a new window at the home folder.
+  SilicaApp.quitEnabled = false;
+  var opensAt = start;
   runApp(
     AppLocalizationsScope(
       child: Directionality(
         textDirection: TextDirection.ltr,
-        // One window per tab (⌘T).
-        child: TabsHost(
-          start: start,
-          build: (tab, tabBar, onLocation, active) => MustacheWindow(
-            start: tab.location,
-            places: places,
-            trash: trash,
-            iconsDir: env['SILICA_ICONS_DIR'],
-            settings: settings,
-            iconPositions: iconPositions,
-            tabBar: tabBar,
-            onLocation: onLocation,
-            focused: active,
+        child: SilicaAppWindow(
+          onClosed: () => opensAt = home,
+          // One window per tab (⌘T).
+          builder: (context) => TabsHost(
+            start: opensAt,
+            build: (tab, tabBar, onLocation, active) => MustacheWindow(
+              start: tab.location,
+              places: places,
+              trash: trash,
+              iconsDir: env['SILICA_ICONS_DIR'],
+              settings: settings,
+              iconPositions: iconPositions,
+              tabBar: tabBar,
+              onLocation: onLocation,
+              focused: active,
+            ),
           ),
         ),
       ),
