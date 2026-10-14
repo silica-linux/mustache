@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mustache/src/list_view.dart';
 import 'package:mustache/src/model.dart';
 import 'package:mustache/src/settings.dart';
 import 'package:mustache/src/window.dart';
@@ -92,6 +93,18 @@ void main() {
     expect(find.text('Appunti'), findsOneWidget);
     final defaultTop = tester.getTopLeft(find.text('Scrivi (predefinita)')).dy;
     expect(tester.getTopLeft(find.text('Appunti')).dy, greaterThan(defaultTop));
+  });
+
+  testWidgets('il clic destro su una riga non scelta non la sceglie: anello', (
+    tester,
+  ) async {
+    await pump(tester);
+    await rightClick(tester, tester.getCenter(find.text('nota.txt')));
+    final rows = tester
+        .widgetList<ListRowBackground>(find.byType(ListRowBackground))
+        .toList();
+    expect(rows.where((r) => r.selected), isEmpty);
+    expect(rows.where((r) => r.ring), hasLength(1));
   });
 
   testWidgets('Sposta nel Cestino dal menu, che poi si chiude', (tester) async {

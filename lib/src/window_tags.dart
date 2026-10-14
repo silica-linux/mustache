@@ -13,8 +13,7 @@ extension _Tags on _MustacheWindowState {
       _tagCache[entry.path] ??= readTags(entry.path);
 
   /// Le etichette di colore che hanno tutti gli elementi scelti.
-  Set<TagColor> get _sharedColors {
-    final items = _selection;
+  Set<TagColor> _sharedColors(List<Entry> items) {
     if (items.isEmpty) return const {};
     return {
       for (final c in TagColor.values)
@@ -23,9 +22,9 @@ extension _Tags on _MustacheWindowState {
   }
 
   /// Un clic su un cerchio: se tutti gli elementi l'hanno la toglie, sennò la aggiunge.
-  void _toggleTag(TagColor color) {
+  void _toggleTag(TagColor color, [List<Entry>? targets]) {
     final name = tagName(color);
-    final items = _selection;
+    final items = targets ?? _selection;
     final remove =
         items.isNotEmpty && items.every((e) => _tagsOf(e).contains(name));
     var failed = false;
@@ -87,13 +86,13 @@ extension _Tags on _MustacheWindowState {
   }
 
   /// La fila dei cerchi del menu contestuale.
-  MenuEntry _tagMenuRow() => MenuCustom(
+  MenuEntry _tagMenuRow(List<Entry> items) => MenuCustom(
     height: 25,
     width: 18 + 24.0 * TagColor.values.length + 12,
     builder: (context, close) => TagCircleRow(
-      assigned: _sharedColors,
+      assigned: _sharedColors(items),
       onToggle: (c) {
-        _toggleTag(c);
+        _toggleTag(c, items);
         close();
       },
     ),

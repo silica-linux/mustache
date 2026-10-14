@@ -6,8 +6,8 @@
 part of 'window.dart';
 
 extension _Transfers on _MustacheWindowState {
-  void _copySelection() {
-    final paths = [for (final e in _selection) e.path];
+  void _copySelection([List<Entry>? items]) {
+    final paths = [for (final e in items ?? _selection) e.path];
     if (paths.isEmpty) return;
     FileClipboard.paths = paths;
     // Anche come testo, per le altre app (un percorso per riga).

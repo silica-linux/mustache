@@ -264,6 +264,9 @@ extension _ListView on _MustacheWindowState {
         entry,
         (context, dropActive) => Listener(
           onPointerDown: (e) {
+            // Solo il pulsante primario sceglie: il clic destro su una riga non scelta
+            // lascia la selezione com'è e dà l'anello (R3.9, MU-50).
+            if (e.buttons & kPrimaryButton == 0) return;
             // Il triangolo non sceglie la riga.
             if (entry.isDirectory &&
                 e.localPosition.dx >= 11 + indent &&

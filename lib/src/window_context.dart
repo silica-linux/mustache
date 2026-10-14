@@ -110,7 +110,7 @@ extension _Context on _MustacheWindowState {
       const MenuDivider(),
       MenuAction(
         inTrash ? 'Ripristina' : 'Sposta nel Cestino',
-        onSelected: _moveToTrash,
+        onSelected: () => _moveToTrash(items),
       ),
       const MenuDivider(),
       MenuAction(
@@ -122,10 +122,10 @@ extension _Context on _MustacheWindowState {
         enabled: single != null,
         onSelected: single == null ? null : () => _startRename(single.path),
       ),
-      MenuAction('Duplica', onSelected: _duplicate),
-      MenuAction('Copia', onSelected: _copySelection),
+      MenuAction('Duplica', onSelected: () => _duplicate(items)),
+      MenuAction('Copia', onSelected: () => _copySelection(items)),
       const MenuDivider(),
-      _tagMenuRow(),
+      _tagMenuRow(items),
       const MenuAction('Tag…', enabled: false),
     ];
   }

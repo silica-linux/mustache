@@ -140,8 +140,8 @@ extension _Operations on _MustacheWindowState {
   }
 
   /// ⌘D: le copie accanto agli originali; la selezione passa alle copie.
-  void _duplicate() {
-    final sources = _selection;
+  void _duplicate([List<Entry>? items]) {
+    final sources = items ?? _selection;
     if (sources.isEmpty) return;
     final made = <String, String>{};
     String? error;
@@ -177,8 +177,9 @@ extension _Operations on _MustacheWindowState {
   }
 
   /// ⌘⌫: nel Cestino (la selezione passa all'elemento dopo); dentro il Cestino, Ripristina.
-  void _moveToTrash() {
-    final items = _selection;
+  /// Nel Cestino gli elementi scelti, o `targets` (la riga con l'anello del menu).
+  void _moveToTrash([List<Entry>? targets]) {
+    final items = targets ?? _selection;
     if (items.isEmpty) return;
     if (_trash.contains(_history.current)) {
       _restore(items);
