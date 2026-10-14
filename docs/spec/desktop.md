@@ -1,6 +1,12 @@
 # Desktop icons (MU-90, MU-12)
 
-The desktop is drawn by Silica's shell; these are the file-manager rules it follows.
+The desktop is drawn by Mustache itself: `mustache --desktop` (silica-desktop#147) shows the desktop
+folder on a full-screen surface of the bottom layer, above the wallpaper and below the windows.
+Ossido keeps it running and makes Mustache the frontmost app when the desktop is clicked; its
+context menu is drawn by the menu bar (the desktop is below the windows) and runs here
+(`desktopmenu`, `desktop.state`, `desktop.action` on the shell channel). Not yet: Get Info, the
+quick preview and the view options on the desktop (they need a window of the same process,
+silica-desktop#146), Paste Item (silica-desktop#150), volumes (R15.4, R15.6).
 
 | Measure | Value |
 | --- | --- |

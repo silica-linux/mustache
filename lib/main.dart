@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
 
+import 'src/desktop.dart';
 import 'src/dialog.dart';
 import 'src/icon_arrange.dart';
 import 'src/l10n.dart';
@@ -37,8 +38,29 @@ void main(List<String> args) {
   final trash = trashPlace(home: home, dataHome: env['XDG_DATA_HOME']);
   final settings = Settings.forUser(env);
   final iconPositions = IconPositions.forUser(env);
-  // The toolbar is unified with the window: Ossido draws only the window buttons.
   WidgetsFlutterBinding.ensureInitialized();
+  // The desktop (silica-desktop#147): Ossido starts this mode on the bottom layer and keeps it
+  // running; it has no window, so none of the window setup below.
+  if (args.contains('--desktop')) {
+    runApp(
+      AppLocalizationsScope(
+        child: Directionality(
+          textDirection: TextDirection.ltr,
+          child: DesktopView(
+            folder: desktopFolderOf(
+              env,
+              userDirs.existsSync() ? userDirs.readAsStringSync() : null,
+            ),
+            positions: iconPositions,
+            choices: DesktopChoices.forUser(env),
+            env: env,
+          ),
+        ),
+      ),
+    );
+    return;
+  }
+  // The toolbar is unified with the window: Ossido draws only the window buttons.
   SilicaWindow.setFullSizeContent(toolbarHeight).ignore();
   if (dialog != null) {
     runApp(

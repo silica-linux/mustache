@@ -1,0 +1,1059 @@
+// The desktop (silica-desktop#147, docs/spec/desktop.md, MU-90, R15.*): `mustache --desktop` draws
+// the user's desktop folder as icons on a full-screen surface of the bottom layer, above the
+// wallpaper and below the windows; Ossido keeps the process running and makes Mustache the
+// frontmost app when the desktop is clicked.
+//
+// Icons are 96 pt; the first one's right edge is 18 pt from the screen's right edge, its top 40 pt
+// from the top; the grid pitch is 124 × 148 and new icons fill it top to bottom, then towards the
+// left (R15.1). Labels are white and bold with a soft shadow, the same in light and dark. With
+// Sort By › None icons keep free positions (stored like the windows' ones, keyed by the desktop
+// folder); Clean Up moves the off-grid ones to the nearest free cell; Use Stacks groups items by
+// kind (R15.2), a stack opening in place (R15.3).
+//
+// The context menu is drawn by the shell's menu bar (the desktop is below the windows, its menu
+// is not): the desktop announces the click (`desktopmenu` = "x y desktop" or "x y items") and its
+// state (`desktop.state`), and runs the items the menu sends back (`desktop.action`).
+
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math' as math;
+
+import 'package:flutter/gestures.dart' show kPrimaryButton, kSecondaryButton;
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
+import 'package:silica_ui/silica_ui.dart';
+
+import 'apps.dart';
+import 'icon_arrange.dart';
+import 'icon_view.dart' show EntryIcon, labelLines;
+import 'model.dart';
+import 'operations.dart';
+import 'rename_field.dart';
+
+/// The desktop's icon size, label size and grid (MU-90).
+const double desktopIconSide = 96;
+const double desktopLabelSize = 12;
+const double desktopPitchX = 124;
+const double desktopPitchY = 148;
+const double desktopRight = 18;
+const double desktopTop = 40;
+
+/// The space kept free at the bottom for the Dock: 8 rows on a 1440 pt display (R15.1).
+const double desktopBottom = 84;
+
+/// The selection around the icon: 108 × 107 (6 pt around), ~8 pt corners (provisional), black at
+/// ~30 % with a 2 pt light outline; the selected name sits in a 17 pt blue capsule.
+const double desktopSelectionPad = 6;
+const double desktopSelectionRadius = 8;
+const Color desktopSelectionFill = Color(0xFF545559);
+const Color desktopSelectionOutline = Color(0xFF88898C);
+const Color desktopCapsule = Color(0xFF0064E1);
+const Color desktopCapsuleDark = Color(0xFF0059D1);
+
+/// Where the label starts below the icon, and its line height.
+const double desktopLabelGap = 10;
+const double desktopLabelLine = 17;
+
+/// The drag threshold on the desktop (R7.7: 4–5 pt).
+const double desktopDragThreshold = 4.5;
+
+/// The double click: a second press within this time on the same icon opens it.
+const Duration desktopDoubleClick = Duration(milliseconds: 500);
+
+/// The desktop's grid on a screen of `size`.
+@immutable
+class DesktopGrid {
+  const DesktopGrid(this.size);
+
+  final Size size;
+
+  /// Rows that fit above the Dock, at least one.
+  int get rows => math.max(
+    1,
+    ((size.height - desktopTop - desktopBottom) / desktopPitchY).floor(),
+  );
+
+  /// The icon's center x and top y of a cell; columns count from the right.
+  Offset cell(int column, int row) => Offset(
+    size.width - desktopRight - desktopIconSide / 2 - column * desktopPitchX,
+    desktopTop + row * desktopPitchY,
+  );
+
+  /// The cell of the n-th icon filling the grid top to bottom, then leftwards.
+  (int, int) nth(int index) => (index ~/ rows, index % rows);
+
+  /// The cell nearest to a position (never at negative indices).
+  (int, int) cellOf(Offset p) => (
+    math.max(
+      0,
+      ((size.width - desktopRight - desktopIconSide / 2 - p.dx) / desktopPitchX)
+          .round(),
+    ),
+    math.max(0, ((p.dy - desktopTop) / desktopPitchY).round()),
+  );
+
+  bool onGrid(Offset p) {
+    final (c, r) = cellOf(p);
+    return (cell(c, r) - p).distance < 0.5;
+  }
+
+  /// The free cell nearest to `p`, searched in rings around its own cell, within the rows.
+  Offset nearestFree(Offset p, Set<(int, int)> taken) {
+    final (c0, r0) = cellOf(p);
+    Offset? best;
+    var bestDistance = double.infinity;
+    int? foundAt;
+    for (var ring = 0; ring < 1000; ring++) {
+      if (foundAt != null && ring > foundAt + 1) break;
+      for (var r = r0 - ring; r <= r0 + ring; r++) {
+        for (var c = c0 - ring; c <= c0 + ring; c++) {
+          if (c < 0 || r < 0 || r >= rows) continue;
+          if ((r - r0).abs() != ring && (c - c0).abs() != ring) continue;
+          if (taken.contains((c, r))) continue;
+          final d = (cell(c, r) - p).distance;
+          if (d < bestDistance) {
+            bestDistance = d;
+            best = cell(c, r);
+            foundAt ??= ring;
+          }
+        }
+      }
+    }
+    return best ?? cell(c0, r0);
+  }
+
+  /// The first free cell in filling order.
+  Offset firstFree(Set<(int, int)> taken) {
+    for (var i = 0; i < 100000; i++) {
+      final (c, r) = nth(i);
+      if (!taken.contains((c, r))) return cell(c, r);
+    }
+    return cell(0, 0);
+  }
+
+  Set<(int, int)> taken(Iterable<Offset> positions) => {
+    for (final p in positions)
+      if (onGrid(p)) cellOf(p),
+  };
+}
+
+/// The sort orders of the desktop menu; `none` keeps free positions.
+const List<String> desktopSorts = ['none', 'name', 'kind', 'modified', 'size'];
+
+SortKey? sortKeyOf(String sort) => switch (sort) {
+  'name' => SortKey.name,
+  'kind' => SortKey.kind,
+  'modified' => SortKey.modified,
+  'size' => SortKey.size,
+  _ => null,
+};
+
+/// The desktop's choices: sort order and stacks (`$XDG_STATE_HOME/mustache/desktop.json`).
+class DesktopChoices {
+  DesktopChoices(this.path) {
+    try {
+      final value = jsonDecode(File(path).readAsStringSync());
+      if (value is Map) {
+        final s = value['sort'];
+        if (s is String && desktopSorts.contains(s)) sort = s;
+        stacks = value['stacks'] == true;
+      }
+    } on Object {
+      // Missing or damaged: the defaults.
+    }
+  }
+
+  factory DesktopChoices.forUser(Map<String, String> env) {
+    final home = env['HOME'] ?? '/';
+    final state = env['XDG_STATE_HOME'];
+    final base = state == null || state.isEmpty ? '$home/.local/state' : state;
+    return DesktopChoices('$base/mustache/desktop.json');
+  }
+
+  final String path;
+  String sort = 'none';
+  bool stacks = false;
+
+  void save() {
+    try {
+      final file = File(path);
+      file.parent.createSync(recursive: true);
+      file.writeAsStringSync(jsonEncode({'sort': sort, 'stacks': stacks}));
+    } on FileSystemException {
+      // Lasts for this session only.
+    }
+  }
+}
+
+/// One icon on the desktop: an item, or a stack of the items of one kind.
+@immutable
+class DesktopIcon {
+  const DesktopIcon.item(Entry this.entry) : stack = null, members = const [];
+  const DesktopIcon.stack(String this.stack, this.members) : entry = null;
+
+  final Entry? entry;
+  final String? stack;
+  final List<Entry> members;
+
+  /// The key it is stored and selected by: the item's name or the stack's kind.
+  String get key => entry?.name ?? 'stack:$stack';
+  String get label => entry?.name ?? stack ?? '';
+}
+
+/// The icons with stacks on (R15.2): a kind with one item stays a single icon; the stacks first,
+/// by kind, then the single items in `order`.
+List<DesktopIcon> groupStacks(
+  List<Entry> order,
+  String Function(Entry) kindOf,
+) {
+  final groups = <String, List<Entry>>{};
+  for (final e in order) {
+    (groups[kindOf(e)] ??= []).add(e);
+  }
+  final kinds = groups.keys.toList()..sort();
+  return [
+    for (final k in kinds)
+      if ((groups[k]?.length ?? 0) > 1) DesktopIcon.stack(k, groups[k] ?? []),
+    for (final e in order)
+      if ((groups[kindOf(e)]?.length ?? 0) <= 1) DesktopIcon.item(e),
+  ];
+}
+
+/// Where each icon goes. With a sort order (or stacks) they fill the grid in order; an open
+/// stack's items take the cells right after it (R15.3, R15.8). With "None" each keeps its stored
+/// position and new ones take the first free cells (R15.4).
+Map<String, Offset> layoutDesktop(
+  List<DesktopIcon> icons,
+  DesktopGrid grid, {
+  required bool free,
+  Map<String, Offset> stored = const {},
+  String? openStack,
+}) {
+  final result = <String, Offset>{};
+  if (!free) {
+    var i = 0;
+    for (final icon in icons) {
+      final (c, r) = grid.nth(i++);
+      result[icon.key] = grid.cell(c, r);
+      if (icon.stack != null && icon.key == openStack) {
+        for (final m in icon.members) {
+          final (mc, mr) = grid.nth(i++);
+          result[m.name] = grid.cell(mc, mr);
+        }
+      }
+    }
+    return result;
+  }
+  for (final icon in icons) {
+    if (stored[icon.key] case final p?) result[icon.key] = p;
+  }
+  final taken = grid.taken(result.values);
+  for (final icon in icons) {
+    if (result.containsKey(icon.key)) continue;
+    final p = grid.firstFree(taken);
+    taken.add(grid.cellOf(p));
+    result[icon.key] = p;
+  }
+  return result;
+}
+
+/// Clean Up on the desktop: each off-grid icon to the nearest free cell, in reading order; the
+/// others stay still (R4.8).
+Map<String, Offset> cleanUpDesktop(
+  Map<String, Offset> positions,
+  DesktopGrid grid,
+) {
+  final moving =
+      [
+        for (final MapEntry(:key, :value) in positions.entries)
+          if (!grid.onGrid(value)) key,
+      ]..sort((a, b) {
+        final pa = positions[a] ?? Offset.zero;
+        final pb = positions[b] ?? Offset.zero;
+        final dx = pb.dx.compareTo(pa.dx);
+        return dx != 0 ? dx : pa.dy.compareTo(pb.dy);
+      });
+  final result = {...positions};
+  final taken = grid.taken([
+    for (final MapEntry(:key, :value) in positions.entries)
+      if (!moving.contains(key)) value,
+  ]);
+  for (final key in moving) {
+    final to = grid.nearestFree(positions[key] ?? Offset.zero, taken);
+    taken.add(grid.cellOf(to));
+    result[key] = to;
+  }
+  return result;
+}
+
+/// An action sent by the shell's menu: `desktop.action` = "<id> <serial>".
+String? parseDesktopAction(String value) {
+  final space = value.lastIndexOf(' ');
+  if (space <= 0) return null;
+  if (int.tryParse(value.substring(space + 1)) == null) return null;
+  return value.substring(0, space);
+}
+
+/// Quotes a path for `sh -c`.
+String shellQuote(String s) => "'${s.replaceAll("'", r"'\''")}'";
+
+/// The desktop folder: `XDG_DESKTOP_DIR` of `user-dirs.dirs`, else `~/Desktop`.
+String desktopFolderOf(Map<String, String> env, String? userDirs) {
+  final home = env['HOME'] ?? '/';
+  final line = RegExp(
+    r'^XDG_DESKTOP_DIR="([^"]*)"',
+    multiLine: true,
+  ).firstMatch(userDirs ?? '');
+  final path = line?.group(1)?.replaceAll(r'$HOME', home);
+  return path == null || path.isEmpty ? '$home/Desktop' : path;
+}
+
+/// The shell's channel: the desktop is a shell component (Ossido keeps it running).
+const MethodChannel _shell = MethodChannel('silica/shell', JSONMethodCodec());
+
+Future<void> _broadcast(String topic, String value) async {
+  try {
+    await _shell.invokeMethod<Object?>('broadcast', {
+      'topic': topic,
+      'value': value,
+    });
+  } on MissingPluginException {
+    // Outside Silica: nobody draws the menu.
+  } on PlatformException {
+    // Not a shell component.
+  }
+}
+
+Future<void> _launch(String command) async {
+  try {
+    final ok = await _shell.invokeMethod<bool>('launch', {'command': command});
+    if (ok == true) return;
+  } on MissingPluginException {
+    // Outside Silica: started here instead.
+  } on PlatformException {
+    // Same.
+  }
+  try {
+    await Process.start('sh', ['-c', command], mode: ProcessStartMode.detached);
+  } on ProcessException {
+    // Nothing to start it with: the click does nothing, as a missing app would.
+  }
+}
+
+class DesktopView extends StatefulWidget {
+  const DesktopView({
+    super.key,
+    required this.folder,
+    required this.positions,
+    required this.choices,
+    this.env,
+    this.kindOf,
+    this.watch = true,
+  });
+
+  final String folder;
+  final IconPositions positions;
+  final DesktopChoices choices;
+  final Map<String, String>? env;
+
+  /// The kind of an item (stacks, Sort By › Kind); the MIME family by default.
+  final String Function(Entry)? kindOf;
+
+  /// Follows the folder's changes (off in tests).
+  final bool watch;
+
+  @override
+  State<DesktopView> createState() => DesktopViewState();
+}
+
+class DesktopViewState extends State<DesktopView> {
+  List<Entry> _entries = const [];
+  Map<String, Offset> _positions = const {};
+  final Set<String> _selected = {};
+  String? _openStack;
+  String? _renaming;
+  StreamSubscription<FileSystemEvent>? _watcher;
+  StreamSubscription<SilicaDragEvent>? _drags;
+  Timer? _reload;
+  final FocusNode _focus = FocusNode(debugLabel: 'desktop');
+  Size _size = Size.zero;
+
+  // The press in progress.
+  String? _pressKey;
+  Offset? _pressAt;
+  bool _dragging = false;
+  bool _localDrag = false;
+  Offset _dragDelta = Offset.zero;
+  Offset? _bandStart;
+  Offset? _bandEnd;
+  Set<String> _bandBase = const {};
+  String? _lastClickKey;
+  DateTime _lastClick = DateTime.fromMillisecondsSinceEpoch(0);
+
+  /// Selected keys, for tests.
+  Set<String> get selected => Set.unmodifiable(_selected);
+
+  /// Positions by key, for tests.
+  Map<String, Offset> get positions => Map.unmodifiable(_positions);
+
+  DesktopGrid get _grid => DesktopGrid(_size);
+  bool get _free => widget.choices.sort == 'none' && !widget.choices.stacks;
+
+  String _kind(Entry e) =>
+      (widget.kindOf ?? (e) => kindLabel(e, systemMime.typeOf(e.path)))(e);
+
+  @override
+  void initState() {
+    super.initState();
+    Directory(widget.folder).createSync(recursive: true);
+    _load();
+    if (widget.watch) {
+      try {
+        _watcher = Directory(widget.folder).watch().listen((_) {
+          _reload?.cancel();
+          _reload = Timer(const Duration(milliseconds: 150), _load);
+        });
+      } on FileSystemException {
+        // No notifications: the desktop shows what was there at start.
+      }
+    }
+    _drags = SilicaDrag.events.listen(_externalDrag);
+    _shell.setMethodCallHandler((call) async {
+      if (call.method == 'broadcast') {
+        final args = call.arguments;
+        if (args is Map && args['topic'] == 'desktop.action') {
+          final id = parseDesktopAction('${args['value'] ?? ''}');
+          if (id != null && mounted) runAction(id);
+        }
+      }
+      return null;
+    });
+  }
+
+  @override
+  void dispose() {
+    _watcher?.cancel();
+    _drags?.cancel();
+    _reload?.cancel();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  void _load() {
+    if (!mounted) return;
+    final listed = listDirectory(widget.folder).entries;
+    setState(() {
+      _entries = listed;
+      _selected.retainAll({for (final i in _icons()) i.key, ..._memberNames()});
+      _relayout();
+    });
+  }
+
+  Iterable<String> _memberNames() sync* {
+    for (final icon in _icons()) {
+      for (final m in icon.members) {
+        yield m.name;
+      }
+    }
+  }
+
+  List<DesktopIcon> _icons() {
+    final key = sortKeyOf(widget.choices.sort);
+    final order = key == null
+        ? (_entries.toList()..sort((a, b) => naturalCompare(a.name, b.name)))
+        : sortEntries(_entries, key, kindOf: _kind);
+    return widget.choices.stacks
+        ? groupStacks(order, _kind)
+        : [for (final e in order) DesktopIcon.item(e)];
+  }
+
+  void _relayout() {
+    if (_size.isEmpty) return;
+    final stored = widget.positions.of(widget.folder).icons;
+    _positions = layoutDesktop(
+      _icons(),
+      _grid,
+      free: _free,
+      stored: stored,
+      openStack: _openStack,
+    );
+    if (_free) _store();
+  }
+
+  void _store() {
+    widget.positions.put(
+      widget.folder,
+      FolderArrangement(free: true, icons: {..._positions}),
+    );
+  }
+
+  void _announce() {
+    _broadcast(
+      'desktop.state',
+      jsonEncode({
+        'stacks': widget.choices.stacks,
+        'sort': widget.choices.sort,
+        'selected': _selected.length,
+      }),
+    );
+  }
+
+  /// The items behind the selected keys (a stack stands for its members).
+  List<Entry> get _selection {
+    final byName = {for (final e in _entries) e.name: e};
+    final out = <Entry>[];
+    for (final icon in _icons()) {
+      if (!_selected.contains(icon.key)) continue;
+      if (icon.entry case final e?) out.add(e);
+      out.addAll(icon.members);
+    }
+    for (final k in _selected) {
+      if (byName[k] case final e? when !out.contains(e)) out.add(e);
+    }
+    return out;
+  }
+
+  /// An action of the desktop menu or of a shortcut.
+  void runAction(String id) {
+    final folder = widget.folder;
+    switch (id) {
+      case 'newFolder':
+        final made = createFolder(folder).path;
+        if (made != null) {
+          _load();
+          setState(() {
+            _selected
+              ..clear()
+              ..add(displayName(made));
+            _renaming = displayName(made);
+          });
+        }
+      case 'stacks':
+        widget.choices
+          ..stacks = !widget.choices.stacks
+          ..save();
+        _openStack = null;
+        setState(_relayout);
+      case 'cleanUp':
+        if (!_free) return;
+        setState(() => _positions = cleanUpDesktop(_positions, _grid));
+        _store();
+      case 'open':
+        _open(_selection);
+      case 'trash':
+        final trash = Trash.forUser(widget.env ?? Platform.environment);
+        for (final e in _selection) {
+          trash.put(e.path);
+        }
+        _selected.clear();
+        _load();
+      case 'rename':
+        final items = _selection;
+        if (items.length == 1) setState(() => _renaming = items.single.name);
+      case 'duplicate':
+        for (final e in _selection) {
+          duplicate(e.path);
+        }
+        _load();
+      default:
+        if (id.startsWith('sort:')) {
+          final sort = id.substring(5);
+          if (!desktopSorts.contains(sort)) return;
+          widget.choices
+            ..sort = sort
+            ..save();
+          setState(_relayout);
+        } else if (id.startsWith('cleanUpBy:')) {
+          final key = sortKeyOf(id.substring(10));
+          if (key == null) return;
+          // Lays every icon out in that order, then keeps them free (Sort By › None).
+          final order = sortEntries(_entries, key, kindOf: _kind);
+          final grid = _grid;
+          setState(() {
+            widget.choices
+              ..sort = 'none'
+              ..save();
+            _positions = {
+              for (var i = 0; i < order.length; i++)
+                order[i].name: grid.cell(grid.nth(i).$1, grid.nth(i).$2),
+            };
+          });
+          _store();
+        }
+    }
+    _announce();
+  }
+
+  void _open(List<Entry> items) {
+    for (final e in items) {
+      if (e.isDirectory) {
+        final app = AppRegistry.load(
+          env: widget.env,
+          mime: systemMime,
+        ).apps['dev.frascella.Mustache.desktop'];
+        final args = app == null
+            ? const <String>[]
+            : execArguments(app, [e.path]);
+        _launch(
+          args.isEmpty
+              ? 'xdg-open ${shellQuote(e.path)}'
+              : args.map(shellQuote).join(' '),
+        );
+      } else {
+        _launch('xdg-open ${shellQuote(e.path)}');
+      }
+    }
+  }
+
+  /// The icon under a point, by its box and label.
+  String? keyAt(Offset p) {
+    for (final MapEntry(:key, :value) in _positions.entries.toList().reversed) {
+      final box = Rect.fromLTWH(
+        value.dx - desktopIconSide / 2 - desktopSelectionPad,
+        value.dy - desktopSelectionPad,
+        desktopIconSide + 2 * desktopSelectionPad,
+        desktopIconSide +
+            2 * desktopSelectionPad +
+            desktopLabelGap +
+            2 * desktopLabelLine,
+      );
+      if (box.contains(p)) return key;
+    }
+    return null;
+  }
+
+  bool get _extend =>
+      HardwareKeyboard.instance.isMetaPressed ||
+      HardwareKeyboard.instance.isControlPressed ||
+      HardwareKeyboard.instance.isShiftPressed;
+
+  void _pointerDown(PointerDownEvent e) {
+    _focus.requestFocus();
+    final key = keyAt(e.localPosition);
+    if (e.buttons & kSecondaryButton != 0) {
+      if (key != null && !_selected.contains(key)) {
+        setState(() {
+          _selected
+            ..clear()
+            ..add(key);
+        });
+      }
+      if (key == null) setState(_selected.clear);
+      _announce();
+      _broadcast(
+        'desktopmenu',
+        '${e.position.dx} ${e.position.dy} ${key == null ? 'desktop' : 'items'}',
+      );
+      return;
+    }
+    if (e.buttons & kPrimaryButton == 0) return;
+    if (_renaming != null) setState(() => _renaming = null);
+    if (key == null) {
+      setState(() {
+        if (!_extend) _selected.clear();
+        _bandBase = {..._selected};
+        _bandStart = e.localPosition;
+        _bandEnd = e.localPosition;
+      });
+      _announce();
+      return;
+    }
+    final now = DateTime.now();
+    final again =
+        key == _lastClickKey && now.difference(_lastClick) < desktopDoubleClick;
+    _lastClickKey = key;
+    _lastClick = now;
+    setState(() {
+      if (_extend) {
+        _selected.contains(key) ? _selected.remove(key) : _selected.add(key);
+      } else if (!_selected.contains(key)) {
+        _selected
+          ..clear()
+          ..add(key);
+      }
+    });
+    _announce();
+    if (again) {
+      _lastClickKey = null;
+      final stack = _icons().where((i) => i.key == key && i.stack != null);
+      if (stack.isNotEmpty) {
+        setState(() {
+          _openStack = _openStack == key ? null : key;
+          _relayout();
+        });
+      } else {
+        _open(_selection);
+      }
+      return;
+    }
+    _pressKey = key;
+    _pressAt = e.localPosition;
+  }
+
+  void _pointerMove(PointerMoveEvent e) {
+    if (_bandStart != null) {
+      setState(() {
+        _bandEnd = e.localPosition;
+        final rect = Rect.fromPoints(_bandStart!, _bandEnd!);
+        _selected
+          ..clear()
+          ..addAll(_bandBase);
+        for (final MapEntry(:key, :value) in _positions.entries) {
+          final box = Rect.fromLTWH(
+            value.dx - desktopIconSide / 2,
+            value.dy,
+            desktopIconSide,
+            desktopIconSide + desktopLabelGap + desktopLabelLine,
+          );
+          if (box.overlaps(rect)) _selected.add(key);
+        }
+      });
+      return;
+    }
+    final from = _pressAt;
+    if (_pressKey == null || from == null) return;
+    if (_dragging) {
+      if (_localDrag) setState(() => _dragDelta = e.localPosition - from);
+      return;
+    }
+    if ((e.localPosition - from).distance < desktopDragThreshold) return;
+    _dragging = true;
+    // The files go to Ossido's drag (other apps, the Dock, the Trash, or back onto the desktop);
+    // outside Silica the icons move here.
+    final paths = [for (final s in _selection) s.path];
+    SilicaDrag.start(paths).then((taken) {
+      if (!taken && mounted) {
+        setState(() {
+          _localDrag = true;
+          _dragDelta = e.localPosition - from;
+        });
+      }
+    });
+  }
+
+  void _pointerUp(PointerEvent e) {
+    if (_bandStart != null) {
+      setState(() => _bandStart = _bandEnd = null);
+      _announce();
+    }
+    if (_localDrag && _free) {
+      _moveSelected(_dragDelta);
+    }
+    _pressKey = null;
+    _pressAt = null;
+    _dragging = false;
+    _localDrag = false;
+    _dragDelta = Offset.zero;
+    if (mounted) setState(() {});
+  }
+
+  void _moveSelected(Offset delta) {
+    final grid = _grid;
+    final keys = _selected.where(_positions.containsKey).toList();
+    final next = {..._positions};
+    for (final k in keys) {
+      final p = (_positions[k] ?? Offset.zero) + delta;
+      next[k] = Offset(
+        p.dx.clamp(
+          desktopIconSide / 2,
+          math.max(desktopIconSide / 2, _size.width - desktopIconSide / 2),
+        ),
+        p.dy.clamp(0, math.max(0, _size.height - desktopIconSide)),
+      );
+    }
+    setState(() => _positions = next);
+    if (grid.size == _size) _store();
+  }
+
+  /// Files dropped by another app or by the desktop itself.
+  void _externalDrag(SilicaDragEvent event) {
+    if (event is! SilicaDrop || !mounted) return;
+    final paths = event.paths;
+    if (paths.isEmpty) return;
+    final inside = paths.every((p) => File(p).parent.path == widget.folder);
+    if (inside) {
+      // Moved on the desktop: the first item lands at the drop, the others keep their offsets.
+      final first = displayName(paths.first);
+      final anchor = _positions[first];
+      if (anchor == null || !_free) return;
+      final to = event.position - const Offset(0, desktopIconSide / 2);
+      final delta = to - anchor;
+      setState(() {
+        _selected
+          ..clear()
+          ..addAll(paths.map(displayName));
+      });
+      _moveSelected(delta);
+      return;
+    }
+    final moved = <String>[];
+    for (final p in paths) {
+      final name = uniqueName(widget.folder, displayName(p));
+      final target = '${widget.folder}/$name';
+      try {
+        FileSystemEntity.typeSync(p) == FileSystemEntityType.directory
+            ? Directory(p).renameSync(target)
+            : File(p).renameSync(target);
+        moved.add(name);
+      } on FileSystemException {
+        // Another disk: copied instead, as the windows do across disks.
+        Process.start(
+          'cp',
+          ['-a', p, target],
+          mode: ProcessStartMode.detached,
+        ).then((_) => moved.add(name)).ignore();
+      }
+    }
+    _load();
+    if (_free && moved.isNotEmpty) {
+      final grid = _grid;
+      final taken = grid.taken(_positions.values);
+      final next = {..._positions};
+      for (final name in moved) {
+        final at = grid.nearestFree(
+          event.position - const Offset(0, desktopIconSide / 2),
+          taken,
+        );
+        taken.add(grid.cellOf(at));
+        next[name] = at;
+      }
+      setState(() => _positions = next);
+      _store();
+    }
+  }
+
+  KeyEventResult _key(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (_renaming != null) return KeyEventResult.ignored;
+    final meta =
+        HardwareKeyboard.instance.isMetaPressed ||
+        HardwareKeyboard.instance.isControlPressed;
+    final shift = HardwareKeyboard.instance.isShiftPressed;
+    final k = event.logicalKey;
+    if (k == LogicalKeyboardKey.enter && _selected.length == 1) {
+      runAction('rename');
+    } else if (meta && k == LogicalKeyboardKey.keyO) {
+      runAction('open');
+    } else if (meta && k == LogicalKeyboardKey.backspace) {
+      runAction('trash');
+    } else if (meta && k == LogicalKeyboardKey.keyD) {
+      runAction('duplicate');
+    } else if (meta && shift && k == LogicalKeyboardKey.keyN) {
+      runAction('newFolder');
+    } else if (meta && k == LogicalKeyboardKey.keyA) {
+      setState(() {
+        _selected
+          ..clear()
+          ..addAll(_positions.keys);
+      });
+      _announce();
+    } else if (k == LogicalKeyboardKey.escape) {
+      setState(_selected.clear);
+      _announce();
+    } else if (_arrow(k) case final direction?) {
+      final from = _selected.isEmpty ? null : _selected.last;
+      final next = from == null
+          ? _positions.keys.firstOrNull
+          : spatialNeighbour(_positions, from, direction);
+      if (next != null) {
+        setState(() {
+          _selected
+            ..clear()
+            ..add(next);
+        });
+        _announce();
+      }
+    } else {
+      return KeyEventResult.ignored;
+    }
+    return KeyEventResult.handled;
+  }
+
+  static Offset? _arrow(LogicalKeyboardKey k) => switch (k) {
+    LogicalKeyboardKey.arrowUp => const Offset(0, -1),
+    LogicalKeyboardKey.arrowDown => const Offset(0, 1),
+    LogicalKeyboardKey.arrowLeft => const Offset(-1, 0),
+    LogicalKeyboardKey.arrowRight => const Offset(1, 0),
+    _ => null,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    if (size != _size) {
+      _size = size;
+      _relayout();
+    }
+    final dark =
+        MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark;
+    final band = _bandStart == null || _bandEnd == null
+        ? null
+        : Rect.fromPoints(_bandStart!, _bandEnd!);
+    final icons = _icons();
+    final byKey = {for (final i in icons) i.key: i};
+    final members = {
+      if (_openStack case final open?)
+        for (final m in byKey[open]?.members ?? const <Entry>[])
+          m.name: DesktopIcon.item(m),
+    };
+    return Focus(
+      focusNode: _focus,
+      autofocus: true,
+      onKeyEvent: _key,
+      child: Listener(
+        behavior: HitTestBehavior.opaque,
+        onPointerDown: _pointerDown,
+        onPointerMove: _pointerMove,
+        onPointerUp: _pointerUp,
+        onPointerCancel: _pointerUp,
+        child: SizedBox.expand(
+          child: Stack(
+            children: [
+              for (final MapEntry(:key, :value) in _positions.entries)
+                if (byKey[key] ?? members[key] case final icon?)
+                  _iconAt(
+                    icon,
+                    _localDrag && _selected.contains(key)
+                        ? value + _dragDelta
+                        : value,
+                    dark: dark,
+                  ),
+              if (band != null)
+                Positioned.fromRect(
+                  rect: band,
+                  child: const IgnorePointer(
+                    child: DecoratedBox(
+                      key: ValueKey('desktop rubber band'),
+                      decoration: BoxDecoration(
+                        color: Color(0x1AFFFFFF),
+                        border: Border.fromBorderSide(
+                          BorderSide(color: Color(0x80FFFFFF)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _iconAt(DesktopIcon icon, Offset at, {required bool dark}) {
+    final isSelected = _selected.contains(icon.key);
+    const style = TextStyle(
+      fontFamily: uiFontFamily,
+      package: 'silica_ui',
+      fontSize: desktopLabelSize,
+      fontWeight: FontWeight.w600,
+      color: Color(0xFFFFFFFF),
+    );
+    final shadowed = style.copyWith(
+      shadows: const [
+        Shadow(color: Color(0xB3000000), offset: Offset(0, 1), blurRadius: 2.5),
+      ],
+    );
+    final lines = labelLines(icon.label, desktopPitchX - 12, style);
+    final box = desktopIconSide + 2 * desktopSelectionPad;
+    final renaming = icon.entry != null && icon.entry?.name == _renaming;
+    return Positioned(
+      key: ValueKey('desktop ${icon.key}'),
+      left: at.dx - desktopPitchX / 2,
+      top: at.dy - desktopSelectionPad,
+      width: desktopPitchX,
+      height: box + desktopLabelGap + desktopLabelLine * 2 + 4,
+      child: Column(
+        children: [
+          Container(
+            width: box,
+            height: box - 1,
+            decoration: isSelected
+                ? BoxDecoration(
+                    color: desktopSelectionFill.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(desktopSelectionRadius),
+                    border: Border.all(
+                      color: desktopSelectionOutline,
+                      width: 2,
+                    ),
+                  )
+                : null,
+            padding: const EdgeInsets.all(desktopSelectionPad),
+            child: icon.entry != null
+                ? EntryIcon(
+                    entry: icon.entry!,
+                    side: desktopIconSide,
+                    env: widget.env,
+                  )
+                : _StackIcon(members: icon.members, env: widget.env),
+          ),
+          SizedBox(height: desktopLabelGap - desktopSelectionPad + 1),
+          if (renaming)
+            RenameField(
+              name: icon.entry!.name,
+              isDirectory: icon.entry!.isDirectory,
+              maxWidth: desktopPitchX,
+              onCommit: (name) {
+                renameEntry(icon.entry!.path, name);
+                setState(() => _renaming = null);
+                _load();
+              },
+              onCancel: () => setState(() => _renaming = null),
+            )
+          else
+            for (final line in lines)
+              Container(
+                height: desktopLabelLine,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: isSelected
+                    ? BoxDecoration(
+                        color: dark ? desktopCapsuleDark : desktopCapsule,
+                        borderRadius: BorderRadius.circular(5),
+                      )
+                    : null,
+                child: Center(
+                  widthFactor: 1,
+                  child: Text(
+                    line,
+                    maxLines: 1,
+                    softWrap: false,
+                    style: isSelected ? style : shadowed,
+                  ),
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A closed stack: 2–3 of its items' icons overlapping, slightly rotated, no count (R15.2).
+class _StackIcon extends StatelessWidget {
+  const _StackIcon({required this.members, this.env});
+
+  final List<Entry> members;
+  final Map<String, String>? env;
+
+  @override
+  Widget build(BuildContext context) {
+    final shown = members.take(3).toList();
+    const angles = [-0.08, 0.06, 0.0];
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        for (var i = shown.length - 1; i >= 0; i--)
+          Transform.rotate(
+            angle: angles[i % angles.length],
+            child: EntryIcon(
+              entry: shown[i],
+              side: desktopIconSide * 0.86,
+              env: env,
+            ),
+          ),
+      ],
+    );
+  }
+}
