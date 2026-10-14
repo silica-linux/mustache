@@ -1550,11 +1550,21 @@ class _MustacheWindowState extends State<MustacheWindow>
     env: widget.iconsEnv,
     tagsOf: _tagsOf,
     topInset: _topInset,
-    wrapItem: (entry, child) => _itemPress(
-      entry,
-      _litFolder(entry, child, radius: columnSelectionRadius),
-      threshold: 1,
-      anchor: const Offset(columnIconLeft, (columnRow - columnIconSide) / 2),
+    wrapItem: (entry, child) => GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      // The menu applies to the item under the pointer: it becomes the chosen one first.
+      onSecondaryTapDown: (d) {
+        if (!_selected.contains(entry.path)) {
+          _selectInColumn(entry, parentOf(entry.path) ?? '/');
+        }
+        _openContextMenu(entry, d.globalPosition);
+      },
+      child: _itemPress(
+        entry,
+        _litFolder(entry, child, radius: columnSelectionRadius),
+        threshold: 1,
+        anchor: const Offset(columnIconLeft, (columnRow - columnIconSide) / 2),
+      ),
     ),
   );
 
