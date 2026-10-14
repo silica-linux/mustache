@@ -30,6 +30,7 @@
   "sortKind": "Tipo",
   "sortModified": "Data di modifica",
   "sortSize": "Dimensione",
+  "sortNone": "Nessuno",
   "columnName": "Nome",
   "columnModified": "Data di modifica",
   "columnSize": "Dimensioni",

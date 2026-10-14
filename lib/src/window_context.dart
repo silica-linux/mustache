@@ -191,22 +191,30 @@ extension _Context on _MustacheWindowState {
     MenuAction(
       l10n.sortBy,
       submenu: [
-        for (final (key, label) in [
-          (SortKey.name, l10n.sortName),
-          (SortKey.kind, l10n.sortKind),
-          (SortKey.modified, l10n.sortModified),
-          (SortKey.size, l10n.sortSize),
-        ])
+        // In the icon view also "None" (free positions).
+        if (_view == ViewMode.icons) ...[
+          MenuAction(
+            l10n.sortNone,
+            checked: _arrangement.free,
+            onSelected: _sortNone,
+          ),
+          const MenuDivider(),
+        ],
+        for (final (key, label) in _sortChoices)
           MenuAction(
             label,
-            checked: _sort == key,
-            onSelected: () => _update(() {
-              _sort = key;
-              _descending = false;
-              _entries = sortEntries(_entries, _sort, kindOf: _kind);
-            }),
+            checked:
+                _sort == key && !(_view == ViewMode.icons && _arrangement.free),
+            onSelected: () => _sortBy(key),
           ),
       ],
     ),
+  ];
+
+  List<(SortKey, String)> get _sortChoices => [
+    (SortKey.name, l10n.sortName),
+    (SortKey.kind, l10n.sortKind),
+    (SortKey.modified, l10n.sortModified),
+    (SortKey.size, l10n.sortSize),
   ];
 }

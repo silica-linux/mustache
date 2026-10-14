@@ -112,6 +112,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get sortSize => 'Dimensione';
 
   @override
+  String get sortNone => 'Nessuno';
+
+  @override
   String get columnName => 'Nome';
 
   @override

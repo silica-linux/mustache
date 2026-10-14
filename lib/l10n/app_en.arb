@@ -135,6 +135,10 @@
   "@sortSize": {
     "description": "Sort by size."
   },
+  "sortNone": "None",
+  "@sortNone": {
+    "description": "Icon view sort order: no order, icons stay where the user puts them."
+  },
   "columnName": "Name",
   "@columnName": {
     "description": "List column header."

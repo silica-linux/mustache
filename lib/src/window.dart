@@ -19,6 +19,7 @@ import 'column_view.dart';
 import 'dialog.dart';
 import 'drag.dart';
 import 'gallery_view.dart';
+import 'icon_arrange.dart';
 import 'icon_view.dart';
 import 'info.dart';
 import 'list_view.dart';
@@ -35,6 +36,7 @@ import 'sidebar.dart';
 import 'tags.dart';
 import 'toolbar.dart';
 
+part 'window_arrange.dart';
 part 'window_columns.dart';
 part 'window_context.dart';
 part 'window_dialog.dart';
@@ -199,6 +201,7 @@ class MustacheWindow extends StatefulWidget {
     this.now,
     this.open,
     this.settings,
+    this.iconPositions,
     this.active = true,
     this.iconsEnv,
     this.tabBar,
@@ -238,6 +241,9 @@ class MustacheWindow extends StatefulWidget {
 
   /// Settings kept between launches (the sidebar width).
   final Settings? settings;
+
+  /// The free icon positions of every folder (sort "None", R4.7); null: none are kept.
+  final IconPositions? iconPositions;
 
   /// The window has the focus: the sidebar colors change when it does not.
   final bool active;
@@ -359,6 +365,9 @@ class _MustacheWindowState extends State<MustacheWindow>
 
   /// Quick Look open (Space).
   bool _quickLook = false;
+
+  /// The arrangement of the open folder in the icon view (free or sorted, positions).
+  FolderArrangement _arrangement = FolderArrangement();
 
   /// The path bar (⌥⌘P), remembered for new windows.
   late bool _pathBar =
@@ -544,6 +553,7 @@ class _MustacheWindowState extends State<MustacheWindow>
             !_ordered.any((e) => e.path == path) &&
             !(_view == ViewMode.columns && entryAt(path) != null),
       );
+      _loadArrangement();
       _galleryChoice();
     });
   }
@@ -1371,6 +1381,7 @@ class _MustacheWindowState extends State<MustacheWindow>
     if (_error != null) return _listView();
     return IconView(
       side: _iconSide,
+      positions: _freePositions,
       entries: _entries,
       selected: _selected,
       active: _active,

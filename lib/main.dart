@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
 
 import 'src/dialog.dart';
+import 'src/icon_arrange.dart';
 import 'src/l10n.dart';
 import 'src/model.dart';
 import 'src/settings.dart';
@@ -35,6 +36,7 @@ void main(List<String> args) {
   );
   final trash = trashPlace(home: home, dataHome: env['XDG_DATA_HOME']);
   final settings = Settings.forUser(env);
+  final iconPositions = IconPositions.forUser(env);
   // The toolbar is unified with the window: Ossido draws only the window buttons.
   WidgetsFlutterBinding.ensureInitialized();
   SilicaWindow.setFullSizeContent(toolbarHeight).ignore();
@@ -49,6 +51,7 @@ void main(List<String> args) {
             trash: trash,
             iconsDir: env['SILICA_ICONS_DIR'],
             settings: settings,
+            iconPositions: iconPositions,
             dialog: dialog,
           ),
         ),
@@ -69,6 +72,7 @@ void main(List<String> args) {
             trash: trash,
             iconsDir: env['SILICA_ICONS_DIR'],
             settings: settings,
+            iconPositions: iconPositions,
             tabBar: tabBar,
             onLocation: onLocation,
             focused: active,

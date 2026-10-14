@@ -278,6 +278,12 @@ abstract class AppLocalizations {
   /// **'Size'**
   String get sortSize;
 
+  /// Icon view sort order: no order, icons stay where the user puts them.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get sortNone;
+
   /// List column header.
   ///
   /// In en, this message translates to:

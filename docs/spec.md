@@ -67,6 +67,23 @@ translation. The texts quoted below are the Italian ones, as measured on the ref
 - Folders with tens of thousands of items: the content appears right away and completes while
   it is read (MU-24).
 
+### Icon arrangement (R4.7, MU-21)
+
+With a sort order the icon grid stretches to the width and reflows when the window is resized.
+With Sort By › None each folder keeps free icon positions: they start where the sorted grid had
+them, new items take the first free cells, resizing the window moves nothing and the content
+scrolls in both directions when it does not fit (mustache#4). The positions live in
+`$XDG_STATE_HOME/mustache/icon-positions.json` (by folder, then by name), never inside the
+folders.
+
+| Action | Command | Shortcut |
+| --- | --- | --- |
+| Sort By › None (free positions) | `mustache.view.sort_by` (`none`) | — |
+
+- Sort By › None is in the context menu of the empty area, in the icon view only, until the app
+  has a menu bar.
+- Provisional: the free grid's spacing (the minimum pitch of the stretched grid).
+
 ## Selection and keyboard
 
 | Action | Command | Shortcut |

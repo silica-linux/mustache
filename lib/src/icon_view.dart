@@ -14,6 +14,7 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
 
+import 'icon_arrange.dart';
 import 'model.dart';
 import 'tags.dart';
 
@@ -113,14 +114,19 @@ class IconGrid {
   }
 }
 
+/// The minimum x pitch: the label width or the icon with its margin.
+double minIconPitch({
+  double side = defaultIconSide,
+  double text = defaultLabelSize,
+}) => math.max(side + 36, 50 + text * 5);
+
 /// The grid for `width` pt of content (spec 4.1, R4.1, R4.6).
 IconGrid iconGrid(
   double width, {
   double side = defaultIconSide,
   double text = defaultLabelSize,
 }) {
-  // Minimum pitch: the label width or the icon with its margin.
-  final minPitch = math.max(side + 36, 50 + text * 5);
+  final minPitch = minIconPitch(side: side, text: text);
   // ~11 pt margin per side (6 columns of 126.8 in 783 pt).
   const margin = 11.0;
   final available = math.max(0.0, width - 2 * margin);
@@ -214,7 +220,18 @@ class IconView extends StatefulWidget {
     this.renameBuilder,
     this.onRubberBand,
     this.tagsOf,
+    this.positions,
+    this.moveDuration = Duration.zero,
   });
+
+  /// Free positions (sort "None", R4.7): the icon's center x and top y in the content, by path.
+  /// Null: the grid stretches to the width and reflows with it. With positions the cells keep the
+  /// fixed pitch of [FreeGrid], resizing the window moves nothing and the content scrolls in both
+  /// directions when it does not fit (mustache#4).
+  final Map<String, Offset>? positions;
+
+  /// How long icons take to reach new positions (Clean Up animates, R4.8; drops do not).
+  final Duration moveDuration;
 
   /// The tags of an item: the dots before the name, on the first line.
   final List<String> Function(Entry entry)? tagsOf;
@@ -254,6 +271,7 @@ class IconView extends StatefulWidget {
 
 class _IconViewState extends State<IconView> {
   late final ScrollController _scroll = widget.controller ?? ScrollController();
+  final ScrollController _hScroll = ScrollController();
   Offset? _bandStart;
   Offset? _bandEnd;
 
@@ -283,13 +301,25 @@ class _IconViewState extends State<IconView> {
   void dispose() {
     _auto?.cancel();
     if (widget.controller == null) _scroll.dispose();
+    _hScroll.dispose();
     super.dispose();
+  }
+
+  /// The icon's center x and top y of item `index`, in the content.
+  Offset _place(IconGrid grid, int index) {
+    final free = widget.positions?[entries[index].path];
+    if (free != null) return free;
+    return Offset(
+      grid.centerX(index % grid.columns),
+      grid.iconTop(index ~/ grid.columns),
+    );
   }
 
   /// The rectangle of a cell (icon background and label line), in the content.
   Rect _cellRect(IconGrid grid, int index) {
-    final cx = grid.centerX(index % grid.columns);
-    final top = grid.iconTop(index ~/ grid.columns) - iconSelectionPad;
+    final at = _place(grid, index);
+    final cx = at.dx;
+    final top = at.dy - iconSelectionPad;
     final bg = side + 2 * iconSelectionPad;
     return Rect.fromLTRB(
       cx - grid.pitchX / 2 + 4,
@@ -342,9 +372,31 @@ class _IconViewState extends State<IconView> {
     final colors = IconViewColors.of(dark: dark);
     return LayoutBuilder(
       builder: (context, constraints) {
-        final grid = iconGrid(constraints.maxWidth, side: side, text: text);
-        final rows = (entries.length / grid.columns).ceil();
-        final height = rows == 0 ? 0.0 : grid.iconTop(rows - 1) + grid.pitchY;
+        final free = widget.positions != null;
+        final fixed = FreeGrid.of(side: side, text: text);
+        final grid = free
+            ? IconGrid(
+                side: side,
+                columns: fixed.columnsFor(constraints.maxWidth),
+                pitchX: fixed.pitchX,
+                pitchY: fixed.pitchY,
+                left: fixed.left,
+                top: fixed.top,
+              )
+            : iconGrid(constraints.maxWidth, side: side, text: text);
+        var height = 0.0;
+        var width = constraints.maxWidth;
+        if (free) {
+          // The content reaches the farthest icon, plus the margins.
+          for (var i = 0; i < entries.length; i++) {
+            final at = _place(grid, i);
+            height = math.max(height, at.dy + grid.pitchY);
+            width = math.max(width, at.dx + grid.pitchX / 2 + grid.left);
+          }
+        } else {
+          final rows = (entries.length / grid.columns).ceil();
+          height = rows == 0 ? 0.0 : grid.iconTop(rows - 1) + grid.pitchY;
+        }
         _grid = grid;
         _viewHeight = constraints.maxHeight;
         final band = _bandStart == null || _bandEnd == null
@@ -356,58 +408,62 @@ class _IconViewState extends State<IconView> {
           onSecondaryTapDown: (d) => onContext?.call(null, d.globalPosition),
           child: SingleChildScrollView(
             controller: _scroll,
-            child: GestureDetector(
-              // From the background: the rubber band (cells have their own drag).
-              behavior: HitTestBehavior.translucent,
-              onPanStart: widget.onRubberBand == null
-                  ? null
-                  : (d) {
-                      setState(() {
-                        _bandStart = d.localPosition;
-                        _bandEnd = d.localPosition;
-                      });
-                      _band(done: false);
-                      _autoScroll();
-                    },
-              onPanUpdate: (d) {
-                if (_bandStart == null) return;
-                setState(() => _bandEnd = d.localPosition);
-                _pointerY =
-                    d.localPosition.dy -
-                    (_scroll.hasClients ? _scroll.offset : 0);
-                _band(done: false);
-              },
-              onPanEnd: (_) {
-                _band(done: true);
-                _auto?.cancel();
-                _auto = null;
-                setState(() => _bandStart = _bandEnd = null);
-              },
-              onPanCancel: () {
-                _auto?.cancel();
-                _auto = null;
-                setState(() => _bandStart = _bandEnd = null);
-              },
-              child: SizedBox(
-                height: math.max(height, constraints.maxHeight),
-                child: Stack(
-                  children: [
-                    for (var i = 0; i < entries.length; i++)
-                      _cell(context, grid, i, colors),
-                    if (band != null)
-                      Positioned.fromRect(
-                        rect: band,
-                        child: IgnorePointer(
-                          child: DecoratedBox(
-                            key: const ValueKey('rubber band'),
-                            decoration: BoxDecoration(
-                              color: rubberFill,
-                              border: Border.all(color: rubberBorder),
+            child: _horizontal(
+              free: free,
+              child: GestureDetector(
+                // From the background: the rubber band (cells have their own drag).
+                behavior: HitTestBehavior.translucent,
+                onPanStart: widget.onRubberBand == null
+                    ? null
+                    : (d) {
+                        setState(() {
+                          _bandStart = d.localPosition;
+                          _bandEnd = d.localPosition;
+                        });
+                        _band(done: false);
+                        _autoScroll();
+                      },
+                onPanUpdate: (d) {
+                  if (_bandStart == null) return;
+                  setState(() => _bandEnd = d.localPosition);
+                  _pointerY =
+                      d.localPosition.dy -
+                      (_scroll.hasClients ? _scroll.offset : 0);
+                  _band(done: false);
+                },
+                onPanEnd: (_) {
+                  _band(done: true);
+                  _auto?.cancel();
+                  _auto = null;
+                  setState(() => _bandStart = _bandEnd = null);
+                },
+                onPanCancel: () {
+                  _auto?.cancel();
+                  _auto = null;
+                  setState(() => _bandStart = _bandEnd = null);
+                },
+                child: SizedBox(
+                  width: width,
+                  height: math.max(height, constraints.maxHeight),
+                  child: Stack(
+                    children: [
+                      for (var i = 0; i < entries.length; i++)
+                        _cell(context, grid, i, colors),
+                      if (band != null)
+                        Positioned.fromRect(
+                          rect: band,
+                          child: IgnorePointer(
+                            child: DecoratedBox(
+                              key: const ValueKey('rubber band'),
+                              decoration: BoxDecoration(
+                                color: rubberFill,
+                                border: Border.all(color: rubberBorder),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -417,6 +473,16 @@ class _IconViewState extends State<IconView> {
     );
   }
 
+  /// With free positions the content can be wider than the view: it scrolls sideways too.
+  Widget _horizontal({required bool free, required Widget child}) => free
+      ? SingleChildScrollView(
+          key: const ValueKey('icon view horizontal scroll'),
+          controller: _hScroll,
+          scrollDirection: Axis.horizontal,
+          child: child,
+        )
+      : child;
+
   Widget _cell(
     BuildContext context,
     IconGrid grid,
@@ -424,11 +490,10 @@ class _IconViewState extends State<IconView> {
     IconViewColors c,
   ) {
     final entry = entries[index];
-    final column = index % grid.columns;
-    final row = index ~/ grid.columns;
     final isSelected = selected.contains(entry.path);
-    final cx = grid.centerX(column);
-    final iconTop = grid.iconTop(row);
+    final at = _place(grid, index);
+    final cx = at.dx;
+    final iconTop = at.dy;
     final style = TextStyle(
       fontFamily: uiFontFamily,
       package: 'silica_ui',
@@ -451,7 +516,10 @@ class _IconViewState extends State<IconView> {
           );
     final labelTop = iconTop + side + iconSelectionPad + labelGap;
     final bg = side + 2 * iconSelectionPad;
-    return Positioned(
+    return AnimatedPositioned(
+      key: ValueKey('cell ${entry.path}'),
+      duration: widget.moveDuration,
+      curve: Curves.decelerate,
       left: cx - grid.pitchX / 2,
       top: iconTop - iconSelectionPad,
       width: grid.pitchX,
