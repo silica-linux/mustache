@@ -133,7 +133,7 @@ void main() {
     await tester.pump();
     expect(find.byType(SilicaAlert), findsOneWidget);
     expect(find.textContaining('già stato assegnato'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('avviso OK')));
+    await tester.tap(find.byKey(const ValueKey('alert OK')));
     await tester.pump();
     expect(find.byType(SilicaAlert), findsNothing);
     expect(File(p('appunti.txt')).readAsStringSync(), 'a');
@@ -149,8 +149,8 @@ void main() {
     await tester.enterText(find.byType(EditableText), 'note.md');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump();
-    expect(find.byKey(const ValueKey('avviso Usa .md')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('avviso Mantieni .txt')));
+    expect(find.byKey(const ValueKey('alert Usa .md')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('alert Mantieni .txt')));
     await tester.pump();
     expect(File(p('note.txt')).existsSync(), isTrue);
   });
@@ -214,7 +214,7 @@ void main() {
     await keys(tester, LogicalKeyboardKey.escape);
     expect(File(p('conto.txt')).existsSync(), isTrue);
     await keys(tester, LogicalKeyboardKey.backspace, meta: true, alt: true);
-    await tester.tap(find.byKey(const ValueKey('avviso Elimina')));
+    await tester.tap(find.byKey(const ValueKey('alert Elimina')));
     await tester.pump();
     expect(File(p('conto.txt')).existsSync(), isFalse);
     expect(

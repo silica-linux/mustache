@@ -108,7 +108,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('dialog Salva')));
       await tester.pump();
       expect(find.byType(SilicaAlert), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('avviso Sostituisci')));
+      await tester.tap(find.byKey(const ValueKey('alert Sostituisci')));
       await tester.pump();
       expect(finished.last, ['${home.path}/nota.txt']);
     });
