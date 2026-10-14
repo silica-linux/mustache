@@ -272,6 +272,12 @@ class _MustacheWindowState extends State<MustacheWindow>
   /// Il trascinamento fra app: l'immagine da dare a Ossido, se è già uscito, e i rilasci.
   final GlobalKey _dragImageKey = GlobalKey();
   bool _draggedOut = false;
+
+  /// La riga premuta (si sceglie al rilascio, MU-25) e se ne è partito un trascinamento; il
+  /// triangolo premuto con ⌥ letto alla pressione.
+  String? _rowDown;
+  bool _rowDragged = false;
+  (String, bool)? _triangleDown;
   StreamSubscription<SilicaDragEvent>? _externalDrags;
 
   /// La larghezza della barra laterale quando si vede; le finestre nuove prendono l'ultima.

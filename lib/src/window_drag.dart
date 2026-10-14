@@ -21,6 +21,7 @@ extension _Drag on _MustacheWindowState {
     ),
     onDragStarted: () {
       _slowClick?.cancel();
+      _rowDragged = true;
       _draggedOut = false;
     },
     onDragUpdate: (details) => _maybeDragOut(entry, details.globalPosition),

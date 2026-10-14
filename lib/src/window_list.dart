@@ -263,18 +263,26 @@ extension _ListView on _MustacheWindowState {
       _folderTarget(
         entry,
         (context, dropActive) => Listener(
+          // La riga si sceglie al rilascio, se non è partito un trascinamento (MU-25:
+          // nessun cambiamento fino al rilascio). Solo il pulsante primario sceglie: il
+          // clic destro su una riga non scelta lascia la selezione com'è e dà l'anello
+          // (R3.9, MU-50); il triangolo non sceglie la riga.
           onPointerDown: (e) {
-            // Solo il pulsante primario sceglie: il clic destro su una riga non scelta
-            // lascia la selezione com'è e dà l'anello (R3.9, MU-50).
-            if (e.buttons & kPrimaryButton == 0) return;
-            // Il triangolo non sceglie la riga.
-            if (entry.isDirectory &&
+            _rowDragged = false;
+            final onTriangle =
+                entry.isDirectory &&
                 e.localPosition.dx >= 11 + indent &&
-                e.localPosition.dx < listIconLeft + indent) {
-              return;
-            }
-            _tap(entry);
+                e.localPosition.dx < listIconLeft + indent;
+            _rowDown = e.buttons & kPrimaryButton == 0 || onTriangle
+                ? null
+                : entry.path;
           },
+          onPointerUp: (e) {
+            final down = _rowDown;
+            _rowDown = null;
+            if (down == entry.path && !_rowDragged) _tap(entry);
+          },
+          onPointerCancel: (_) => _rowDown = null,
           child: GestureDetector(
             key: ValueKey(entry.path),
             onTap: () {},
@@ -304,17 +312,24 @@ extension _ListView on _MustacheWindowState {
                     width: 15,
                     top: 0,
                     height: listRowHeight,
-                    // Il triangolo agisce alla pressione (un fotogramma, mu20-disclosure), con
-                    // ⌥ letto in quel momento; il doppio clic qui non apre la cartella.
+                    // Il triangolo apre al rilascio (MU-25), con ⌥ letto alla pressione; il
+                    // doppio clic qui non apre la cartella.
                     child: Listener(
                       key: ValueKey('triangolo ${entry.path}'),
                       behavior: HitTestBehavior.opaque,
                       onPointerDown: (e) {
-                        if (e.buttons != kPrimaryButton) return;
-                        _toggleExpanded(
-                          entry,
-                          subtree: HardwareKeyboard.instance.isAltPressed,
-                        );
+                        _triangleDown = e.buttons == kPrimaryButton
+                            ? (
+                                entry.path,
+                                HardwareKeyboard.instance.isAltPressed,
+                              )
+                            : null;
+                      },
+                      onPointerUp: (e) {
+                        final down = _triangleDown;
+                        _triangleDown = null;
+                        if (down == null || down.$1 != entry.path) return;
+                        _toggleExpanded(entry, subtree: down.$2);
                       },
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,

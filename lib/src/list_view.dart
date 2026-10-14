@@ -91,6 +91,7 @@ class ListColors {
   const ListColors({
     required this.background,
     required this.header,
+    required this.headerPressed,
     required this.stripe,
     required this.line,
     required this.lineDark,
@@ -113,6 +114,9 @@ class ListColors {
 
   final Color background;
   final Color header;
+
+  /// La cella dell'intestazione premuta, da separatore a separatore (MU-25).
+  final Color headerPressed;
   final Color stripe;
 
   /// La linea sotto l'intestazione: in scuro due righe di 1 pt diverse.
@@ -137,6 +141,7 @@ class ListColors {
   static const ListColors light = ListColors(
     background: Color(0xFFFFFFFF),
     header: Color(0xFFFFFFFF),
+    headerPressed: Color(0xFFF2F2F2),
     stripe: Color(0xFFF4F5F5),
     line: Color(0xFFE5E5E5),
     lineDark: Color(0xFFE5E5E5),
@@ -160,6 +165,7 @@ class ListColors {
   static const ListColors dark = ListColors(
     background: Color(0xFF272728),
     header: Color(0xFF2F2F2F),
+    headerPressed: Color(0xFF414141),
     stripe: Color(0xFF313132),
     line: Color(0xFF494949),
     lineDark: Color(0xFF363637),
@@ -286,9 +292,9 @@ class ListHeader extends StatelessWidget {
           top: 0,
           width: width,
           height: listHeaderHeight,
-          child: GestureDetector(
+          child: _HeaderCell(
             key: ValueKey('intestazione ${column.key.name}'),
-            behavior: HitTestBehavior.opaque,
+            pressedColor: colors.headerPressed,
             onTap: () => onSort(column.key),
             child: Padding(
               padding: EdgeInsets.only(left: left, right: sorted ? 20 : 4),
@@ -331,12 +337,12 @@ class ListHeader extends StatelessWidget {
           child: ColoredBox(color: colors.separator),
         ),
       );
-      // La presa del separatore: 4 pt per parte.
+      // La presa del separatore: 5 pt, 3 a sinistra della linea e 1 a destra (MU-25).
       handles.add(
         Positioned(
           left: x - 4,
           top: 0,
-          width: 8,
+          width: 5,
           height: listHeaderHeight,
           child: MouseRegion(
             cursor: SystemMouseCursors.resizeColumn,
@@ -369,6 +375,49 @@ class ListHeader extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Una cella dell'intestazione: premuta si riempie (nessun cambio al passaggio); un clic
+/// breve ordina al rilascio, una pressione lunga no (MU-25).
+class _HeaderCell extends StatefulWidget {
+  const _HeaderCell({
+    super.key,
+    required this.pressedColor,
+    required this.onTap,
+    required this.child,
+  });
+
+  final Color pressedColor;
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  State<_HeaderCell> createState() => _HeaderCellState();
+}
+
+class _HeaderCellState extends State<_HeaderCell> {
+  bool _pressed = false;
+
+  void _set(bool pressed) {
+    if (pressed != _pressed) setState(() => _pressed = pressed);
+  }
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTapDown: (_) => _set(true),
+    onTapUp: (_) => _set(false),
+    onTapCancel: () => _set(false),
+    onTap: widget.onTap,
+    // Tenuta a lungo: nessun riordino al rilascio.
+    onLongPress: () {},
+    onLongPressStart: (_) => _set(true),
+    onLongPressEnd: (_) => _set(false),
+    child: ColoredBox(
+      color: _pressed ? widget.pressedColor : const Color(0x00000000),
+      child: widget.child,
+    ),
+  );
 }
 
 /// ∧ crescente, ∨ decrescente.

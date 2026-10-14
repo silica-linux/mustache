@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -136,5 +137,57 @@ void main() {
     await tester.pump();
     final after = tester.getTopLeft(find.textContaining('oggi, ').first).dx;
     expect(after - before, closeTo(40, 1));
+  });
+
+  testWidgets(
+    'pressioni (MU-25): la riga e il triangolo agiscono al rilascio',
+    (tester) async {
+      await pump(tester);
+      Color? name() =>
+          tester.widget<Text>(find.text('appunti.txt')).style?.color;
+      final press = await tester.startGesture(
+        row(tester, 'appunti.txt').center,
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pump();
+      expect(name(), ListColors.light.name);
+      await press.up();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(name(), ListColors.light.selectionName);
+      final triangle = find.byKey(ValueKey('triangolo ${root.path}/Annidata'));
+      final hold = await tester.startGesture(
+        tester.getCenter(triangle),
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pump();
+      expect(find.text('Livello 2'), findsNothing);
+      await hold.up();
+      await tester.pump();
+      expect(find.text('Livello 2'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 5));
+    },
+  );
+
+  testWidgets('intestazione premuta piena; tenuta a lungo non ordina', (
+    tester,
+  ) async {
+    await pump(tester);
+    double y(String name) => tester.getTopLeft(find.text(name)).dy;
+    final before = y('grande.bin') < y('appunti.txt');
+    final cell = find.byKey(const ValueKey('intestazione size'));
+    final hold = await tester.startGesture(tester.getCenter(cell));
+    await tester.pump(const Duration(milliseconds: 150));
+    final fill = tester.widget<ColoredBox>(
+      find.descendant(of: cell, matching: find.byType(ColoredBox)).first,
+    );
+    expect(fill.color, ListColors.light.headerPressed);
+    await tester.pump(const Duration(seconds: 1));
+    await hold.up();
+    await tester.pump();
+    expect(y('grande.bin') < y('appunti.txt'), before);
+    // La presa del separatore: 5 pt, 3 a sinistra della linea e 1 a destra.
+    final grip = tester.getRect(find.byKey(const ValueKey('bordo name')));
+    expect(grip.width, 5);
+    await tester.pump(const Duration(seconds: 5));
   });
 }
