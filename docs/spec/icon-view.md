@@ -43,7 +43,9 @@ R4.1 says.
 - **R4.5** A label has at most **2 lines**, at every size, 16 pt included. It wraps even inside
   a word. Past two lines, the second line is truncated **in the middle**.
 - **R4.6** At 64 pt the first icon is always 24 pt from the top of the content.
-- Tag dots sit **before the name**, on its first line, 5–6 pt before the text (MU-62).
+- Tag dots sit **before the name**, on its first line, 5–6 pt before the text (MU-62). With
+  several tags the last assigned is in front, on the left, and the one behind sits **6 pt** to its
+  right (5 pt in the list; FOLDER-CUSTOM).
 
 ![Icon grid](diagrams/icon-view.svg)
 

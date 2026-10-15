@@ -45,34 +45,8 @@ For a disk, General lists the volume type, version, format, capacity, available 
 - **R11.4** Changing a privilege from its menu (Read and write / Read only / No access) on a
   user's file applies **at once, on disk**, without unlocking the lock.
 
-## Customize Folder (provisional)
+## Customize Folder
 
-Folders have a colour and a symbol drawn on their icon, as the reference system does. Nothing of
-this section is measured yet: every value below is *provisional* and changes when the
-measurement lands.
+A folder's colour, symbol and emoji are not in Get Info: they have their own popover, opened from
+the folder's context menu ([folder-customize.md](folder-customize.md), FOLDER-CUSTOM #91).
 
-Storage, on the folder itself so every app and the shell see it:
-
-- a tag named like a colour in `user.xdg.tags` (Red, Orange, Yellow, Green, Blue, Purple, Gray,
-  or the same names in another language Mustache knows) tints the folder;
-- a custom tint and/or symbol in `user.silica.folder`, JSON: `{"tint":"#e8336d","symbol":"music-note"}`.
-  The tint is `#rrggbb` or a colour name (`red` … `gray`); the symbol a silica-icons symbol name;
-- on a disk without user attributes, the same JSON in the GIO metadata store
-  (`metadata::silica-folder`).
-
-The tint is the custom one, else the first colour tag's, else none. A custom symbol replaces a
-special folder's own; one silica-icons does not have is ignored. Changes made elsewhere redraw
-the icons of the folders on screen at once (attribute changes are watched, debounced ~120 ms).
-
-Opened from the folder's context menu (Customize Folder…, after the colour circles, in place of
-Tags…) or as a section of Get Info, after General:
-
-| Element | Value |
-| --- | --- |
-| Section | *after General, folders only, closed by default (provisional)* |
-| Colour row | *None, the seven colours, Custom; 16 pt swatches at a 22 pt pitch; the chosen one with a 2 pt ring in the text colour (provisional)* |
-| Swatch colours | the tint colours of the silica-icons generic folder (`labels`) |
-| Custom colour | *a 22 pt field taking `#rrggbb`, applied on Return (provisional)* |
-| Symbol grid | *a search field (22 pt), then 28 pt cells, 8 per row, 4 rows visible and scrolling; 18 pt glyphs in the text colour; the chosen cell with a 6 pt-radius fill of the link colour at 20%; "no symbol" first (provisional)* |
-| Reset | *a text button in the link colour, bottom right: removes the custom tint and symbol, not the tags (provisional)* |
-| Error | *"This folder can't be customized." in red, bottom left, when saving fails (provisional)* |

@@ -12,8 +12,8 @@ The menu of the selected icons ends, as the window's, with the row of seven colo
 window's measurements: 14 pt at a 24 pt pitch, 25 pt tall, *provisional*) and Customize Folder…
 (Tags…, disabled, unless the selection is one folder). The shell draws them and sends back
 `desktop.action` = `tag:<colour>` (all the selected items have the tag: it is removed, else added)
-or `customize` (starts a file manager window with `--customize=<folder>`: Get Info on its
-Customize Folder section). `desktop.state` carries `tags` (the colours all the selected items
+or `customize` (starts a file manager window with `--customize=<folder>`: the Customize Folder
+popover on that folder). `desktop.state` carries `tags` (the colours all the selected items
 have, checked in the row) and `folder` (the selection is one folder).
 
 | Measure | Value |

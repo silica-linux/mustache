@@ -54,7 +54,7 @@ pictures), Silica keeps its own symbol on purpose.
 | --- | --- | --- | --- |
 | Sidebar | a **solid circle**, one color | **~12.5–13 pt** | **none**: only antialiasing |
 | Context menu | a solid circle with a **1 pt ring of the same color, darker and more saturated** | **14 pt** (20 on hover, with a white + / ✓ / ×) | tone on tone, the same in light and dark |
-| List | as the menu | **10 pt** | with several tags, also a 1 pt ring **in the background color** in front of the dot behind (5 pt pitch) |
+| List | as the menu | **10 pt** | with several tags, also a 1 pt ring **in the background color** in front of the dot behind (5 pt pitch; 6 pt under an icon; the last assigned in front, on the left) |
 | Tag without a color (sidebar) | a gray **ring** `#6e6e74` | — | — |
 
 There are two palettes. The sidebar's dots are **saturated** (red `#fb001a`, orange `#f87b00`,

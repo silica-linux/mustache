@@ -43,6 +43,7 @@ Mustache's own (English source, `lib/l10n`), not the reference's.
 | [tabs.md](tabs.md) | tab bar, All Tabs |
 | [bars.md](bars.md) | path bar, status bar and icon-size slider |
 | [preview-pane.md](preview-pane.md) | the preview pane |
+| [folder-customize.md](folder-customize.md) | Customize Folder: the popover (tags as colour, symbol, emoji), storage, tag dots |
 | [sidebar.md](sidebar.md) | sidebar geometry, selection, sections, dragging, width, volumes, tags |
 | [list-view.md](list-view.md) | list view |
 | [icon-view.md](icon-view.md) | icon view, thumbnails, sorting and free positions |

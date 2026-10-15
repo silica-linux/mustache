@@ -962,38 +962,106 @@
   },
   "customizeFolder": "Customize Folder…",
   "@customizeFolder": {
-    "description": "Folder context menu: opens Get Info on the Customize Folder section."
-  },
-  "infoCustomize": "Customize Folder",
-  "@infoCustomize": {
-    "description": "Info section of a folder: its colour and symbol."
-  },
-  "folderColor": "Color",
-  "@folderColor": {
-    "description": "Customize Folder: the colour row."
-  },
-  "folderSymbol": "Symbol",
-  "@folderSymbol": {
-    "description": "Customize Folder: the symbol grid."
-  },
-  "folderCustomColor": "Custom color, as #rrggbb",
-  "@folderCustomColor": {
-    "description": "Customize Folder: placeholder of the custom colour field."
-  },
-  "folderSymbolSearch": "Search symbols",
-  "@folderSymbolSearch": {
-    "description": "Customize Folder: placeholder of the symbol search field."
+    "description": "Folder context menu: opens the Customize Folder popover on the folder icon."
   },
   "folderNoSymbols": "No symbols",
   "@folderNoSymbols": {
     "description": "Customize Folder: the search found nothing, or the icons are not installed."
   },
-  "folderReset": "Reset",
-  "@folderReset": {
-    "description": "Customize Folder: removes the custom colour and symbol."
-  },
   "folderStyleError": "This folder can't be customized.",
   "@folderStyleError": {
     "description": "Customize Folder: saving failed (no permission, read-only disk)."
+  },
+  "folderRemoveAllTags": "Remove all tags",
+  "@folderRemoveAllTags": {
+    "description": "Customize Folder: removes every tag of the folder (it goes back to blue); also the hover caption."
+  },
+  "folderAddTag": "Add tag",
+  "@folderAddTag": {
+    "description": "Customize Folder: the plus button after the colours (accessibility label)."
+  },
+  "folderEditTags": "Edit Tags…",
+  "@folderEditTags": {
+    "description": "Customize Folder: the last item of the plus menu; shows the folder in the preview pane, where tags are typed."
+  },
+  "folderClear": "Clear",
+  "@folderClear": {
+    "description": "Customize Folder: removes the symbol or emoji, keeps the tags."
+  },
+  "folderEmoji": "Emoji",
+  "@folderEmoji": {
+    "description": "Customize Folder: opens the emoji picker."
+  },
+  "emojiSearch": "Search",
+  "@emojiSearch": {
+    "description": "Emoji picker: placeholder of the search field."
+  },
+  "emojiNone": "No emoji found",
+  "@emojiNone": {
+    "description": "Emoji picker: the search found nothing."
+  },
+  "symbolPeople": "People",
+  "@symbolPeople": {
+    "description": "Customize Folder: symbol category."
+  },
+  "symbolNature": "Animals & Nature",
+  "@symbolNature": {
+    "description": "Customize Folder: symbol category."
+  },
+  "symbolFood": "Food & Drink",
+  "@symbolFood": {
+    "description": "Customize Folder: symbol category."
+  },
+  "symbolActivities": "Activities",
+  "@symbolActivities": {
+    "description": "Customize Folder: symbol category."
+  },
+  "symbolTravel": "Travel & Places",
+  "@symbolTravel": {
+    "description": "Customize Folder: symbol category."
+  },
+  "symbolObjects": "Objects",
+  "@symbolObjects": {
+    "description": "Customize Folder: symbol category."
+  },
+  "symbolSymbols": "Symbols",
+  "@symbolSymbols": {
+    "description": "Customize Folder: symbol category."
+  },
+  "emojiFrequent": "Frequently Used",
+  "@emojiFrequent": {
+    "description": "Emoji picker: category heading and bar tooltip."
+  },
+  "emojiSmileys": "Smileys & People",
+  "@emojiSmileys": {
+    "description": "Emoji picker: category heading and bar tooltip."
+  },
+  "emojiAnimals": "Animals & Nature",
+  "@emojiAnimals": {
+    "description": "Emoji picker: category heading and bar tooltip."
+  },
+  "emojiFood": "Food & Drink",
+  "@emojiFood": {
+    "description": "Emoji picker: category heading and bar tooltip."
+  },
+  "emojiActivity": "Activity",
+  "@emojiActivity": {
+    "description": "Emoji picker: category heading and bar tooltip."
+  },
+  "emojiTravel": "Travel & Places",
+  "@emojiTravel": {
+    "description": "Emoji picker: category heading and bar tooltip."
+  },
+  "emojiObjects": "Objects",
+  "@emojiObjects": {
+    "description": "Emoji picker: category heading and bar tooltip."
+  },
+  "emojiSymbols": "Symbols",
+  "@emojiSymbols": {
+    "description": "Emoji picker: category heading and bar tooltip."
+  },
+  "emojiFlags": "Flags",
+  "@emojiFlags": {
+    "description": "Emoji picker: category heading and bar tooltip."
   }
 }

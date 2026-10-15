@@ -639,27 +639,78 @@ class AppLocalizationsIt extends AppLocalizations {
   String get customizeFolder => 'Personalizza cartella…';
 
   @override
-  String get infoCustomize => 'Personalizza cartella';
-
-  @override
-  String get folderColor => 'Colore';
-
-  @override
-  String get folderSymbol => 'Simbolo';
-
-  @override
-  String get folderCustomColor => 'Colore personalizzato, come #rrggbb';
-
-  @override
-  String get folderSymbolSearch => 'Cerca simboli';
-
-  @override
   String get folderNoSymbols => 'Nessun simbolo';
-
-  @override
-  String get folderReset => 'Ripristina';
 
   @override
   String get folderStyleError =>
       'Non è possibile personalizzare questa cartella.';
+
+  @override
+  String get folderRemoveAllTags => 'Rimuovi tutti i tag';
+
+  @override
+  String get folderAddTag => 'Aggiungi tag';
+
+  @override
+  String get folderEditTags => 'Modifica tag…';
+
+  @override
+  String get folderClear => 'Cancella';
+
+  @override
+  String get folderEmoji => 'Emoji';
+
+  @override
+  String get emojiSearch => 'Cerca';
+
+  @override
+  String get emojiNone => 'Nessuna emoji trovata';
+
+  @override
+  String get symbolPeople => 'Persone';
+
+  @override
+  String get symbolNature => 'Animali e natura';
+
+  @override
+  String get symbolFood => 'Cibo e bevande';
+
+  @override
+  String get symbolActivities => 'Attività';
+
+  @override
+  String get symbolTravel => 'Viaggi e luoghi';
+
+  @override
+  String get symbolObjects => 'Oggetti';
+
+  @override
+  String get symbolSymbols => 'Simboli';
+
+  @override
+  String get emojiFrequent => 'Usate di frequente';
+
+  @override
+  String get emojiSmileys => 'Faccine e persone';
+
+  @override
+  String get emojiAnimals => 'Animali e natura';
+
+  @override
+  String get emojiFood => 'Cibo e bevande';
+
+  @override
+  String get emojiActivity => 'Attività';
+
+  @override
+  String get emojiTravel => 'Viaggi e luoghi';
+
+  @override
+  String get emojiObjects => 'Oggetti';
+
+  @override
+  String get emojiSymbols => 'Simboli';
+
+  @override
+  String get emojiFlags => 'Bandiere';
 }

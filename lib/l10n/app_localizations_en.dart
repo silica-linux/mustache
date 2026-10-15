@@ -640,26 +640,77 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customizeFolder => 'Customize Folder…';
 
   @override
-  String get infoCustomize => 'Customize Folder';
-
-  @override
-  String get folderColor => 'Color';
-
-  @override
-  String get folderSymbol => 'Symbol';
-
-  @override
-  String get folderCustomColor => 'Custom color, as #rrggbb';
-
-  @override
-  String get folderSymbolSearch => 'Search symbols';
-
-  @override
   String get folderNoSymbols => 'No symbols';
 
   @override
-  String get folderReset => 'Reset';
+  String get folderStyleError => 'This folder can\'t be customized.';
 
   @override
-  String get folderStyleError => 'This folder can\'t be customized.';
+  String get folderRemoveAllTags => 'Remove all tags';
+
+  @override
+  String get folderAddTag => 'Add tag';
+
+  @override
+  String get folderEditTags => 'Edit Tags…';
+
+  @override
+  String get folderClear => 'Clear';
+
+  @override
+  String get folderEmoji => 'Emoji';
+
+  @override
+  String get emojiSearch => 'Search';
+
+  @override
+  String get emojiNone => 'No emoji found';
+
+  @override
+  String get symbolPeople => 'People';
+
+  @override
+  String get symbolNature => 'Animals & Nature';
+
+  @override
+  String get symbolFood => 'Food & Drink';
+
+  @override
+  String get symbolActivities => 'Activities';
+
+  @override
+  String get symbolTravel => 'Travel & Places';
+
+  @override
+  String get symbolObjects => 'Objects';
+
+  @override
+  String get symbolSymbols => 'Symbols';
+
+  @override
+  String get emojiFrequent => 'Frequently Used';
+
+  @override
+  String get emojiSmileys => 'Smileys & People';
+
+  @override
+  String get emojiAnimals => 'Animals & Nature';
+
+  @override
+  String get emojiFood => 'Food & Drink';
+
+  @override
+  String get emojiActivity => 'Activity';
+
+  @override
+  String get emojiTravel => 'Travel & Places';
+
+  @override
+  String get emojiObjects => 'Objects';
+
+  @override
+  String get emojiSymbols => 'Symbols';
+
+  @override
+  String get emojiFlags => 'Flags';
 }

@@ -4,17 +4,21 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mustache/src/emoji_data.dart';
 import 'package:mustache/src/folder_customize.dart';
+import 'package:mustache/src/folder_icons.dart';
 import 'package:mustache/src/folder_style.dart';
-import 'package:mustache/src/info.dart';
 import 'package:mustache/src/model.dart';
 import 'package:mustache/src/settings.dart';
+import 'package:mustache/src/tags.dart';
 import 'package:mustache/src/window.dart';
 import 'package:mustache/src/xattr.dart';
 import 'package:silica_ui/silica_ui.dart';
 
 import 'folder_fixture.dart';
 import 'folder_style_test.dart' show FakeDisk, FakeMetadata, homeTemp;
+
+const String _path = '/home/a/Lavoro';
 
 void main() {
   late Directory icons;
@@ -25,158 +29,556 @@ void main() {
         .setMockMethodCallHandler(GlassRegistry.channel, (call) async => true);
     icons = folderIconsRoot();
     env = {'SILICA_ICONS_DIR': icons.path, 'HOME': '/nonexistent-home'};
+    frequentEmoji
+      ..clear()
+      ..addAll(defaultFrequentEmoji);
   });
 
   tearDown(() => icons.deleteSync(recursive: true));
 
-  Future<FolderStyles> pumpSection(
+  late FakeDisk disk;
+  late FolderStyles styles;
+  var closed = 0;
+  var editTags = 0;
+  var writes = <List<String>>[];
+
+  /// The popover over a 1000 x 800 area, pointing at a folder icon at (100, 100).
+  Future<void> pumpPopover(
     WidgetTester tester, {
-    FakeDisk? disk,
     bool fails = false,
+    Brightness brightness = Brightness.dark,
   }) async {
-    final d = disk ?? FakeDisk();
-    final styles = FolderStyles(
-      readAttribute: d.read,
-      writeAttribute: fails ? (_, _, _) => AttributeWrite.failed : d.write,
-      readTags: (path) => d.tags[path] ?? const [],
+    disk = FakeDisk();
+    styles = FolderStyles(
+      readAttribute: disk.read,
+      writeAttribute: fails ? (_, _, _) => AttributeWrite.failed : disk.write,
+      readTags: (path) => disk.tags[path] ?? const [],
       metadata: FakeMetadata(),
     );
     addTearDown(styles.dispose);
+    closed = 0;
+    editTags = 0;
+    writes = [];
+    tester.view.physicalSize = const Size(1000, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       Directionality(
         textDirection: TextDirection.ltr,
-        child: Center(
-          child: SizedBox(
-            width: infoWidth,
-            child: FolderCustomizeSection(
-              path: '/home/a/Lavoro',
-              env: env,
-              styles: styles,
-            ),
+        child: MediaQuery(
+          data: MediaQueryData(
+            size: const Size(1000, 800),
+            platformBrightness: brightness,
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                left: 100,
+                top: 100,
+                width: 64,
+                height: 64,
+                child: FolderIconAnchor(
+                  path: _path,
+                  child: const SizedBox.expand(),
+                ),
+              ),
+              Positioned.fill(
+                child: FolderCustomizeOverlay(
+                  path: _path,
+                  env: env,
+                  styles: styles,
+                  writeTags: (path, tags) {
+                    writes.add(tags);
+                    disk.tags[path] = tags;
+                    return true;
+                  },
+                  onEditTags: () => editTags++,
+                  onClose: () => closed++,
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
-    return styles;
+    await tester.pump();
+    await tester.pump();
   }
 
-  testWidgets('swatches save the colour; a custom colour from the field', (
+  Rect body(WidgetTester tester) =>
+      tester.getRect(find.byKey(const ValueKey('folder popover')));
+
+  /// The left edge of a disc relative to the popover body.
+  double discX(WidgetTester tester, String name) =>
+      tester.getTopLeft(find.byKey(ValueKey('folder disc $name'))).dx -
+      body(tester).left;
+
+  Future<void> slide(WidgetTester tester, [int ms = 600]) async {
+    for (var t = 0; t < ms; t += 50) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+  }
+
+  testWidgets('the popover: 320 x 670 body, arrow on the left of the icon', (
     tester,
   ) async {
-    final styles = await pumpSection(tester);
-    // None, the seven colours and the custom one.
-    for (final name in [
-      'none',
-      'red',
-      'orange',
-      'yellow',
-      'green',
-      'blue',
-      'purple',
-      'gray',
-      'custom',
-    ]) {
-      expect(find.byKey(ValueKey('folder tint $name')), findsOneWidget);
-    }
-    await tester.tap(find.byKey(const ValueKey('folder tint purple')));
-    await tester.pump();
-    expect(styles.stored('/home/a/Lavoro'), const FolderStyle(tint: 'purple'));
-    expect(find.byKey(const ValueKey('folder tint field')), findsNothing);
-
-    await tester.tap(find.byKey(const ValueKey('folder tint custom')));
-    await tester.pump();
-    await tester.enterText(
-      find.descendant(
-        of: find.byKey(const ValueKey('folder tint field')),
-        matching: find.byType(EditableText),
-      ),
-      'E8336D',
+    await pumpPopover(tester);
+    final rect = body(tester);
+    expect(rect.size, const Size(320, 670));
+    // To the right of the icon (64 pt wide at x 100), the arrow pointing at it.
+    expect(rect.left, greaterThan(164));
+    // Preview 96 pt, discs 26 pt at a 34 pitch from x 42, the "+" 28 pt.
+    expect(
+      tester.getSize(find.byKey(const ValueKey('folder preview'))),
+      const Size(96, 96),
     );
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pump();
-    expect(styles.stored('/home/a/Lavoro'), const FolderStyle(tint: '#e8336d'));
-
-    await tester.tap(find.byKey(const ValueKey('folder tint none')));
-    await tester.pump();
-    expect(styles.stored('/home/a/Lavoro'), isNull);
+    expect(discX(tester, 'red'), 42);
+    expect(discX(tester, 'orange'), 76);
+    expect(discX(tester, 'gray'), 42 + 34 * 6);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('folder disc red'))),
+      const Size(26, 26),
+    );
+    expect(
+      tester.getSize(find.byKey(const ValueKey('folder add tag'))),
+      const Size(28, 28),
+    );
+    expect(
+      tester.getSize(find.byKey(const ValueKey('folder emoji button'))),
+      const Size(147, 24),
+    );
+    expect(
+      tester.getSize(find.byKey(const ValueKey('folder clear'))),
+      const Size(147, 24),
+    );
+    // The grid: 6 columns of 44 pt cells.
+    final a = tester.getTopLeft(
+      find.byKey(const ValueKey('folder symbol music-list')),
+    );
+    final b = tester.getTopLeft(
+      find.byKey(const ValueKey('folder symbol music-note')),
+    );
+    expect(b.dx - a.dx, greaterThanOrEqualTo(44));
+    expect(find.text('Customize Folder'), findsNothing);
   });
 
-  testWidgets('the symbol grid: search, choose, none, Reset', (tester) async {
-    final styles = await pumpSection(tester);
-    // "No symbol" first, then every symbol of silica-icons.
-    expect(find.byKey(const ValueKey('folder symbol none')), findsOneWidget);
-    for (final name in fixtureSymbols) {
-      expect(find.byKey(ValueKey('folder symbol $name')), findsOneWidget);
-    }
-    await tester.enterText(
+  testWidgets('the disc colours: dark and light', (tester) async {
+    expect(folderDiscColor(TagColor.red, dark: true), const Color(0xFFFF4747));
+    expect(folderDiscColor(TagColor.red, dark: false), const Color(0xFFFF383C));
+    expect(folderDiscColor(TagColor.blue, dark: true), const Color(0xFF0C99FF));
+    expect(
+      folderDiscColor(TagColor.gray, dark: false),
+      const Color(0xFF8E8E93),
+    );
+    await pumpPopover(tester);
+    Color? colour(String n) =>
+        ((tester
+                            .widget<Semantics>(
+                              find.descendant(
+                                of: find.byKey(ValueKey('folder disc $n')),
+                                matching: find.byType(Semantics),
+                              ),
+                            )
+                            .child!
+                        as Container)
+                    .decoration!
+                as BoxDecoration)
+            .color;
+    expect(colour('purple'), const Color(0xFFE647FC));
+    await pumpPopover(tester, brightness: Brightness.light);
+    expect(colour('purple'), const Color(0xFFB72BC8));
+  });
+
+  testWidgets('a colour assigns its tag, tints the folder, joins the group', (
+    tester,
+  ) async {
+    await pumpPopover(tester);
+    expect(styles.look(_path).tint, isNull);
+    await tester.tap(find.byKey(const ValueKey('folder disc red')));
+    await tester.pump();
+    expect(disk.tags[_path], ['Red']);
+    expect(styles.look(_path).tint, 'red');
+    // The preview is tinted at once, with no fade: the very next frame.
+    final preview = tester.widget<SilicaIcon>(
       find.descendant(
-        of: find.byKey(const ValueKey('folder symbol search')),
-        matching: find.byType(EditableText),
+        of: find.byKey(const ValueKey('folder preview')),
+        matching: find.byType(SilicaIcon),
       ),
-      'music',
+    );
+    expect((preview.source as FolderSource).folder.tint, isNotNull);
+    // The check, the divider and the other discs sliding ~8 pt right (~280 ms).
+    expect(find.text('✓'), findsOneWidget);
+    expect(find.byKey(const ValueKey('folder tag divider')), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 20));
+    expect(discX(tester, 'orange'), lessThan(84));
+    await slide(tester);
+    expect(discX(tester, 'red'), 42);
+    expect(discX(tester, 'orange'), 84);
+    expect(discX(tester, 'gray'), 84 + 34 * 5);
+    final divider = tester.getRect(
+      find.byKey(const ValueKey('folder tag divider')),
+    );
+    expect(divider.width, 2);
+    expect(divider.left - body(tester).left, 42 + 26 + 6);
+
+    // A second tag: the group is 36 wide, the newest in front, on the left; the folder takes
+    // the colour of the last assigned.
+    await tester.tap(find.byKey(const ValueKey('folder disc orange')));
+    await slide(tester);
+    expect(disk.tags[_path], ['Red', 'Orange']);
+    expect(styles.look(_path).tint, 'orange');
+    expect(discX(tester, 'orange'), 42);
+    expect(discX(tester, 'red'), 52);
+    expect(discX(tester, 'yellow'), 42 + 36 + 6 + 2 + 8);
+    // In front: orange paints after red.
+    final order = [
+      for (final w in tester.widgetList(
+        find.byWidgetPredicate(
+          (w) =>
+              w.key is ValueKey &&
+              '${(w.key! as ValueKey).value}'.startsWith('folder disc '),
+        ),
+      ))
+        '${(w.key! as ValueKey).value}',
+    ];
+    expect(
+      order.indexOf('folder disc orange'),
+      greaterThan(order.indexOf('folder disc red')),
+    );
+
+    // Clicking the assigned disc removes the tag (the folder goes back to red).
+    await tester.tap(find.byKey(const ValueKey('folder disc orange')));
+    await slide(tester);
+    expect(disk.tags[_path], ['Red']);
+    expect(styles.look(_path).tint, 'red');
+  });
+
+  testWidgets('hover: a white plus and the tag name; × on an assigned one', (
+    tester,
+  ) async {
+    await pumpPopover(tester);
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(mouse.removePointer);
+    await mouse.addPointer(location: const Offset(1, 1));
+    expect(find.byKey(const ValueKey('folder caption')), findsNothing);
+    await mouse.moveTo(
+      tester.getCenter(find.byKey(const ValueKey('folder disc green'))),
     );
     await tester.pump();
-    expect(find.byKey(const ValueKey('folder symbol house')), findsNothing);
-    expect(find.byKey(const ValueKey('folder symbol none')), findsNothing);
+    expect(find.text('+'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey('folder symbol music-list')),
-      findsOneWidget,
+      tester.widget<Text>(find.byKey(const ValueKey('folder caption'))).data,
+      'Green',
     );
+    await mouse.moveTo(Offset.zero);
+    await tester.pump();
+    expect(find.text('+'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('folder disc green')));
+    await slide(tester);
+    await mouse.moveTo(
+      tester.getCenter(find.byKey(const ValueKey('folder disc green'))),
+    );
+    await tester.pump();
+    expect(find.text('×'), findsOneWidget);
+    expect(find.text('✓'), findsNothing);
+  });
+
+  testWidgets('remove all tags: back to blue, the row slides back in ~470 ms', (
+    tester,
+  ) async {
+    await pumpPopover(tester);
+    disk.tags[_path] = ['Red', 'Verde', 'Progetti'];
+    styles.invalidate([_path]);
+    await tester.pump();
+    await tester.pump();
+    expect(styles.look(_path).tint, 'green');
+    await slide(tester);
+    expect(find.byKey(const ValueKey('folder tag divider')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('folder remove all tags')));
+    await tester.pump();
+    expect(disk.tags[_path], isEmpty);
+    expect(styles.look(_path).tint, isNull);
+    expect(find.byKey(const ValueKey('folder tag divider')), findsNothing);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(discX(tester, 'red'), isNot(42 + 0.0), reason: 'still sliding');
+    await slide(tester, 700);
+    for (var i = 0; i < TagColor.values.length; i++) {
+      expect(discX(tester, TagColor.values[i].name), 42 + 34.0 * i);
+    }
+  });
+
+  testWidgets('the remove all button does nothing without tags', (
+    tester,
+  ) async {
+    await pumpPopover(tester);
+    await tester.tap(find.byKey(const ValueKey('folder remove all tags')));
+    await tester.pump();
+    expect(writes, isEmpty);
+  });
+
+  testWidgets('a symbol is saved at once; Clear keeps the tags', (
+    tester,
+  ) async {
+    await pumpPopover(tester);
+    await tester.tap(find.byKey(const ValueKey('folder disc blue')));
+    await tester.pump();
+    // The seven categories in order (fixture: those with symbols), then Clear is disabled.
+    expect(find.text('Objects'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('folder clear')));
+    await tester.pump();
+    expect(styles.stored(_path), isNull);
+
     await tester.tap(find.byKey(const ValueKey('folder symbol music-note')));
     await tester.pump();
+    expect(styles.stored(_path), const FolderStyle(symbol: 'music-note'));
     expect(
-      styles.stored('/home/a/Lavoro'),
-      const FolderStyle(symbol: 'music-note'),
+      disk.attributes[_path]?[folderStyleAttribute],
+      '{"symbol":"music-note"}',
     );
+    expect(styles.look(_path).symbol, 'music-note');
+    // The selection: a 2 pt accent ring.
+    final ring = tester.widget<Container>(
+      find.descendant(
+        of: find.byKey(const ValueKey('folder symbol music-note')),
+        matching: find.byType(Container),
+      ),
+    );
+    final border = (ring.decoration! as BoxDecoration).border! as Border;
+    expect(border.top.width, 2);
+    expect(border.top.color, folderAccent);
+
+    await tester.tap(find.byKey(const ValueKey('folder clear')));
+    await tester.pump();
+    expect(styles.stored(_path), isNull);
+    expect(disk.tags[_path], ['Blue'], reason: 'the tags stay');
+    expect(styles.look(_path).tint, 'blue');
+  });
+
+  testWidgets('the symbols are in categories, People first, Symbols last', (
+    tester,
+  ) async {
+    final categories = folderSymbolCategories(env: env);
+    expect(
+      [for (final c in categories) c.id],
+      [
+        SymbolCategoryId.people,
+        SymbolCategoryId.activities,
+        SymbolCategoryId.travel,
+        SymbolCategoryId.objects,
+        SymbolCategoryId.symbols,
+      ],
+    );
+    expect(categories.first.names, ['smiley']);
+    expect(categories.last.names, ['star']);
+    expect(SymbolCategoryId.values, hasLength(7));
+    // Every symbol is in exactly one category.
+    final all = [for (final c in categories) ...c.names];
+    expect(all.toSet(), fixtureSymbols.toSet());
+    expect(all, hasLength(fixtureSymbols.length));
+  });
+
+  testWidgets('the emoji picker: search, pick, drawn in colour, replaces the '
+      'symbol', (tester) async {
+    await pumpPopover(tester);
+    await tester.tap(find.byKey(const ValueKey('folder symbol star')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('emoji popover')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('folder emoji button')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('emoji popover')), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('emoji popover'))),
+      const Size(320, 444),
+    );
+    expect(
+      tester.getSize(find.byKey(const ValueKey('emoji search'))).height,
+      28,
+    );
+    // Frequently used first, and a category bar.
+    expect(find.text('Frequently Used'), findsOneWidget);
+    expect(find.byKey(const ValueKey('emoji category 8')), findsOneWidget);
     await tester.enterText(
       find.descendant(
-        of: find.byKey(const ValueKey('folder symbol search')),
+        of: find.byKey(const ValueKey('emoji search')),
         matching: find.byType(EditableText),
       ),
-      'nothing like this',
+      'guitar',
     );
     await tester.pump();
-    expect(find.text('No symbols'), findsOneWidget);
+    expect(find.byKey(const ValueKey('emoji 🎸')), findsOneWidget);
+    expect(find.byKey(const ValueKey('emoji 🎵')), findsNothing);
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('emoji search')),
+        matching: find.byType(EditableText),
+      ),
+      'zzzz',
+    );
+    await tester.pump();
+    expect(find.text('No emoji found'), findsOneWidget);
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('emoji search')),
+        matching: find.byType(EditableText),
+      ),
+      '',
+    );
+    await tester.pump();
 
-    await tester.tap(find.byKey(const ValueKey('folder tint red')));
+    await tester.tap(find.byKey(const ValueKey('emoji 🎵')).first);
     await tester.pump();
-    expect(
-      styles.stored('/home/a/Lavoro'),
-      const FolderStyle(tint: 'red', symbol: 'music-note'),
+    expect(find.byKey(const ValueKey('emoji popover')), findsNothing);
+    expect(styles.stored(_path), const FolderStyle(emoji: '🎵'));
+    expect(disk.attributes[_path]?[folderStyleAttribute], '{"emoji":"🎵"}');
+    expect(frequentEmoji.first, '🎵');
+    // Drawn on the preview at about a third of the icon, replacing the symbol.
+    final emoji = find.descendant(
+      of: find.byKey(const ValueKey('folder preview')),
+      matching: find.byKey(const ValueKey('folder emoji')),
     );
-    await tester.tap(find.byKey(const ValueKey('folder reset')));
+    expect(emoji, findsOneWidget);
+    expect(
+      tester
+          .getSize(find.ancestor(of: emoji, matching: find.byType(FittedBox)))
+          .width,
+      closeTo(96 * folderEmojiRatio, 0.01),
+    );
+    expect(styles.look(_path).symbol, isNull);
+    // The Emoji button shows it, and Clear removes it.
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('folder emoji button')),
+        matching: find.text('🎵'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('folder clear')));
     await tester.pump();
-    expect(styles.stored('/home/a/Lavoro'), isNull);
+    expect(styles.stored(_path), isNull);
+    expect(emoji, findsNothing);
+  });
+
+  testWidgets('the "+" menu: colourless tags and Edit Tags…', (tester) async {
+    await pumpPopover(tester);
+    disk.tags[_path] = ['Progetti', 'Red'];
+    styles.invalidate([_path]);
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('folder add tag')));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Progetti'), findsOneWidget);
+    expect(find.text('Edit Tags…'), findsOneWidget);
+    await tester.tap(find.text('Progetti'));
+    await slide(tester, 1000);
+    expect(find.byType(MenuHost), findsNothing, reason: 'the menu closed');
+    expect(disk.tags[_path], ['Red']);
+    await tester.tap(find.byKey(const ValueKey('folder add tag')));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Progetti'), findsNothing);
+    await tester.tap(find.text('Edit Tags…'));
+    await slide(tester, 1000);
+    expect(editTags, 1);
+  });
+
+  testWidgets('Esc closes and keeps the changes; Esc first closes the emoji '
+      'picker; a click outside closes', (tester) async {
+    await pumpPopover(tester);
+    await tester.tap(find.byKey(const ValueKey('folder disc purple')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('folder emoji button')));
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('emoji popover')), findsNothing);
+    expect(closed, 0);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    expect(closed, 1);
+    expect(disk.tags[_path], ['Purple'], reason: 'the changes stay');
+
+    await tester.tapAt(const Offset(20, 700));
+    await tester.pump();
+    expect(closed, 2);
   });
 
   testWidgets('a folder that cannot be changed says so', (tester) async {
-    final styles = await pumpSection(tester, fails: true);
-    expect(find.byKey(const ValueKey('folder style error')), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('folder tint green')));
+    await pumpPopover(tester, fails: true);
+    await tester.tap(find.byKey(const ValueKey('folder symbol star')));
     await tester.pump();
-    expect(find.byKey(const ValueKey('folder style error')), findsOneWidget);
-    expect(styles.stored('/home/a/Lavoro'), isNull);
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('folder caption'))).data,
+      "This folder can't be customized.",
+    );
+    expect(styles.stored(_path), isNull);
   });
 
-  testWidgets('a change made elsewhere shows in the open section', (
+  testWidgets('a change made elsewhere shows in the open popover', (
     tester,
   ) async {
-    final disk = FakeDisk();
-    final styles = await pumpSection(tester, disk: disk);
-    disk.write('/home/a/Lavoro', folderStyleAttribute, '{"tint":"#123456"}');
-    styles.changed('/home/a/Lavoro');
+    await pumpPopover(tester);
+    disk.write(_path, folderStyleAttribute, '{"symbol":"house"}');
+    styles.changed(_path);
     await tester.pump(const Duration(milliseconds: 200));
-    // The custom swatch now shows the colour, chosen.
-    final swatch = find.descendant(
-      of: find.byKey(const ValueKey('folder tint custom')),
-      matching: find.byWidgetPredicate(
-        (w) =>
-            w is Container &&
-            w.decoration is BoxDecoration &&
-            (w.decoration! as BoxDecoration).color == const Color(0xFF123456),
+    final ring = tester.widget<Container>(
+      find.descendant(
+        of: find.byKey(const ValueKey('folder symbol house')),
+        matching: find.byType(Container),
       ),
     );
-    expect(swatch, findsOneWidget);
+    expect((ring.decoration! as BoxDecoration).border, isNotNull);
+  });
+
+  testWidgets('the tag dots: the last assigned in front, 6 pt in icon view', (
+    tester,
+  ) async {
+    Future<List<double>> lefts(double? pitch) async {
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: pitch == null
+              ? const Align(
+                  alignment: Alignment.topLeft,
+                  child: TagDots(tags: ['Red', 'Orange']),
+                )
+              : Align(
+                  alignment: Alignment.topLeft,
+                  child: TagDots(tags: const ['Red', 'Orange'], pitch: pitch),
+                ),
+        ),
+      );
+      return [
+        for (final p in tester.widgetList<Positioned>(find.byType(Positioned)))
+          p.left!,
+      ];
+    }
+
+    // Painted from the back: the first assigned (Red) behind, at the offset.
+    expect(await lefts(null), [5, 0]);
+    expect(await lefts(iconTagPitch), [6, 0]);
+    expect(
+      tester
+          .getSize(
+            find
+                .descendant(
+                  of: find.byType(TagDots),
+                  matching: find.byType(SizedBox),
+                )
+                .first,
+          )
+          .width,
+      16,
+    );
+    final colours = [
+      for (final d in tester.widgetList<Container>(
+        find.descendant(
+          of: find.byType(TagDot),
+          matching: find.byType(Container),
+        ),
+      ))
+        (d.decoration! as BoxDecoration).color,
+    ];
+    expect(colours.last, menuTagColor(TagColor.orange), reason: 'in front');
   });
 
   group('in the window', () {
@@ -261,7 +663,7 @@ void main() {
       folderStyles.invalidate([folder.path]);
     });
 
-    testWidgets('Customize Folder… opens Get Info on its section', (
+    testWidgets('Customize Folder… opens the popover on the folder icon', (
       tester,
     ) async {
       if (!await pumpWindow(tester)) {
@@ -273,8 +675,21 @@ void main() {
       for (var i = 0; i < 10; i++) {
         await tester.pump(const Duration(milliseconds: 60));
       }
-      expect(find.byKey(ValueKey('info ${folder.path}')), findsOneWidget);
-      expect(find.byType(FolderCustomizeSection), findsOneWidget);
+      expect(find.byType(MenuHost), findsNothing, reason: 'the menu closed');
+      // A popover, not a Get Info window.
+      expect(find.byKey(ValueKey('info ${folder.path}')), findsNothing);
+      expect(find.byKey(const ValueKey('folder popover')), findsOneWidget);
+      // It points at the folder's icon: to its right, level with it.
+      final icon = tester.getRect(
+        find
+            .descendant(
+              of: find.byType(ListView),
+              matching: find.byType(SilicaIcon),
+            )
+            .first,
+      );
+      final rect = tester.getRect(find.byKey(const ValueKey('folder popover')));
+      expect(rect.left, greaterThan(icon.right));
       await tester.tap(find.byKey(const ValueKey('folder symbol star')));
       await tester.pump();
       expect(
@@ -283,15 +698,28 @@ void main() {
       );
       expect(drawnFolder(tester)?.symbol, 'star');
 
+      // A colour is a tag, and the window's tag cache follows.
+      await tester.tap(find.byKey(const ValueKey('folder disc green')));
+      await tester.pump();
+      expect(readTags(folder.path), ['Green']);
+      expect(drawnFolder(tester)?.tint, isNotNull);
+
       // Changed by another app: the watcher's notice redraws the icon.
       writeAttribute(folder.path, folderStyleAttribute, '{"symbol":"house"}');
       folderStyles.changed(folder.path);
       await tester.pump(const Duration(milliseconds: 200));
       expect(drawnFolder(tester)?.symbol, 'house');
+
+      // Esc closes it and keeps the changes.
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(find.byKey(const ValueKey('folder popover')), findsNothing);
+      expect(readTags(folder.path), ['Green']);
+      writeTags(folder.path, []);
       folderStyles.save(folder.path, const FolderStyle());
     });
 
-    testWidgets('started from the desktop, Get Info opens on the section', (
+    testWidgets('started from the desktop, the popover opens on the folder', (
       tester,
     ) async {
       if (!await pumpWindow(tester, customize: true)) {
@@ -301,8 +729,8 @@ void main() {
       for (var i = 0; i < 10; i++) {
         await tester.pump(const Duration(milliseconds: 60));
       }
-      expect(find.byKey(ValueKey('info ${folder.path}')), findsOneWidget);
-      expect(find.byType(FolderCustomizeSection), findsOneWidget);
+      expect(find.byKey(ValueKey('info ${folder.path}')), findsNothing);
+      expect(find.byKey(const ValueKey('folder popover')), findsOneWidget);
     });
 
     testWidgets('a file has Tags…, not Customize Folder…', (tester) async {

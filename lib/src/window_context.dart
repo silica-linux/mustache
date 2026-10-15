@@ -80,7 +80,8 @@ extension _Context on _MustacheWindowState {
       _menuEntries = const [];
       _contextRing = null;
     });
-    _focus.requestFocus();
+    // The popover that the menu item opened keeps the keyboard (Esc).
+    (_customizing == null ? _focus : _customizeFocus).requestFocus();
   }
 
   List<MenuEntry> _itemsMenu(List<Entry> items) {
@@ -133,12 +134,26 @@ extension _Context on _MustacheWindowState {
     ];
   }
 
-  /// Customize Folder…: Get Info with its Customize Folder section open.
+  /// Customize Folder…: the popover on the folder icon.
   void _customizeFolder(String path) {
-    _update(() => _infoOpen.add(InfoSection.customize));
-    widget.settings?.infoSections = [for (final s in _infoOpen) s.name];
-    _openInfo([path]);
+    _update(() => _customizing = path);
   }
+
+  /// "Edit Tags…" of the popover: closes it, selects the folder and shows the preview pane, where
+  /// tags are typed.
+  void _editTags(String path) => _update(() {
+    _customizing = null;
+    if (_entries.any((e) => e.path == path)) {
+      _selected
+        ..clear()
+        ..add(path);
+      _anchor = _cursor = path;
+    }
+    if (!_previewPane) {
+      _previewPane = true;
+      widget.settings?.previewPane = true;
+    }
+  });
 
   /// "Open With ›": the default on top with "(default)", then the others by name, then "Other…"
   /// (R10.1).
