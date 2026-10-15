@@ -15,6 +15,7 @@ import 'package:flutter/gestures.dart' show kPrimaryButton;
 import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
 
+import 'folder_customize.dart' show FolderIconAnchor;
 import 'folder_icons.dart';
 import 'folder_style.dart';
 import 'icon_arrange.dart';
@@ -638,7 +639,10 @@ class _IconViewState extends State<IconView> {
                                   ? Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        TagDots(tags: tags),
+                                        TagDots(
+                                          tags: tags,
+                                          pitch: iconTagPitch,
+                                        ),
                                         const SizedBox(width: 5),
                                         Text(
                                           lines[i],
@@ -724,15 +728,27 @@ class EntryIcon extends StatelessWidget {
         listenable: folderStyles,
         builder: (context, _) {
           final folder = styledFolderIcon(entry.path, env: env);
-          if (folder == null) return SizedBox(width: side, height: side);
+          if (folder == null) {
+            return FolderIconAnchor(
+              path: entry.path,
+              child: SizedBox(width: side, height: side),
+            );
+          }
           // A folder with a visible item inside is drawn full; symbol and tint stay on top.
-          return SilicaIcon(
-            FolderSource(
-              folderHasItems(entry.path) ? fullFolder(folder) : folder,
+          return FolderIconAnchor(
+            path: entry.path,
+            child: FolderEmoji(
+              emoji: folderStyles.look(entry.path).emoji,
+              side: side,
+              child: SilicaIcon(
+                FolderSource(
+                  folderHasItems(entry.path) ? fullFolder(folder) : folder,
+                ),
+                side: side,
+                badges: badges,
+                env: env,
+              ),
             ),
-            side: side,
-            badges: badges,
-            env: env,
           );
         },
       );

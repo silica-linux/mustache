@@ -114,31 +114,42 @@ class TagDot extends StatelessWidget {
   }
 }
 
-/// The dots of an item in the list or under an icon: 10 pt, overlapping at a 5 pt pitch, the first
-/// in front.
+/// The offset of the dot behind in the list (and the columns) and under an icon (FOLDER-CUSTOM).
+const double listTagPitch = 5;
+const double iconTagPitch = 6;
+
+/// The dots of an item in the list or under an icon: 10 pt, overlapping at a 5 pt pitch (6 pt under
+/// an icon), the last assigned in front, on the left. Tags are stored in the order they were
+/// assigned.
 class TagDots extends StatelessWidget {
-  const TagDots({super.key, required this.tags, this.background});
+  const TagDots({
+    super.key,
+    required this.tags,
+    this.background,
+    this.pitch = listTagPitch,
+  });
 
   final List<String> tags;
   final Color? background;
+  final double pitch;
 
   @override
   Widget build(BuildContext context) {
     final colors = [
-      for (final t in tags)
+      for (final t in tags.reversed)
         if (tagColor(t) case final c?) menuTagColor(c),
     ];
     if (colors.isEmpty) return const SizedBox.shrink();
     return SizedBox(
-      width: 10 + 5.0 * (colors.length - 1),
+      width: 10 + pitch * (colors.length - 1),
       height: 10,
       child: Stack(
         children: [
-          // From the back: the last behind, the first in front; those in front have a ring in the
+          // From the back: the first assigned behind, the last assigned in front; those in front have a ring in the
           // background color, which separates them from the one behind.
           for (var i = colors.length - 1; i >= 0; i--)
             Positioned(
-              left: 5.0 * i,
+              left: pitch * i,
               child: TagDot(
                 color: colors[i],
                 side: 10,

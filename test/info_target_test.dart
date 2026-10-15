@@ -153,19 +153,20 @@ void main() {
         expect(info(doc.path), findsNothing);
       });
 
-      testWidgets('Customize Folder… customizes the folder, not its parent', (
+      testWidgets('Customize Folder… edits the folder, not its parent', (
         tester,
       ) async {
         await pump(tester, view: view);
         await rightClick(tester, 'Progetti');
         await tester.tap(find.text('Customize Folder…'));
         await settle(tester);
-        expect(info(sub.path), findsOneWidget);
-        expect(info(doc.path), findsNothing);
-        final section = tester.widget<FolderCustomizeSection>(
-          find.byType(FolderCustomizeSection),
+        // A popover on that folder, not a Get Info window.
+        expect(anyInfo(), findsNothing);
+        final overlay = tester.widget<FolderCustomizeOverlay>(
+          find.byType(FolderCustomizeOverlay),
         );
-        expect(section.path, sub.path);
+        expect(overlay.path, sub.path);
+        expect(find.byKey(const ValueKey('folder popover')), findsOneWidget);
       });
     });
   }
@@ -190,18 +191,20 @@ void main() {
     expect(anyInfo(), findsOneWidget);
   });
 
-  testWidgets('--customize=<folder>: the window opens in the parent, Info on '
-      'the folder itself', (tester) async {
-    await pump(tester, customize: sub.path);
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(info(sub.path), findsOneWidget);
-    expect(info(doc.path), findsNothing);
-    expect(anyInfo(), findsOneWidget);
-    expect(
-      tester
-          .widget<FolderCustomizeSection>(find.byType(FolderCustomizeSection))
-          .path,
-      sub.path,
-    );
-  });
+  testWidgets(
+    '--customize=<folder>: the window opens in the parent, the popover '
+    'on the folder itself',
+    (tester) async {
+      await pump(tester, customize: sub.path);
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(anyInfo(), findsNothing);
+      expect(
+        tester
+            .widget<FolderCustomizeOverlay>(find.byType(FolderCustomizeOverlay))
+            .path,
+        sub.path,
+      );
+      expect(find.byKey(const ValueKey('folder popover')), findsOneWidget);
+    },
+  );
 }

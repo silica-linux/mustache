@@ -34,6 +34,8 @@ Menu layouts. Groups are separated by `|`; labels are Mustache's.
 - **R10.2** Quick Actions › with no actions shows only Customize…. Services appears in the menus
   of the empty area and of the app, not in a file's menu.
 - **R10.3** Clicking a tag circle assigns the tag (or removes it) and closes the menu.
+- **R10.5** On a folder the last row of the tag group reads Customize Folder… in place of Tags…;
+  it opens the Customize Folder popover on the folder's icon ([folder-customize.md](folder-customize.md)).
 
 ## App menus and commands (MU-51)
 

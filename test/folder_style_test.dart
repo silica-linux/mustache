@@ -1,5 +1,6 @@
 import 'dart:ui' show Color;
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -89,6 +90,47 @@ void main() {
     expect(const FolderStyle(symbol: 'star').encode(), '{"symbol":"star"}');
   });
 
+  test(
+    'the emoji: stored as {"emoji":"🎵"}, replaces the symbol, validated',
+    () {
+      expect(
+        FolderStyle.parse('{"emoji":"🎵"}'),
+        const FolderStyle(emoji: '🎵'),
+      );
+      expect(const FolderStyle(emoji: '🎵').encode(), '{"emoji":"🎵"}');
+      // Both stored: the emoji wins, as on screen.
+      expect(
+        FolderStyle.parse('{"emoji":"🎵","symbol":"star"}'),
+        const FolderStyle(emoji: '🎵'),
+      );
+      // Not an emoji: plain letters, spaces, controls, too long.
+      for (final bad in ['a', '', 'ab c', '\n', '🎵' * 13]) {
+        expect(
+          FolderStyle.parse(jsonEncode({'emoji': bad})),
+          isNull,
+          reason: bad,
+        );
+      }
+      expect(validEmoji('🏳️\u200d🌈'), isTrue);
+      expect(validEmoji('1\ufe0f\u20e3'), isTrue, reason: 'a keycap');
+      // One replaces the other.
+      const symbol = FolderStyle(tint: 'red', symbol: 'star');
+      expect(
+        symbol.withEmoji('🎵'),
+        const FolderStyle(tint: 'red', emoji: '🎵'),
+      );
+      expect(
+        const FolderStyle(emoji: '🎵').withSymbol('star'),
+        const FolderStyle(symbol: 'star'),
+      );
+      expect(
+        symbol.withEmoji(null),
+        symbol,
+        reason: 'clearing keeps the symbol',
+      );
+    },
+  );
+
   test('user.silica.folder on a real folder, and the checked reads', () {
     final dir = homeTemp('mustache-folder-style');
     final folder = Directory('${dir.path}/Musica')..createSync();
@@ -108,7 +150,11 @@ void main() {
       readAttribute(folder.path, folderStyleAttribute),
       '{"tint":"#e8336d","symbol":"music-note"}',
     );
-    expect(styles.look(folder.path), (symbol: 'music-note', tint: '#e8336d'));
+    expect(styles.look(folder.path), (
+      symbol: 'music-note',
+      tint: '#e8336d',
+      emoji: null,
+    ));
     // Reset removes the attribute; removing it twice is fine.
     expect(styles.save(folder.path, const FolderStyle()), isTrue);
     expect(styles.save(folder.path, const FolderStyle()), isTrue);
@@ -180,22 +226,29 @@ void main() {
     expect(const GioFolderMetadata().write('/', '{}'), isFalse);
   });
 
-  test('tint order: custom, then the first colour tag, then none', () {
-    final disk = FakeDisk();
-    final styles = disk.styles(FakeMetadata());
-    const path = '/home/a/Lavoro';
-    expect(styles.look(path), (symbol: null, tint: null));
-    disk.tags[path] = ['Progetti', 'Verde', 'Red'];
-    styles.invalidate([path]);
-    expect(styles.look(path).tint, 'green', reason: 'the first colour tag');
-    disk.tags[path] = ['Grigio'];
-    styles.invalidate([path]);
-    expect(styles.look(path).tint, 'gray', reason: 'a localized name');
-    styles.save(path, const FolderStyle(symbol: 'star'));
-    expect(styles.look(path), (symbol: 'star', tint: 'gray'));
-    styles.save(path, const FolderStyle(tint: '#e8336d', symbol: 'star'));
-    expect(styles.look(path), (symbol: 'star', tint: '#e8336d'));
-  });
+  test(
+    'tint order: the last assigned colour tag, then an older custom tint',
+    () {
+      final disk = FakeDisk();
+      final styles = disk.styles(FakeMetadata());
+      const path = '/home/a/Lavoro';
+      expect(styles.look(path), (symbol: null, tint: null, emoji: null));
+      disk.tags[path] = ['Progetti', 'Verde', 'Red'];
+      styles.invalidate([path]);
+      expect(styles.look(path).tint, 'red', reason: 'the last colour tag');
+      disk.tags[path] = ['Grigio'];
+      styles.invalidate([path]);
+      expect(styles.look(path).tint, 'gray', reason: 'a localized name');
+      styles.save(path, const FolderStyle(symbol: 'star'));
+      expect(styles.look(path), (symbol: 'star', tint: 'gray', emoji: null));
+      // An older custom tint only counts when there is no colour tag.
+      styles.save(path, const FolderStyle(tint: '#e8336d', symbol: 'star'));
+      expect(styles.look(path).tint, 'gray');
+      disk.tags[path] = ['Progetti'];
+      styles.invalidate([path]);
+      expect(styles.look(path), (symbol: 'star', tint: '#e8336d', emoji: null));
+    },
+  );
 
   test('the icon gets the symbol and the tint, full or empty', () {
     final root = folderIconsRoot();
@@ -285,7 +338,11 @@ void main() {
       await redrawn.future.timeout(const Duration(seconds: 5));
       await Future<void>.delayed(const Duration(milliseconds: 150));
       expect(redraws, 1);
-      expect(styles.look(folder.path), (symbol: 'star', tint: 'red'));
+      expect(styles.look(folder.path), (
+        symbol: 'star',
+        tint: 'red',
+        emoji: null,
+      ));
       stop();
       expect(styles.watched, {dir.path}, reason: 'still shown by the other');
       again();

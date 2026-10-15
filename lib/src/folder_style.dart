@@ -2,13 +2,14 @@
 //
 // - colour tags in `user.xdg.tags` (the freedesktop convention, also read by other file
 //   managers): a tag named like a colour (Red, Rosso…) tints the folder;
-// - a custom tint and/or symbol in `user.silica.folder`, JSON such as
-//   `{"tint":"#e8336d","symbol":"music-note"}`; the tint is `#rrggbb` or a colour name (`red`),
-//   the symbol a silica-icons symbol name;
+// - a symbol or an emoji in `user.silica.folder`, JSON such as `{"symbol":"music-note"}` or
+//   `{"emoji":"🎵"}` (the emoji replaces the symbol); the symbol is a silica-icons symbol name.
+//   An older custom tint (`{"tint":"#e8336d"}`, a `#rrggbb` or a colour name) is still read;
 // - where the disk has no user attributes (some USB and network file systems), the same JSON in
 //   the GIO metadata store, key `metadata::silica-folder`.
 //
-// The tint is the custom one, else the colour of the first colour tag, else none. Values are
+// The folder colour is its tag colour (FOLDER-CUSTOM): the colour of the last assigned colour tag,
+// else an older custom tint, else none. Values are
 // cached per folder; watching the displayed folders (inotify IN_ATTRIB arrives as a modify event
 // without content change) drops the entries that changed and redraws the folder icons.
 
@@ -27,6 +28,10 @@ const String folderStyleAttribute = 'user.silica.folder';
 const String folderStyleMetadata = 'metadata::silica-folder';
 
 final RegExp _hexTint = RegExp(r'^#[0-9a-fA-F]{6}$');
+
+/// An emoji is at most this many code points (flags and family sequences are long).
+const int maxEmojiRunes = 12;
+
 final RegExp _symbolName = RegExp(r'^[a-z0-9][a-z0-9-]{0,63}$');
 
 /// A valid stored tint: `#rrggbb` or the name of a colour (`red`…`gray`).
@@ -37,20 +42,43 @@ bool validTint(String? tint) =>
 bool validSymbol(String? symbol) =>
     symbol != null && _symbolName.hasMatch(symbol);
 
-/// What the user chose for a folder (either part can be missing).
+/// A storable emoji: short, no control characters or spaces.
+bool validEmoji(String? emoji) =>
+    emoji != null &&
+    emoji.isNotEmpty &&
+    emoji.runes.length <= maxEmojiRunes &&
+    !emoji.runes.any((r) => r <= 0x20 || (r >= 0x7f && r < 0xa0)) &&
+    // A bare ASCII letter or digit is not an emoji (a keycap is: digit + U+FE0F + U+20E3).
+    (emoji.runes.length > 1 || emoji.runes.first > 0x7f);
+
+/// What the user chose for a folder (any part can be missing). A symbol and an emoji exclude
+/// each other.
 @immutable
 class FolderStyle {
-  const FolderStyle({this.tint, this.symbol});
+  const FolderStyle({this.tint, this.symbol, this.emoji});
 
   final String? tint;
   final String? symbol;
+  final String? emoji;
 
-  bool get isEmpty => tint == null && symbol == null;
+  bool get isEmpty => tint == null && symbol == null && emoji == null;
 
   FolderStyle withTint(String? value) =>
-      FolderStyle(tint: value, symbol: symbol);
-  FolderStyle withSymbol(String? value) =>
-      FolderStyle(tint: tint, symbol: value);
+      FolderStyle(tint: value, symbol: symbol, emoji: emoji);
+
+  /// The symbol replaces an emoji.
+  FolderStyle withSymbol(String? value) => FolderStyle(
+    tint: tint,
+    symbol: value,
+    emoji: value == null ? emoji : null,
+  );
+
+  /// The emoji replaces a symbol.
+  FolderStyle withEmoji(String? value) => FolderStyle(
+    tint: tint,
+    symbol: value == null ? symbol : null,
+    emoji: value,
+  );
 
   /// The stored JSON; unknown or malformed fields are dropped. Null: nothing usable.
   static FolderStyle? parse(String? json) {
@@ -60,9 +88,14 @@ class FolderStyle {
       if (value is! Map) return null;
       final tint = value['tint'];
       final symbol = value['symbol'];
+      final emoji = value['emoji'];
+      final okEmoji = emoji is String && validEmoji(emoji);
       final style = FolderStyle(
         tint: tint is String && validTint(tint) ? tint.toLowerCase() : null,
-        symbol: symbol is String && validSymbol(symbol) ? symbol : null,
+        symbol: !okEmoji && symbol is String && validSymbol(symbol)
+            ? symbol
+            : null,
+        emoji: okEmoji ? emoji : null,
       );
       return style.isEmpty ? null : style;
     } on FormatException {
@@ -70,14 +103,18 @@ class FolderStyle {
     }
   }
 
-  String encode() => jsonEncode({'tint': ?tint, 'symbol': ?symbol});
+  String encode() =>
+      jsonEncode({'tint': ?tint, 'symbol': ?symbol, 'emoji': ?emoji});
 
   @override
   bool operator ==(Object other) =>
-      other is FolderStyle && other.tint == tint && other.symbol == symbol;
+      other is FolderStyle &&
+      other.tint == tint &&
+      other.symbol == symbol &&
+      other.emoji == emoji;
 
   @override
-  int get hashCode => Object.hash(tint, symbol);
+  int get hashCode => Object.hash(tint, symbol, emoji);
 }
 
 /// The store used where a disk has no user attributes.
@@ -118,8 +155,8 @@ String? parseGioInfo(String output) {
   return null;
 }
 
-/// What a folder icon shows: the symbol and the tint (`#rrggbb` or a colour name).
-typedef FolderLook = ({String? symbol, String? tint});
+/// What a folder icon shows: the symbol or the emoji and the tint (`#rrggbb` or a colour name).
+typedef FolderLook = ({String? symbol, String? tint, String? emoji});
 
 /// Folder styles: read, cached, saved, and watched.
 class FolderStyles extends ChangeNotifier {
@@ -161,22 +198,23 @@ class FolderStyles extends ChangeNotifier {
     return _stored[path] = style;
   }
 
-  /// Symbol and tint of the folder: the custom tint, else the first colour tag's.
+  /// Symbol or emoji and tint of the folder: the tint is the colour of the last assigned colour
+  /// tag (tags are stored in the order they were assigned), else an older custom tint.
   FolderLook look(String path) {
     final hit = _looks[path];
     if (hit != null) return hit;
     final style = stored(path);
-    var tint = style?.tint;
-    if (tint == null) {
-      for (final tag in readTags(path)) {
-        if (tagColor(tag) case final color?) {
-          tint = color.name;
-          break;
-        }
-      }
+    String? tint;
+    for (final tag in readTags(path)) {
+      if (tagColor(tag) case final color?) tint = color.name;
     }
+    tint ??= style?.tint;
     if (_looks.length > 4000) _looks.clear();
-    return _looks[path] = (symbol: style?.symbol, tint: tint);
+    return _looks[path] = (
+      symbol: style?.symbol,
+      tint: tint,
+      emoji: style?.emoji,
+    );
   }
 
   /// Saves [style] on the folder (an empty style removes it). False if it could not.

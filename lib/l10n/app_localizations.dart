@@ -1094,41 +1094,11 @@ abstract class AppLocalizations {
   /// **'Stop'**
   String get stop;
 
-  /// Folder context menu: opens Get Info on the Customize Folder section.
+  /// Folder context menu: opens the Customize Folder popover on the folder icon.
   ///
   /// In en, this message translates to:
   /// **'Customize Folder…'**
   String get customizeFolder;
-
-  /// Info section of a folder: its colour and symbol.
-  ///
-  /// In en, this message translates to:
-  /// **'Customize Folder'**
-  String get infoCustomize;
-
-  /// Customize Folder: the colour row.
-  ///
-  /// In en, this message translates to:
-  /// **'Color'**
-  String get folderColor;
-
-  /// Customize Folder: the symbol grid.
-  ///
-  /// In en, this message translates to:
-  /// **'Symbol'**
-  String get folderSymbol;
-
-  /// Customize Folder: placeholder of the custom colour field.
-  ///
-  /// In en, this message translates to:
-  /// **'Custom color, as #rrggbb'**
-  String get folderCustomColor;
-
-  /// Customize Folder: placeholder of the symbol search field.
-  ///
-  /// In en, this message translates to:
-  /// **'Search symbols'**
-  String get folderSymbolSearch;
 
   /// Customize Folder: the search found nothing, or the icons are not installed.
   ///
@@ -1136,17 +1106,149 @@ abstract class AppLocalizations {
   /// **'No symbols'**
   String get folderNoSymbols;
 
-  /// Customize Folder: removes the custom colour and symbol.
-  ///
-  /// In en, this message translates to:
-  /// **'Reset'**
-  String get folderReset;
-
   /// Customize Folder: saving failed (no permission, read-only disk).
   ///
   /// In en, this message translates to:
   /// **'This folder can\'t be customized.'**
   String get folderStyleError;
+
+  /// Customize Folder: removes every tag of the folder (it goes back to blue); also the hover caption.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove all tags'**
+  String get folderRemoveAllTags;
+
+  /// Customize Folder: the plus button after the colours (accessibility label).
+  ///
+  /// In en, this message translates to:
+  /// **'Add tag'**
+  String get folderAddTag;
+
+  /// Customize Folder: the last item of the plus menu; shows the folder in the preview pane, where tags are typed.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Tags…'**
+  String get folderEditTags;
+
+  /// Customize Folder: removes the symbol or emoji, keeps the tags.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get folderClear;
+
+  /// Customize Folder: opens the emoji picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Emoji'**
+  String get folderEmoji;
+
+  /// Emoji picker: placeholder of the search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get emojiSearch;
+
+  /// Emoji picker: the search found nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'No emoji found'**
+  String get emojiNone;
+
+  /// Customize Folder: symbol category.
+  ///
+  /// In en, this message translates to:
+  /// **'People'**
+  String get symbolPeople;
+
+  /// Customize Folder: symbol category.
+  ///
+  /// In en, this message translates to:
+  /// **'Animals & Nature'**
+  String get symbolNature;
+
+  /// Customize Folder: symbol category.
+  ///
+  /// In en, this message translates to:
+  /// **'Food & Drink'**
+  String get symbolFood;
+
+  /// Customize Folder: symbol category.
+  ///
+  /// In en, this message translates to:
+  /// **'Activities'**
+  String get symbolActivities;
+
+  /// Customize Folder: symbol category.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel & Places'**
+  String get symbolTravel;
+
+  /// Customize Folder: symbol category.
+  ///
+  /// In en, this message translates to:
+  /// **'Objects'**
+  String get symbolObjects;
+
+  /// Customize Folder: symbol category.
+  ///
+  /// In en, this message translates to:
+  /// **'Symbols'**
+  String get symbolSymbols;
+
+  /// Emoji picker: category heading and bar tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Frequently Used'**
+  String get emojiFrequent;
+
+  /// Emoji picker: category heading and bar tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Smileys & People'**
+  String get emojiSmileys;
+
+  /// Emoji picker: category heading and bar tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Animals & Nature'**
+  String get emojiAnimals;
+
+  /// Emoji picker: category heading and bar tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Food & Drink'**
+  String get emojiFood;
+
+  /// Emoji picker: category heading and bar tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity'**
+  String get emojiActivity;
+
+  /// Emoji picker: category heading and bar tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel & Places'**
+  String get emojiTravel;
+
+  /// Emoji picker: category heading and bar tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Objects'**
+  String get emojiObjects;
+
+  /// Emoji picker: category heading and bar tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Symbols'**
+  String get emojiSymbols;
+
+  /// Emoji picker: category heading and bar tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Flags'**
+  String get emojiFlags;
 }
 
 class _AppLocalizationsDelegate

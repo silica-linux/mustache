@@ -103,7 +103,7 @@ folders.
 | Rename | `mustache.rename` | Return |
 | Go to folder | `mustache.go.to` | ⌘⇧G |
 | Get Info | `mustache.info` | ⌘I |
-| Customize Folder (Get Info on its colour and symbol) | `mustache.folder.customize` | — (folder context menu) |
+| Customize Folder (popover: tags, symbol, emoji) | `mustache.folder.customize` | — (folder context menu) |
 | Quick preview | `mustache.preview` | Space |
 | New folder | `mustache.new.folder` | ⌘⇧N |
 | Duplicate | `mustache.duplicate` | ⌘D |

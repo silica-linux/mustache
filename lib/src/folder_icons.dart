@@ -6,6 +6,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
 
 import 'folder_style.dart';
@@ -99,15 +100,18 @@ FolderIcon fullFolder(FolderIcon folder) => FolderIcon(
 
 /// The icon of the folder at [path] with its colour and symbol (folder_style.dart): a custom
 /// symbol replaces the special folder's; one silica-icons does not have keeps the special one.
+/// An emoji is not part of it: [FolderEmoji] draws it on top.
 FolderIcon? styledFolderIcon(
   String path, {
   Map<String, String>? env,
   FolderStyles? styles,
 }) {
   final look = (styles ?? folderStyles).look(path);
+  // An emoji replaces every symbol, the special folder's too (an unknown key has none).
   final folder = resolveFolderIcon(
     path,
     symbol: look.symbol,
+    key: look.emoji == null ? null : '-',
     tint: look.tint,
     env: env,
   );
@@ -116,3 +120,57 @@ FolderIcon? styledFolderIcon(
   }
   return folder;
 }
+
+/// Where the emoji sits on the folder canvas, and its size: the centre of the symbol box of the
+/// generic folder (x 0.5, y 0.569) and a third of the icon (FOLDER-CUSTOM: ~30 pt on 96 pt).
+const Offset folderEmojiCentre = Offset(0.5, 0.569);
+const double folderEmojiRatio = 0.31;
+
+/// [child] (a folder icon of [side]) with the folder's [emoji] on its front, in full colour; no
+/// emoji: [child] as it is.
+class FolderEmoji extends StatelessWidget {
+  const FolderEmoji({
+    super.key,
+    required this.emoji,
+    required this.side,
+    required this.child,
+  });
+
+  final String? emoji;
+  final double side;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final emoji = this.emoji;
+    if (emoji == null) return child;
+    final box = side * folderEmojiRatio;
+    return Stack(
+      children: [
+        child,
+        Positioned(
+          left: side * folderEmojiCentre.dx - box / 2,
+          top: side * folderEmojiCentre.dy - box / 2,
+          width: box,
+          height: box,
+          child: IgnorePointer(
+            child: FittedBox(
+              child: Text(
+                emoji,
+                key: const ValueKey('folder emoji'),
+                style: const TextStyle(
+                  fontSize: 100,
+                  height: 1,
+                  fontFamilyFallback: emojiFonts,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The colour emoji fonts, tried in order after the platform's own fallback.
+const List<String> emojiFonts = ['Noto Color Emoji', 'Apple Color Emoji'];

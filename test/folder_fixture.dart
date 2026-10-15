@@ -58,6 +58,7 @@ const List<String> fixtureSymbols = [
   'house',
   'music-list',
   'music-note',
+  'smiley',
   'star',
 ];
 

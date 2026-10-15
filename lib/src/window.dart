@@ -19,6 +19,7 @@ import 'settings.dart';
 import 'apps.dart';
 import 'column_view.dart';
 import 'dialog.dart';
+import 'folder_customize.dart';
 import 'folder_icons.dart';
 import 'folder_style.dart';
 import 'drag.dart';
@@ -235,7 +236,7 @@ class MustacheWindow extends StatefulWidget {
     this.customize,
   });
 
-  /// A folder whose Get Info opens on the Customize Folder section at start (`--customize=<path>`,
+  /// A folder whose Customize Folder popover opens at start (`--customize=<path>`,
   /// sent by the desktop's context menu; `start` is the folder that holds it).
   final String? customize;
 
@@ -375,6 +376,10 @@ class _MustacheWindowState extends State<MustacheWindow>
   String? _tagView;
   int _tagSearch = 0;
 
+  /// The folder whose Customize Folder popover is open (folder_customize.dart), if any.
+  String? _customizing;
+  final FocusNode _customizeFocus = FocusNode(debugLabel: 'customize folder');
+
   /// The open Get Info windows (paths) and their open sections (shared by all).
   final List<String> _infos = [];
   late final Set<InfoSection> _infoOpen = {
@@ -481,10 +486,7 @@ class _MustacheWindowState extends State<MustacheWindow>
     super.initState();
     _lifecycle;
     _externalDrags = SilicaDrag.events.listen(_dragEvent);
-    if (widget.customize case final path?) {
-      _infos.add(path);
-      _infoOpen.add(InfoSection.customize);
-    }
+    if (widget.customize case final path?) _customizing = path;
     _load();
   }
 
@@ -494,6 +496,7 @@ class _MustacheWindowState extends State<MustacheWindow>
     _lifecycle.dispose();
     _externalDrags?.cancel();
     _focus.dispose();
+    _customizeFocus.dispose();
     _listScrollX.dispose();
     _sidebarShown.dispose();
     _slowClick?.cancel();
@@ -1250,9 +1253,32 @@ class _MustacheWindowState extends State<MustacheWindow>
                       onRelease: _releaseSidebar,
                     ),
                   ),
+                  // The Customize Folder popover, under the context menu.
+                  // (The Positioned widgets have keys so that one appearing does not shift the
+                  // menu onto the other's element and restart it.)
+                  if (_customizing case final path?)
+                    Positioned.fill(
+                      key: const ValueKey('customize host'),
+                      child: FolderCustomizeOverlay(
+                        key: ValueKey('customize $path'),
+                        path: path,
+                        env: widget.iconsEnv,
+                        waitForAnchor: widget.customize == path,
+                        focusNode: _customizeFocus,
+                        writeTags: writeTags,
+                        onTagsChanged: (tags) =>
+                            _update(() => _tagCache[path] = tags),
+                        onEditTags: () => _editTags(path),
+                        onClose: () {
+                          _update(() => _customizing = null);
+                          _focus.requestFocus();
+                        },
+                      ),
+                    ),
                   // The context menu: a click outside closes it.
                   if (_menuAt != null)
                     Positioned.fill(
+                      key: const ValueKey('context menu host'),
                       child: MenuHost(
                         key: ValueKey(_menuAt),
                         entries: _menuEntries,
