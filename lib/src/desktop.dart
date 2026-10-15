@@ -38,6 +38,8 @@ import 'apps.dart';
 import 'drag.dart' show composeDragImage, startFileDrag;
 import 'icon_arrange.dart';
 import 'icon_view.dart' show EntryIcon, labelLines;
+import 'menu_scope.dart';
+import 'menus.dart';
 import 'model.dart';
 import 'operations.dart';
 import 'rename_field.dart';
@@ -412,7 +414,11 @@ class DesktopView extends StatefulWidget {
     this.watch = true,
     this.readTags = xattr.readTags,
     this.writeTags = xattr.writeTags,
+    this.places = const [],
   });
+
+  /// The user's folders (the Go menu opens a window on one).
+  final List<Place> places;
 
   final String folder;
   final IconPositions positions;
@@ -467,6 +473,11 @@ class DesktopViewState extends State<DesktopView>
   StreamSubscription<SilicaDragEvent>? _drags;
   final FocusNode _focus = FocusNode(debugLabel: 'desktop');
   Size _size = Size.zero;
+
+  /// The process' menu bar (menu_scope.dart) and whether a publication of the desktop's menus
+  /// waits for the end of the frame.
+  MenuHub? _menuHub;
+  bool _menuQueued = false;
 
   // The press in progress.
   String? _pressKey;
@@ -569,7 +580,14 @@ class DesktopViewState extends State<DesktopView>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _menuHub = menuHubOf(context);
+  }
+
+  @override
   void dispose() {
+    _menuHub?.release(this);
     _unwatch?.call();
     _drags?.cancel();
     _focus.dispose();
@@ -798,22 +816,25 @@ class DesktopViewState extends State<DesktopView>
   void _open(List<Entry> items) {
     for (final e in items) {
       if (e.isDirectory) {
-        final app = AppRegistry.load(
-          env: widget.env,
-          mime: systemMime,
-        ).apps['dev.frascella.Mustache.desktop'];
-        final args = app == null
-            ? const <String>[]
-            : execArguments(app, [e.path]);
-        _launch(
-          args.isEmpty
-              ? 'xdg-open ${shellQuote(e.path)}'
-              : args.map(shellQuote).join(' '),
-        );
+        openFolder(e.path);
       } else {
         _launch('xdg-open ${shellQuote(e.path)}');
       }
     }
+  }
+
+  /// A file manager window on `path` (another process, from the app's .desktop entry).
+  void openFolder(String path) {
+    final app = AppRegistry.load(
+      env: widget.env,
+      mime: systemMime,
+    ).apps['dev.frascella.Mustache.desktop'];
+    final args = app == null ? const <String>[] : execArguments(app, [path]);
+    _launch(
+      args.isEmpty
+          ? 'xdg-open ${shellQuote(path)}'
+          : args.map(shellQuote).join(' '),
+    );
   }
 
   static const TextStyle _labelStyle = TextStyle(
@@ -1297,8 +1318,71 @@ class DesktopViewState extends State<DesktopView>
         at;
   }
 
+  /// Publishes the desktop's menus at the end of this frame (the desktop focused: the bar shows
+  /// these while no window is in front). The window actions are disabled; Sort By, Use Stacks and
+  /// the file operations of the selected icons work.
+  void _queueMenus() {
+    if (_menuQueued) return;
+    _menuQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _menuQueued = false;
+      final hub = _menuHub;
+      if (!mounted || hub == null) return;
+      hub.publish(this, buildMenus(_menuSpec()));
+    });
+  }
+
+  MenuSpec _menuSpec() {
+    final items = _selection;
+    final home = widget.env?['HOME'] ?? Platform.environment['HOME'];
+    VoidCallback? act(String id, {bool when = true}) =>
+        when && _renaming == null ? () => runAction(id) : null;
+    String? place(PlaceKind kind) =>
+        widget.places.where((p) => p.kind == kind).firstOrNull?.path;
+    return MenuSpec(
+      selectionName: items.length == 1 ? items.single.name : null,
+      selectionCount: items.length,
+      selectionIsFolder: items.length == 1 && items.single.isDirectory,
+      editingText: _renaming != null,
+      newWindow: home == null ? null : () => openFolder(home),
+      newFolder: act('newFolder'),
+      open: act('open', when: items.isNotEmpty),
+      rename: act('rename', when: items.length == 1),
+      duplicate: act('duplicate', when: items.isNotEmpty),
+      moveToTrash: act('trash', when: items.isNotEmpty),
+      selectAll: _positions.isEmpty || _renaming != null
+          ? null
+          : () {
+              setState(() {
+                _selected
+                  ..clear()
+                  ..addAll(_positions.keys);
+              });
+              _announce();
+            },
+      useStacks: true,
+      stacksOn: widget.choices.stacks,
+      toggleStacks: act('stacks'),
+      sortChecked: widget.choices.sort,
+      sortBy: (key) => runAction('sort:$key'),
+      sortNone: act('sort:none'),
+      goTo: openFolder,
+      places: {
+        for (final (goPlace, kind) in [
+          (GoPlace.documents, PlaceKind.documents),
+          (GoPlace.desktop, PlaceKind.desktop),
+          (GoPlace.downloads, PlaceKind.downloads),
+          (GoPlace.home, PlaceKind.home),
+        ])
+          if (place(kind) case final path?) goPlace: path,
+        GoPlace.computer: '/',
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    _queueMenus();
     final size = MediaQuery.sizeOf(context);
     if (size != _size) {
       _size = size;

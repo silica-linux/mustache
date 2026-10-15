@@ -713,4 +713,244 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get emojiFlags => 'Bandiere';
+
+  @override
+  String get menuFile => 'File';
+
+  @override
+  String get menuEdit => 'Modifica';
+
+  @override
+  String get menuGo => 'Vai';
+
+  @override
+  String get menuWindow => 'Finestra';
+
+  @override
+  String get menuHelp => 'Aiuto';
+
+  @override
+  String get menuEmptyTrash => 'Svuota il Cestino…';
+
+  @override
+  String get menuNewWindow => 'Nuova finestra di Mustache';
+
+  @override
+  String menuNewFolderWith(String name) {
+    return 'Nuova cartella con $name';
+  }
+
+  @override
+  String get menuNewFolderWithSelection => 'Nuova cartella con selezione';
+
+  @override
+  String get menuNewSmartFolder => 'Nuova cartella smart';
+
+  @override
+  String get menuNewTab => 'Nuovo pannello';
+
+  @override
+  String get menuCloseWindow => 'Chiudi finestra';
+
+  @override
+  String get menuGetInfo => 'Ottieni informazioni';
+
+  @override
+  String get menuCompress => 'Comprimi';
+
+  @override
+  String get menuMakeLink => 'Crea alias';
+
+  @override
+  String get menuQuickLook => 'Visualizzazione rapida';
+
+  @override
+  String get menuShare => 'Condividi…';
+
+  @override
+  String get menuManageSharedFolder => 'Gestisci cartella condivisa…';
+
+  @override
+  String get menuManageSharedFile => 'Gestisci file condiviso…';
+
+  @override
+  String get menuShowOriginal => 'Mostra originale';
+
+  @override
+  String get menuAddToSidebar => 'Aggiungi alla barra laterale';
+
+  @override
+  String get menuEject => 'Espelli';
+
+  @override
+  String get menuPrint => 'Stampa';
+
+  @override
+  String get menuUndo => 'Annulla';
+
+  @override
+  String get menuRedo => 'Ripristina';
+
+  @override
+  String get menuCut => 'Taglia';
+
+  @override
+  String menuCopyName(String name) {
+    return 'Copia $name';
+  }
+
+  @override
+  String menuCopyItems(int count) {
+    return 'Copia $count elementi';
+  }
+
+  @override
+  String get menuSelectAll => 'Seleziona tutto';
+
+  @override
+  String get menuShowClipboard => 'Mostra gli appunti';
+
+  @override
+  String get menuFind => 'Cerca';
+
+  @override
+  String get menuAsIcons => 'Come icone';
+
+  @override
+  String get menuAsList => 'Come elenco';
+
+  @override
+  String get menuAsColumns => 'Come colonne';
+
+  @override
+  String get menuAsGallery => 'Come galleria';
+
+  @override
+  String get menuUseGroups => 'Utilizza gruppi';
+
+  @override
+  String get menuUseStacks => 'Utilizza pile';
+
+  @override
+  String get menuSortLastOpened => 'Data ultima apertura';
+
+  @override
+  String get menuSortAdded => 'Data di aggiunta';
+
+  @override
+  String get menuSortCreated => 'Data di creazione';
+
+  @override
+  String get menuSortTags => 'Tag';
+
+  @override
+  String get menuShowTabBar => 'Mostra la barra dei pannelli';
+
+  @override
+  String get menuShowAllTabs => 'Mostra tutti i pannelli';
+
+  @override
+  String get menuHideSidebar => 'Nascondi la barra laterale';
+
+  @override
+  String get menuShowSidebar => 'Mostra la barra laterale';
+
+  @override
+  String get menuShowPreview => 'Mostra anteprima';
+
+  @override
+  String get menuHidePreview => 'Nascondi anteprima';
+
+  @override
+  String get menuHideToolbar => 'Nascondi la barra strumenti';
+
+  @override
+  String get menuShowPathBar => 'Mostra la barra del percorso';
+
+  @override
+  String get menuHidePathBar => 'Nascondi la barra del percorso';
+
+  @override
+  String get menuShowStatusBar => 'Mostra la barra di stato';
+
+  @override
+  String get menuHideStatusBar => 'Nascondi la barra di stato';
+
+  @override
+  String get menuCustomizeToolbar => 'Personalizza la barra strumenti…';
+
+  @override
+  String get menuShowViewOptions => 'Mostra opzioni Vista';
+
+  @override
+  String get menuShowPreviewOptions => 'Mostra opzioni anteprima';
+
+  @override
+  String get menuBack => 'Indietro';
+
+  @override
+  String get menuForward => 'Avanti';
+
+  @override
+  String get menuEnclosingFolder => 'Cartella dell’elemento';
+
+  @override
+  String get menuRecents => 'Recenti';
+
+  @override
+  String get menuDocuments => 'Documenti';
+
+  @override
+  String get menuDesktop => 'Scrivania';
+
+  @override
+  String get menuDownloads => 'Download';
+
+  @override
+  String get menuHome => 'Inizio';
+
+  @override
+  String get menuComputer => 'Computer';
+
+  @override
+  String get menuNearbySharing => 'Condivisione nelle vicinanze';
+
+  @override
+  String get menuNetwork => 'Rete';
+
+  @override
+  String get menuCloudDrive => 'Drive cloud';
+
+  @override
+  String get menuShared => 'Condivisi';
+
+  @override
+  String get menuApplications => 'Applicazioni';
+
+  @override
+  String get menuUtilities => 'Utility';
+
+  @override
+  String get menuRecentFolders => 'Cartelle recenti';
+
+  @override
+  String get menuGoToFolder => 'Vai alla cartella…';
+
+  @override
+  String get menuConnectToServer => 'Connessione al server…';
+
+  @override
+  String get menuPreviousTab => 'Mostra pannello precedente';
+
+  @override
+  String get menuNextTab => 'Mostra pannello successivo';
+
+  @override
+  String get menuMoveTabToWindow => 'Sposta pannello in una nuova finestra';
+
+  @override
+  String get menuMergeWindows => 'Unisci tutte le finestre';
+
+  @override
+  String get menuShowProgress => 'Mostra finestra avanzamento';
 }

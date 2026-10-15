@@ -12,6 +12,8 @@ extension _Transfers on _MustacheWindowState {
     FileClipboard.paths = paths;
     // Also as text, for other apps (one path per line).
     Clipboard.setData(ClipboardData(text: paths.join('\n'))).ignore();
+    // Paste in the menus is now enabled.
+    _menusChanged();
   }
 
   void _paste({required bool move}) {

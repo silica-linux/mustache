@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+Menus in Silica's menu bar (silica-desktop#175): the app menu, File, Edit, View, Go, Window and
+Help, published with silica_ui 0.34's `SilicaMenuBar` as measured (docs/spec/menus-and-settings.md):
+shortcuts, separators, checkmarks (view, sort, bars), labels that follow the selection and
+enabled states by selection, tabs, dialog and desktop (the desktop process publishes its own menus,
+with Use Stacks and Sort By). Items that run are wired to the existing actions; those whose feature
+does not exist yet are shown disabled. New: Select All (⌘A) and Open (⌘O) for several items.
+
 Get Info is a real window (#12): ⌘I, File › Get Info and the context menus open one child
 window of the Mustache window per item (at most five), which can be dragged anywhere, stays above
 its browser window and open while it is used, and is as tall as its content (265 pt wide). Ossido

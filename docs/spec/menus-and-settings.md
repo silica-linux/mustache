@@ -133,6 +133,41 @@ Commands and shortcuts (the command ids are Mustache's registry, see [product.md
 | Window | Show Progress | — |
 | Help | search field, manual, tips | ⌘? (shell) |
 
+### The menus in the menu bar (silica-desktop#175)
+
+The app publishes these menus to Silica's menu bar (silica-menu-v1, silica_ui `SilicaMenuBar`;
+`lib/src/menus.dart`): the app menu, File, Edit, View, Go, Window and Help. Every state shows the
+same items; the state decides which are enabled and a few labels, as measured:
+
+- **Selection**: with nothing selected Open, Rename, Duplicate, Quick Look, Move to Trash, Copy and
+  New Folder with Selection are disabled; with one item the names appear in the labels (New Folder
+  with “name”, Copy “name”); Open With › is enabled for files and disabled for a folder.
+- **Desktop focused**: the desktop process publishes its own menus (Ossido shows the frontmost
+  client's). The four views, the bars, Customize Toolbar…, Clean Up and Clean Up By › are
+  disabled; Use Groups becomes **Use Stacks** (⌃⌘0, `desktop.action` `stacks`); Sort By › stays
+  enabled (None, Name, Type, Modified, Size); Close Window, Get Info, Quick Look and Go › Back and
+  Forward are disabled.
+- **Open and Save dialog**: the dialog's process publishes the same menus with New Window, New Tab,
+  Get Info, the file operations, Gallery and the status bar and preview pane disabled; Close
+  Window cancels the dialog.
+- **Tabs**: one menu bar for the process, owned by the active tab; New Tab, Close Window (closes
+  the tab, the last one the window) and Show Previous/Next Tab (with two tabs or more) run the tabs
+  host's commands.
+- **Text fields**: while a name or the search field has the keyboard, Edit acts on the field
+  (Undo, Cut, Copy, Paste, Select All).
+- The Option and Shift variants of an item (Close All, Duplicate Exactly, Copy as Pathname,
+  Delete Immediately…, Open in New Tab, …) are not menu items: the bar has no alternates; the
+  keyboard shortcuts that exist keep working.
+- No Quit: Mustache keeps running without a window (DOCK-02).
+- Shown disabled, not done yet: About, Settings…, Empty Trash…, New Folder with Selection, New
+  Smart Folder, Compress, Make Link, Share…, Manage Shared Folder…, Show Original, Add to Sidebar,
+  Eject, Print, Cut, Show Clipboard, Use Groups, Sort By › Last Opened, Date Added, Created and
+  Tags, Show Tab Bar, Show All Tabs, Hide Toolbar, Customize Toolbar…, Show View Options, Show
+  Preview Options, Recents, Nearby Sharing, Network, Cloud Drive, Shared, Applications, Utilities,
+  Recent Folders ›, Go to Folder…, Connect to Server…, Move Tab to New Window, Merge All Windows
+  and Show Progress Window. The tag colour row of File and the system Edit items (writing tools,
+  autofill, dictation, emoji) are not drawn: they belong to the system.
+
 ## Tags popover and settings (MU-62)
 
 | Measure | Value |

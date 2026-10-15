@@ -713,4 +713,244 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get emojiFlags => 'Flags';
+
+  @override
+  String get menuFile => 'File';
+
+  @override
+  String get menuEdit => 'Edit';
+
+  @override
+  String get menuGo => 'Go';
+
+  @override
+  String get menuWindow => 'Window';
+
+  @override
+  String get menuHelp => 'Help';
+
+  @override
+  String get menuEmptyTrash => 'Empty Trash…';
+
+  @override
+  String get menuNewWindow => 'New Mustache Window';
+
+  @override
+  String menuNewFolderWith(String name) {
+    return 'New Folder with $name';
+  }
+
+  @override
+  String get menuNewFolderWithSelection => 'New Folder with Selection';
+
+  @override
+  String get menuNewSmartFolder => 'New Smart Folder';
+
+  @override
+  String get menuNewTab => 'New Tab';
+
+  @override
+  String get menuCloseWindow => 'Close Window';
+
+  @override
+  String get menuGetInfo => 'Get Info';
+
+  @override
+  String get menuCompress => 'Compress';
+
+  @override
+  String get menuMakeLink => 'Make Link';
+
+  @override
+  String get menuQuickLook => 'Quick Look';
+
+  @override
+  String get menuShare => 'Share…';
+
+  @override
+  String get menuManageSharedFolder => 'Manage Shared Folder…';
+
+  @override
+  String get menuManageSharedFile => 'Manage Shared File…';
+
+  @override
+  String get menuShowOriginal => 'Show Original';
+
+  @override
+  String get menuAddToSidebar => 'Add to Sidebar';
+
+  @override
+  String get menuEject => 'Eject';
+
+  @override
+  String get menuPrint => 'Print';
+
+  @override
+  String get menuUndo => 'Undo';
+
+  @override
+  String get menuRedo => 'Redo';
+
+  @override
+  String get menuCut => 'Cut';
+
+  @override
+  String menuCopyName(String name) {
+    return 'Copy $name';
+  }
+
+  @override
+  String menuCopyItems(int count) {
+    return 'Copy $count Items';
+  }
+
+  @override
+  String get menuSelectAll => 'Select All';
+
+  @override
+  String get menuShowClipboard => 'Show Clipboard';
+
+  @override
+  String get menuFind => 'Find';
+
+  @override
+  String get menuAsIcons => 'as Icons';
+
+  @override
+  String get menuAsList => 'as List';
+
+  @override
+  String get menuAsColumns => 'as Columns';
+
+  @override
+  String get menuAsGallery => 'as Gallery';
+
+  @override
+  String get menuUseGroups => 'Use Groups';
+
+  @override
+  String get menuUseStacks => 'Use Stacks';
+
+  @override
+  String get menuSortLastOpened => 'Last Opened';
+
+  @override
+  String get menuSortAdded => 'Date Added';
+
+  @override
+  String get menuSortCreated => 'Created';
+
+  @override
+  String get menuSortTags => 'Tags';
+
+  @override
+  String get menuShowTabBar => 'Show Tab Bar';
+
+  @override
+  String get menuShowAllTabs => 'Show All Tabs';
+
+  @override
+  String get menuHideSidebar => 'Hide Sidebar';
+
+  @override
+  String get menuShowSidebar => 'Show Sidebar';
+
+  @override
+  String get menuShowPreview => 'Show Preview';
+
+  @override
+  String get menuHidePreview => 'Hide Preview';
+
+  @override
+  String get menuHideToolbar => 'Hide Toolbar';
+
+  @override
+  String get menuShowPathBar => 'Show Path Bar';
+
+  @override
+  String get menuHidePathBar => 'Hide Path Bar';
+
+  @override
+  String get menuShowStatusBar => 'Show Status Bar';
+
+  @override
+  String get menuHideStatusBar => 'Hide Status Bar';
+
+  @override
+  String get menuCustomizeToolbar => 'Customize Toolbar…';
+
+  @override
+  String get menuShowViewOptions => 'Show View Options';
+
+  @override
+  String get menuShowPreviewOptions => 'Show Preview Options';
+
+  @override
+  String get menuBack => 'Back';
+
+  @override
+  String get menuForward => 'Forward';
+
+  @override
+  String get menuEnclosingFolder => 'Enclosing Folder';
+
+  @override
+  String get menuRecents => 'Recents';
+
+  @override
+  String get menuDocuments => 'Documents';
+
+  @override
+  String get menuDesktop => 'Desktop';
+
+  @override
+  String get menuDownloads => 'Downloads';
+
+  @override
+  String get menuHome => 'Home';
+
+  @override
+  String get menuComputer => 'Computer';
+
+  @override
+  String get menuNearbySharing => 'Nearby Sharing';
+
+  @override
+  String get menuNetwork => 'Network';
+
+  @override
+  String get menuCloudDrive => 'Cloud Drive';
+
+  @override
+  String get menuShared => 'Shared';
+
+  @override
+  String get menuApplications => 'Applications';
+
+  @override
+  String get menuUtilities => 'Utilities';
+
+  @override
+  String get menuRecentFolders => 'Recent Folders';
+
+  @override
+  String get menuGoToFolder => 'Go to Folder…';
+
+  @override
+  String get menuConnectToServer => 'Connect to Server…';
+
+  @override
+  String get menuPreviousTab => 'Show Previous Tab';
+
+  @override
+  String get menuNextTab => 'Show Next Tab';
+
+  @override
+  String get menuMoveTabToWindow => 'Move Tab to New Window';
+
+  @override
+  String get menuMergeWindows => 'Merge All Windows';
+
+  @override
+  String get menuShowProgress => 'Show Progress Window';
 }

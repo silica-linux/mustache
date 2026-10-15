@@ -9,6 +9,7 @@ import 'src/desktop.dart';
 import 'src/dialog.dart';
 import 'src/icon_arrange.dart';
 import 'src/l10n.dart';
+import 'src/menu_scope.dart';
 import 'src/model.dart';
 import 'src/settings.dart';
 import 'src/tabs.dart';
@@ -50,14 +51,19 @@ void main(List<String> args) {
       AppLocalizationsScope(
         child: Directionality(
           textDirection: TextDirection.ltr,
-          child: DesktopView(
-            folder: desktopFolderOf(
-              env,
-              userDirs.existsSync() ? userDirs.readAsStringSync() : null,
+          // The desktop publishes its own menus: it is another client of the menu bar than the
+          // windows' processes, and the bar shows the frontmost one's.
+          child: MenuScope(
+            child: DesktopView(
+              folder: desktopFolderOf(
+                env,
+                userDirs.existsSync() ? userDirs.readAsStringSync() : null,
+              ),
+              positions: iconPositions,
+              choices: DesktopChoices.forUser(env),
+              env: env,
+              places: places,
             ),
-            positions: iconPositions,
-            choices: DesktopChoices.forUser(env),
-            env: env,
           ),
         ),
       ),
@@ -74,14 +80,16 @@ void main(List<String> args) {
       AppLocalizationsScope(
         child: Directionality(
           textDirection: TextDirection.ltr,
-          child: MustacheWindow(
-            start: start,
-            places: places,
-            trash: trash,
-            iconsDir: env['SILICA_ICONS_DIR'],
-            settings: settings,
-            iconPositions: iconPositions,
-            dialog: dialog,
+          child: MenuScope(
+            child: MustacheWindow(
+              start: start,
+              places: places,
+              trash: trash,
+              iconsDir: env['SILICA_ICONS_DIR'],
+              settings: settings,
+              iconPositions: iconPositions,
+              dialog: dialog,
+            ),
           ),
         ),
       ),
@@ -99,23 +107,25 @@ void main(List<String> args) {
       child: Directionality(
         textDirection: TextDirection.ltr,
         // The Get Info windows (mustache#12), each in its own window next to this one.
-        child: SilicaWindowHost(
-          child: SilicaAppWindow(
-            onClosed: () => opensAt = home,
-            // One window per tab (⌘T).
-            builder: (context) => TabsHost(
-              start: opensAt,
-              build: (tab, tabBar, onLocation, active) => MustacheWindow(
-                start: tab.location,
-                places: places,
-                trash: trash,
-                iconsDir: env['SILICA_ICONS_DIR'],
-                settings: settings,
-                iconPositions: iconPositions,
-                tabBar: tabBar,
-                onLocation: onLocation,
-                focused: active,
-                customize: customize,
+        child: MenuScope(
+          child: SilicaWindowHost(
+            child: SilicaAppWindow(
+              onClosed: () => opensAt = home,
+              // One window per tab (⌘T).
+              builder: (context) => TabsHost(
+                start: opensAt,
+                build: (tab, tabBar, onLocation, active) => MustacheWindow(
+                  start: tab.location,
+                  places: places,
+                  trash: trash,
+                  iconsDir: env['SILICA_ICONS_DIR'],
+                  settings: settings,
+                  iconPositions: iconPositions,
+                  tabBar: tabBar,
+                  onLocation: onLocation,
+                  focused: active,
+                  customize: customize,
+                ),
               ),
             ),
           ),

@@ -30,6 +30,8 @@ import 'icon_arrange.dart';
 import 'icon_view.dart';
 import 'info.dart';
 import 'list_view.dart';
+import 'menu_scope.dart';
+import 'menus.dart';
 import 'operations.dart';
 import 'path_bar.dart';
 import 'preview_pane.dart';
@@ -41,6 +43,7 @@ import 'transfer.dart';
 import 'transfer_ui.dart';
 import 'xattr.dart';
 import 'sidebar.dart';
+import 'tabs.dart';
 import 'tags.dart';
 import 'toolbar.dart';
 
@@ -51,6 +54,7 @@ part 'window_context.dart';
 part 'window_dialog.dart';
 part 'window_drag.dart';
 part 'window_list.dart';
+part 'window_menus.dart';
 part 'window_operations.dart';
 part 'window_search.dart';
 part 'window_tags.dart';
@@ -476,6 +480,11 @@ class _MustacheWindowState extends State<MustacheWindow>
   /// The sideways scroll of a list wider than the window (the header in the band follows it).
   final ScrollController _listScrollX = ScrollController();
   final FocusNode _focus = FocusNode();
+
+  /// The process' menu bar (menu_scope.dart) and whether a publication of this window's menus is
+  /// waiting for the end of the frame (window_menus.dart).
+  MenuHub? _menuHub;
+  bool _menuQueued = false;
   List<Entry> _entries = const [];
   String? _error;
   bool _showHidden = false;
@@ -501,11 +510,20 @@ class _MustacheWindowState extends State<MustacheWindow>
     _externalDrags = SilicaDrag.events.listen(_dragEvent);
     HardwareKeyboard.instance.addHandler(_springKey);
     if (widget.customize case final path?) _customizing = path;
+    _searchFocus.addListener(_menusChanged);
+    _saveFocus.addListener(_menusChanged);
     _load();
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _menuHub = menuHubOf(context);
+  }
+
+  @override
   void dispose() {
+    _menuHub?.release(this);
     _closeInfoWindows();
     _infoRevision.dispose();
     _unwatchStyles();
@@ -526,6 +544,8 @@ class _MustacheWindowState extends State<MustacheWindow>
     _cleanUpTimer?.cancel();
     _searchTimer?.cancel();
     _searchQuery.dispose();
+    _searchFocus.removeListener(_menusChanged);
+    _saveFocus.removeListener(_menusChanged);
     _searchFocus.dispose();
     _saveName.dispose();
     _saveFocus.dispose();
@@ -842,7 +862,12 @@ class _MustacheWindowState extends State<MustacheWindow>
   }
 
   @override
-  Widget build(BuildContext context) => _OverlayHost(
+  Widget build(BuildContext context) {
+    _queueMenus();
+    return _buildWindow(context);
+  }
+
+  Widget _buildWindow(BuildContext context) => _OverlayHost(
     // Every press, move and release, after the items' own (window_drag.dart).
     child: Listener(
       onPointerDown: _windowDown,
@@ -964,25 +989,19 @@ class _MustacheWindowState extends State<MustacheWindow>
           ),
           ParentIntent: CallbackAction<ParentIntent>(
             onInvoke: (_) {
-              final parent = parentOf(_history.current);
-              if (parent != null) _navigate(parent);
+              _goParent();
               return null;
             },
           ),
           BackIntent: CallbackAction<BackIntent>(
             onInvoke: (_) {
-              // From search, Back returns to the folder (R13.4).
-              if (_searching) {
-                _endSearch();
-              } else if (_history.back()) {
-                _load();
-              }
+              _goBack();
               return null;
             },
           ),
           ForwardIntent: CallbackAction<ForwardIntent>(
             onInvoke: (_) {
-              if (_history.forward()) _load();
+              _goForward();
               return null;
             },
           ),
@@ -1034,17 +1053,7 @@ class _MustacheWindowState extends State<MustacheWindow>
           ),
           TogglePartIntent: CallbackAction<TogglePartIntent>(
             onInvoke: (intent) {
-              setState(() {
-                switch (intent.part) {
-                  case WindowPart.statusBar:
-                    _statusBar = !_statusBar;
-                    if (_statusBar) _free = freeBytes(_history.current);
-                    widget.settings?.statusBar = _statusBar;
-                  case WindowPart.previewPane:
-                    _previewPane = !_previewPane;
-                    widget.settings?.previewPane = _previewPane;
-                }
-              });
+              _togglePart(intent.part);
               return null;
             },
           ),
@@ -1062,21 +1071,13 @@ class _MustacheWindowState extends State<MustacheWindow>
           ),
           InfoIntent: CallbackAction<InfoIntent>(
             onInvoke: (_) {
-              // The selection, or the open folder if there is none.
-              _openInfo(
-                _selected.isEmpty
-                    ? [_history.current]
-                    : [for (final e in _selection) e.path],
-              );
+              _getInfo();
               return null;
             },
           ),
           QuickPreviewIntent: CallbackAction<QuickPreviewIntent>(
             onInvoke: (_) {
-              if (_renaming != null || _alert != null) return null;
-              setState(
-                () => _quickPreview = !_quickPreview && _selected.isNotEmpty,
-              );
+              _toggleQuickPreview();
               return null;
             },
           ),
@@ -1093,8 +1094,7 @@ class _MustacheWindowState extends State<MustacheWindow>
           ),
           TogglePathBarIntent: CallbackAction<TogglePathBarIntent>(
             onInvoke: (_) {
-              setState(() => _pathBar = !_pathBar);
-              widget.settings?.pathBar = _pathBar;
+              _togglePathBar();
               return null;
             },
           ),

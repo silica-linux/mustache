@@ -4,6 +4,7 @@
 // the field codes of `Exec`.
 
 import 'external.dart';
+
 import 'dart:io';
 
 import 'package:silica_ui/silica_ui.dart' show MimeDatabase, xdgDataDirs;

@@ -1063,5 +1063,332 @@
   "emojiFlags": "Flags",
   "@emojiFlags": {
     "description": "Emoji picker: category heading and bar tooltip."
+  },
+  "menuFile": "File",
+  "@menuFile": {
+    "description": "The File menu title."
+  },
+  "menuEdit": "Edit",
+  "@menuEdit": {
+    "description": "The Edit menu title."
+  },
+  "menuGo": "Go",
+  "@menuGo": {
+    "description": "The Go menu title."
+  },
+  "menuWindow": "Window",
+  "@menuWindow": {
+    "description": "The Window menu title."
+  },
+  "menuHelp": "Help",
+  "@menuHelp": {
+    "description": "The Help menu title."
+  },
+  "menuEmptyTrash": "Empty Trash…",
+  "@menuEmptyTrash": {
+    "description": "App menu (disabled until the Trash can be emptied)."
+  },
+  "menuNewWindow": "New Mustache Window",
+  "@menuNewWindow": {
+    "description": "File menu: opens another window."
+  },
+  "menuNewFolderWith": "New Folder with {name}",
+  "@menuNewFolderWith": {
+    "description": "File menu: new folder from the selected item; the name is quoted.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "menuNewFolderWithSelection": "New Folder with Selection",
+  "@menuNewFolderWithSelection": {
+    "description": "File menu: new folder from the selection (disabled)."
+  },
+  "menuNewSmartFolder": "New Smart Folder",
+  "@menuNewSmartFolder": {
+    "description": "File menu (disabled)."
+  },
+  "menuNewTab": "New Tab",
+  "@menuNewTab": {
+    "description": "File menu: opens a tab."
+  },
+  "menuCloseWindow": "Close Window",
+  "@menuCloseWindow": {
+    "description": "File menu: closes the tab or the window."
+  },
+  "menuGetInfo": "Get Info",
+  "@menuGetInfo": {
+    "description": "File menu: opens the Info window of the selection."
+  },
+  "menuCompress": "Compress",
+  "@menuCompress": {
+    "description": "File menu (disabled)."
+  },
+  "menuMakeLink": "Make Link",
+  "@menuMakeLink": {
+    "description": "File menu (disabled)."
+  },
+  "menuQuickLook": "Quick Look",
+  "@menuQuickLook": {
+    "description": "File menu: previews the selection."
+  },
+  "menuShare": "Share…",
+  "@menuShare": {
+    "description": "File menu (disabled)."
+  },
+  "menuManageSharedFolder": "Manage Shared Folder…",
+  "@menuManageSharedFolder": {
+    "description": "File menu (disabled)."
+  },
+  "menuManageSharedFile": "Manage Shared File…",
+  "@menuManageSharedFile": {
+    "description": "File menu (disabled)."
+  },
+  "menuShowOriginal": "Show Original",
+  "@menuShowOriginal": {
+    "description": "File menu (disabled)."
+  },
+  "menuAddToSidebar": "Add to Sidebar",
+  "@menuAddToSidebar": {
+    "description": "File menu (disabled)."
+  },
+  "menuEject": "Eject",
+  "@menuEject": {
+    "description": "File menu (disabled)."
+  },
+  "menuPrint": "Print",
+  "@menuPrint": {
+    "description": "File menu (disabled)."
+  },
+  "menuUndo": "Undo",
+  "@menuUndo": {
+    "description": "Edit menu, nothing to undo."
+  },
+  "menuRedo": "Redo",
+  "@menuRedo": {
+    "description": "Edit menu: redoes the undone operation."
+  },
+  "menuCut": "Cut",
+  "@menuCut": {
+    "description": "Edit menu (disabled)."
+  },
+  "menuCopyName": "Copy {name}",
+  "@menuCopyName": {
+    "description": "Edit menu: copies the selected item; the name is quoted.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "menuCopyItems": "Copy {count} Items",
+  "@menuCopyItems": {
+    "description": "Edit menu: copies several items.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "menuSelectAll": "Select All",
+  "@menuSelectAll": {
+    "description": "Edit menu: selects every item."
+  },
+  "menuShowClipboard": "Show Clipboard",
+  "@menuShowClipboard": {
+    "description": "Edit menu (disabled)."
+  },
+  "menuFind": "Find",
+  "@menuFind": {
+    "description": "Edit menu: starts a search."
+  },
+  "menuAsIcons": "as Icons",
+  "@menuAsIcons": {
+    "description": "View menu."
+  },
+  "menuAsList": "as List",
+  "@menuAsList": {
+    "description": "View menu."
+  },
+  "menuAsColumns": "as Columns",
+  "@menuAsColumns": {
+    "description": "View menu."
+  },
+  "menuAsGallery": "as Gallery",
+  "@menuAsGallery": {
+    "description": "View menu."
+  },
+  "menuUseGroups": "Use Groups",
+  "@menuUseGroups": {
+    "description": "View menu (disabled)."
+  },
+  "menuUseStacks": "Use Stacks",
+  "@menuUseStacks": {
+    "description": "View menu on the desktop: groups the icons by type."
+  },
+  "menuSortLastOpened": "Last Opened",
+  "@menuSortLastOpened": {
+    "description": "Sort By menu (disabled)."
+  },
+  "menuSortAdded": "Date Added",
+  "@menuSortAdded": {
+    "description": "Sort By menu (disabled)."
+  },
+  "menuSortCreated": "Created",
+  "@menuSortCreated": {
+    "description": "Sort By menu (disabled)."
+  },
+  "menuSortTags": "Tags",
+  "@menuSortTags": {
+    "description": "Sort By menu (disabled)."
+  },
+  "menuShowTabBar": "Show Tab Bar",
+  "@menuShowTabBar": {
+    "description": "View menu (disabled)."
+  },
+  "menuShowAllTabs": "Show All Tabs",
+  "@menuShowAllTabs": {
+    "description": "View menu (disabled)."
+  },
+  "menuHideSidebar": "Hide Sidebar",
+  "@menuHideSidebar": {
+    "description": "View menu."
+  },
+  "menuShowSidebar": "Show Sidebar",
+  "@menuShowSidebar": {
+    "description": "View menu."
+  },
+  "menuShowPreview": "Show Preview",
+  "@menuShowPreview": {
+    "description": "View menu."
+  },
+  "menuHidePreview": "Hide Preview",
+  "@menuHidePreview": {
+    "description": "View menu."
+  },
+  "menuHideToolbar": "Hide Toolbar",
+  "@menuHideToolbar": {
+    "description": "View menu (disabled)."
+  },
+  "menuShowPathBar": "Show Path Bar",
+  "@menuShowPathBar": {
+    "description": "View menu."
+  },
+  "menuHidePathBar": "Hide Path Bar",
+  "@menuHidePathBar": {
+    "description": "View menu."
+  },
+  "menuShowStatusBar": "Show Status Bar",
+  "@menuShowStatusBar": {
+    "description": "View menu."
+  },
+  "menuHideStatusBar": "Hide Status Bar",
+  "@menuHideStatusBar": {
+    "description": "View menu."
+  },
+  "menuCustomizeToolbar": "Customize Toolbar…",
+  "@menuCustomizeToolbar": {
+    "description": "View menu (disabled)."
+  },
+  "menuShowViewOptions": "Show View Options",
+  "@menuShowViewOptions": {
+    "description": "View menu (disabled)."
+  },
+  "menuShowPreviewOptions": "Show Preview Options",
+  "@menuShowPreviewOptions": {
+    "description": "View menu (disabled)."
+  },
+  "menuBack": "Back",
+  "@menuBack": {
+    "description": "Go menu."
+  },
+  "menuForward": "Forward",
+  "@menuForward": {
+    "description": "Go menu."
+  },
+  "menuEnclosingFolder": "Enclosing Folder",
+  "@menuEnclosingFolder": {
+    "description": "Go menu: the parent folder."
+  },
+  "menuRecents": "Recents",
+  "@menuRecents": {
+    "description": "Go menu (disabled)."
+  },
+  "menuDocuments": "Documents",
+  "@menuDocuments": {
+    "description": "Go menu."
+  },
+  "menuDesktop": "Desktop",
+  "@menuDesktop": {
+    "description": "Go menu."
+  },
+  "menuDownloads": "Downloads",
+  "@menuDownloads": {
+    "description": "Go menu."
+  },
+  "menuHome": "Home",
+  "@menuHome": {
+    "description": "Go menu."
+  },
+  "menuComputer": "Computer",
+  "@menuComputer": {
+    "description": "Go menu: the root of the file system."
+  },
+  "menuNearbySharing": "Nearby Sharing",
+  "@menuNearbySharing": {
+    "description": "Go menu (disabled)."
+  },
+  "menuNetwork": "Network",
+  "@menuNetwork": {
+    "description": "Go menu (disabled)."
+  },
+  "menuCloudDrive": "Cloud Drive",
+  "@menuCloudDrive": {
+    "description": "Go menu (disabled)."
+  },
+  "menuShared": "Shared",
+  "@menuShared": {
+    "description": "Go menu (disabled)."
+  },
+  "menuApplications": "Applications",
+  "@menuApplications": {
+    "description": "Go menu (disabled)."
+  },
+  "menuUtilities": "Utilities",
+  "@menuUtilities": {
+    "description": "Go menu (disabled)."
+  },
+  "menuRecentFolders": "Recent Folders",
+  "@menuRecentFolders": {
+    "description": "Go menu (disabled)."
+  },
+  "menuGoToFolder": "Go to Folder…",
+  "@menuGoToFolder": {
+    "description": "Go menu (disabled)."
+  },
+  "menuConnectToServer": "Connect to Server…",
+  "@menuConnectToServer": {
+    "description": "Go menu (disabled)."
+  },
+  "menuPreviousTab": "Show Previous Tab",
+  "@menuPreviousTab": {
+    "description": "Window menu."
+  },
+  "menuNextTab": "Show Next Tab",
+  "@menuNextTab": {
+    "description": "Window menu."
+  },
+  "menuMoveTabToWindow": "Move Tab to New Window",
+  "@menuMoveTabToWindow": {
+    "description": "Window menu (disabled)."
+  },
+  "menuMergeWindows": "Merge All Windows",
+  "@menuMergeWindows": {
+    "description": "Window menu (disabled)."
+  },
+  "menuShowProgress": "Show Progress Window",
+  "@menuShowProgress": {
+    "description": "Window menu (disabled)."
   }
 }
