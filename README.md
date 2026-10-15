@@ -18,8 +18,8 @@
   <img alt="status: early alpha" src="https://img.shields.io/badge/status-early%20alpha-d69e2e?style=flat-square">
 </p>
 
-Written in Flutter on [`silica_ui`](https://github.com/silica-linux/silica-ui), for the
-[Silica desktop](https://github.com/silica-linux/silica-desktop).
+Written in Flutter on [`silica_ui`](https://github.com/silica-os/silica-ui), for the
+[Silica desktop](https://github.com/silica-os/silica-desktop).
 
 ## Try it
 
@@ -37,7 +37,7 @@ only in Silica). After a code change, rebuild the bundle:
 `cargo xtask bundle ~/silica/mustache --release`.
 
 With `SILICA_ICONS_DIR` (set by `cargo xtask run` when `silica-icons` is cloned alongside) the
-sidebar uses the symbols of [`silica-icons`](https://github.com/silica-linux/silica-icons).
+sidebar uses the symbols of [`silica-icons`](https://github.com/silica-os/silica-icons).
 Outside Silica the app runs under `flutter test`; there is no Flutter desktop target, Mustache
 is built for the Silica embedder.
 

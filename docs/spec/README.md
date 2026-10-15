@@ -5,7 +5,7 @@ come from **observing macOS 27** (27.0.1) from the outside, in a clean-room proc
 reference file manager was used, screenshotted and recorded, and the results were measured.
 Nothing was read from the system's files.
 
-The raw material stays private in `silica-linux/silica-reference`: screenshots, recordings and
+The raw material stays private in `silica-os/silica-reference`: screenshots, recordings and
 measuring scripts. This public spec keeps only what was learned from them: numbers, colors,
 timings and the behaviour, written in our own words. The interface labels quoted here are
 Mustache's own (English source, `lib/l10n`), not the reference's.
