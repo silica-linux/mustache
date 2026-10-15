@@ -1,5 +1,4 @@
 import 'dart:ui' show Color;
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -248,59 +247,5 @@ void main() {
     styles.look('/a');
     styles.invalidate(['/a', '/b']);
     expect(redraws, 1);
-  });
-
-  test(
-    'the watcher sees an attribute change and redraws once, debounced',
-    () async {
-      final dir = homeTemp('mustache-folder-watch');
-      final folder = Directory('${dir.path}/Foto')..createSync();
-      if (readAttributeChecked(folder.path, folderStyleAttribute).unsupported) {
-        markTestSkipped('the file system does not support user attributes');
-        return;
-      }
-      final styles = FolderStyles(
-        metadata: FakeMetadata(),
-        watchDisk: true,
-        debounce: const Duration(milliseconds: 50),
-      );
-      addTearDown(styles.dispose);
-      final stop = styles.watch(dir.path);
-      final again = styles.watch(dir.path);
-      expect(styles.watched, {dir.path});
-      expect(styles.look(folder.path).tint, isNull);
-      final redrawn = Completer<void>();
-      var redraws = 0;
-      styles.addListener(() {
-        redraws++;
-        if (!redrawn.isCompleted) redrawn.complete();
-      });
-      // Let the watch start, then change the attribute as another app would.
-      await Future<void>.delayed(const Duration(milliseconds: 100));
-      expect(writeTags(folder.path, ['Red']), isTrue);
-      expect(
-        writeAttribute(folder.path, folderStyleAttribute, '{"symbol":"star"}'),
-        isTrue,
-      );
-      await redrawn.future.timeout(const Duration(seconds: 5));
-      await Future<void>.delayed(const Duration(milliseconds: 150));
-      expect(redraws, 1);
-      expect(styles.look(folder.path), (symbol: 'star', tint: 'red'));
-      stop();
-      expect(styles.watched, {dir.path}, reason: 'still shown by the other');
-      again();
-      stop();
-      expect(styles.watched, isEmpty);
-    },
-  );
-
-  test('under flutter test the app styles do not watch the disk', () {
-    final styles = FolderStyles();
-    addTearDown(styles.dispose);
-    expect(styles.watchDisk, isFalse);
-    final stop = styles.watch('/');
-    expect(styles.watched, {'/'});
-    stop();
-    expect(styles.watched, isEmpty);
   });
 }

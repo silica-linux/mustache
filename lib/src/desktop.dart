@@ -20,6 +20,8 @@
 
 import 'external.dart';
 import 'folder_style.dart';
+import 'folder_watch.dart';
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -461,9 +463,8 @@ class DesktopViewState extends State<DesktopView>
   final Set<String> _selected = {};
   String? _openStack;
   String? _renaming;
-  StreamSubscription<FileSystemEvent>? _watcher;
+  VoidCallback? _unwatch;
   StreamSubscription<SilicaDragEvent>? _drags;
-  Timer? _reload;
   final FocusNode _focus = FocusNode(debugLabel: 'desktop');
   Size _size = Size.zero;
 
@@ -537,16 +538,11 @@ class DesktopViewState extends State<DesktopView>
     Directory(widget.folder).createSync(recursive: true);
     _load();
     if (widget.watch) {
-      try {
-        _watcher = Directory(widget.folder).watch().listen((event) {
-          // A folder's colour or symbol (an attribute change) redraws its icon.
-          folderStyles.changed(event.path);
-          _reload?.cancel();
-          _reload = Timer(const Duration(milliseconds: 150), _load);
-        });
-      } on FileSystemException {
-        // No notifications: the desktop shows what was there at start.
-      }
+      _unwatch = folderWatcher.watch(widget.folder, (paths) {
+        // A folder's colour or symbol (an attribute change) redraws its icon.
+        folderStyles.invalidate(paths);
+        if (mounted) _load();
+      });
     }
     _lifecycle = AppLifecycleListener(
       onStateChange: (state) {
@@ -574,9 +570,8 @@ class DesktopViewState extends State<DesktopView>
 
   @override
   void dispose() {
-    _watcher?.cancel();
+    _unwatch?.call();
     _drags?.cancel();
-    _reload?.cancel();
     _focus.dispose();
     _lifecycle.dispose();
     _reselect?.cancel();

@@ -2,6 +2,7 @@
 // toolbar unified with the window (toolbar.dart) and the content view.
 
 import 'external.dart';
+
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
@@ -21,6 +22,7 @@ import 'column_view.dart';
 import 'dialog.dart';
 import 'folder_icons.dart';
 import 'folder_style.dart';
+import 'folder_watch.dart';
 import 'drag.dart';
 import 'gallery_view.dart';
 import 'icon_arrange.dart';
@@ -426,12 +428,15 @@ class _MustacheWindowState extends State<MustacheWindow>
   /// The column contents, read once per load.
   final Map<String, List<Entry>> _columnCache = {};
 
-  /// Attribute watches of the folders on screen, so a folder's colour or symbol changed
-  /// elsewhere redraws at once (folder_style.dart).
+  /// Watches of the folders on screen (folder_watch.dart): whatever changes one (an item created,
+  /// deleted, renamed or moved in, by any app, or its colour or symbol) reloads the window.
   final Map<String, VoidCallback> _styleWatches = {};
 
   void _watchStyles(String dir) =>
-      _styleWatches[dir] ??= folderStyles.watch(dir);
+      _styleWatches[dir] ??= folderWatcher.watch(dir, (paths) {
+        folderStyles.invalidate(paths);
+        if (mounted) _load();
+      });
 
   /// Stops the watches of the folders no longer on screen.
   void _unwatchStyles({String? keep}) {

@@ -14,7 +14,6 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
@@ -121,7 +120,7 @@ String? parseGioInfo(String output) {
 /// What a folder icon shows: the symbol and the tint (`#rrggbb` or a colour name).
 typedef FolderLook = ({String? symbol, String? tint});
 
-/// Folder styles: read, cached, saved, and watched.
+/// Folder styles: read, cached and saved.
 class FolderStyles extends ChangeNotifier {
   FolderStyles({
     this.readAttribute = readAttributeChecked,
@@ -129,8 +128,7 @@ class FolderStyles extends ChangeNotifier {
     this.readTags = _readTags,
     this.metadata = const GioFolderMetadata(),
     this.debounce = const Duration(milliseconds: 120),
-    bool? watchDisk,
-  }) : watchDisk = watchDisk ?? !startsNothing;
+  });
 
   final ({String? value, bool unsupported}) Function(String path, String name)
   readAttribute;
@@ -139,10 +137,6 @@ class FolderStyles extends ChangeNotifier {
   final List<String> Function(String path) readTags;
   final FolderMetadata metadata;
   final Duration debounce;
-
-  /// Watch the disk for real (off under `flutter test`, where tests deliver [changed] by hand
-  /// unless they ask for it).
-  final bool watchDisk;
 
   static List<String> _readTags(String path) => xattr.readTags(path);
 
@@ -206,48 +200,8 @@ class FolderStyles extends ChangeNotifier {
     if (changed) notifyListeners();
   }
 
-  final Map<String, (StreamSubscription<FileSystemEvent>?, int)> _watches = {};
   final Set<String> _pending = {};
   Timer? _flush;
-
-  /// Watches the folder [dir] (its own attributes and those of its items) while shown; the
-  /// returned function stops it. Watches are shared and counted.
-  VoidCallback watch(String dir) {
-    final current = _watches[dir];
-    if (current != null) {
-      _watches[dir] = (current.$1, current.$2 + 1);
-    } else {
-      StreamSubscription<FileSystemEvent>? sub;
-      if (watchDisk) {
-        try {
-          sub = Directory(dir).watch().listen(
-            (event) => _changed(event.path),
-            onError: (Object _) {},
-          );
-        } on FileSystemException {
-          sub = null;
-        }
-      }
-      _watches[dir] = (sub, 1);
-    }
-    var done = false;
-    return () {
-      if (done) return;
-      done = true;
-      final w = _watches[dir];
-      if (w == null) return;
-      if (w.$2 > 1) {
-        _watches[dir] = (w.$1, w.$2 - 1);
-      } else {
-        _watches.remove(dir);
-        w.$1?.cancel();
-      }
-    };
-  }
-
-  /// The folders watched now (for tests).
-  @visibleForTesting
-  Set<String> get watched => _watches.keys.toSet();
 
   void _changed(String path) {
     _pending.add(path);
@@ -259,16 +213,11 @@ class FolderStyles extends ChangeNotifier {
     });
   }
 
-  /// A change at [path] seen by another watcher (the desktop has its own), or by a test:
-  /// debounced like the watcher's.
+  /// A change at [path] seen by the folder watcher (folder_watch.dart), or by a test: debounced.
   void changed(String path) => _changed(path);
 
   @override
   void dispose() {
-    for (final (sub, _) in _watches.values) {
-      sub?.cancel();
-    }
-    _watches.clear();
     _flush?.cancel();
     super.dispose();
   }
