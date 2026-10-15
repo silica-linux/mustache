@@ -29,8 +29,21 @@ const double sidebarHeadingLeft = 17;
 const double sidebarSelectionInset = 10;
 const double sidebarSelectionRadius = 8;
 
-/// The first row has its center 68 pt from the top of the window (below the buttons).
+/// The sidebar's own bar, under the window buttons, as tall as the toolbar: the list starts
+/// below it and scrolls under it (mustache#13, `SidebarScrollUnderBar`).
+const double sidebarBarHeight = toolbarHeight;
+
+/// The first row has its center 68 pt from the top of the window, 16 below the bar (windows.md:
+/// Recenti at y 68). A heading at the top of the list takes the same place: its center at 68,
+/// the first row 24 below it (PROVISIONAL: a leading heading is not measured, SIDEBAR-GLASS).
 const double sidebarFirstRowCenter = 68;
+
+/// The heading at the top of the list: from the bar to 8 pt above the first row.
+const double sidebarLeadingHeading =
+    sidebarFirstRowCenter +
+    sidebarHeadingToRow -
+    sidebarRow / 2 -
+    sidebarBarHeight;
 
 /// Between the center of a heading and that of the first row (MU-10, windows.md).
 const double sidebarHeadingToRow = 24;
@@ -266,19 +279,9 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
       final title = section.title;
       if (title.isNotEmpty) {
         // The heading takes 32 pt with the text centered 24 from the top: 40 from the center of the
-        // last row before, 24 from the center of the first row after.
-        children.add(
-          first
-              ? SizedBox(
-                  height: sidebarFirstRowCenter - sidebarHeadingToRow - 24,
-                )
-              : const SizedBox.shrink(),
-        );
-        children.add(_heading(title, colors));
-      } else if (first) {
-        children.add(
-          const SizedBox(height: sidebarFirstRowCenter - sidebarRow / 2),
-        );
+        // last row before, 24 from the center of the first row after. At the top of the list it
+        // starts at the bar and keeps the 24 to the first row.
+        children.add(_heading(title, colors, leading: first));
       }
       first = false;
       final openness = title.isEmpty ? 1.0 : _openness(title);
@@ -299,13 +302,19 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
         ),
       );
     }
-    return ColoredBox(
-      color: colors.fill,
-      child: ListView(padding: EdgeInsets.zero, children: children),
+    // The list scrolls under the sidebar's bar, where the window buttons sit (mustache#13).
+    return SidebarScrollUnderBar(
+      background: colors.fill,
+      barHeight: sidebarBarHeight,
+      body: (context, padding) =>
+          ListView(padding: padding, children: children),
     );
   }
 
-  Widget _heading(String title, SidebarColors colors) {
+  Widget _heading(String title, SidebarColors colors, {bool leading = false}) {
+    // The text center from the top of the heading: 8 pt above the next row's top.
+    final height = leading ? sidebarLeadingHeading : sidebarRow;
+    final center = height - (sidebarHeadingToRow - sidebarRow / 2);
     final hovered = _hovered == title;
     final collapsed = _collapsing(title);
     return MouseRegion(
@@ -315,13 +324,13 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
       }),
       child: SizedBox(
         key: ValueKey('header $title'),
-        height: sidebarRow,
+        height: height,
         child: Stack(
           children: [
             Positioned(
               left: sidebarHeadingLeft,
               right: sidebarChevronRight + sidebarChevron.width,
-              top: 24 - 8,
+              top: center - 8,
               height: 16,
               child: Align(
                 alignment: Alignment.centerLeft,
@@ -337,7 +346,7 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
             if (hovered)
               Positioned(
                 right: sidebarChevronRight - 4,
-                top: 24 - 10,
+                top: center - 10,
                 width: sidebarChevron.width + 8,
                 height: 20,
                 child: GestureDetector(
