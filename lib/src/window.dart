@@ -313,7 +313,9 @@ class _MustacheWindowState extends State<MustacheWindow>
   _WindowDrag? _drag;
   _WindowDrag? _lastDrag;
   final ValueNotifier<String?> _dropHover = ValueNotifier(null);
-  Timer? _spring;
+  final ValueNotifier<bool> _dropBlink = ValueNotifier(false);
+  final List<Timer> _spring = [];
+  VoidCallback? _springAction;
   final GlobalKey _dragImageKey = GlobalKey();
   final Map<String, GlobalKey> _faces = {};
 
@@ -491,6 +493,7 @@ class _MustacheWindowState extends State<MustacheWindow>
     super.initState();
     _lifecycle;
     _externalDrags = SilicaDrag.events.listen(_dragEvent);
+    HardwareKeyboard.instance.addHandler(_springKey);
     if (widget.customize case final path?) _customizing = path;
     _load();
   }
@@ -506,8 +509,10 @@ class _MustacheWindowState extends State<MustacheWindow>
     _sidebarShown.dispose();
     _slowClick?.cancel();
     _recentClickTimer?.cancel();
-    _spring?.cancel();
+    HardwareKeyboard.instance.removeHandler(_springKey);
+    _cancelSpring();
     _dropHover.dispose();
+    _dropBlink.dispose();
     _drag?.faces?.dispose();
     _drag?.picture?.dispose();
     _cleanUpTimer?.cancel();
@@ -838,11 +843,14 @@ class _MustacheWindowState extends State<MustacheWindow>
       onPointerCancel: _windowCancel,
       child: DropHover(
         notifier: _dropHover,
-        child: Stack(
-          children: [
-            Positioned.fill(child: _window(context)),
-            ?_dragLayer(),
-          ],
+        child: DropBlink(
+          notifier: _dropBlink,
+          child: Stack(
+            children: [
+              Positioned.fill(child: _window(context)),
+              ?_dragLayer(),
+            ],
+          ),
         ),
       ),
     ),

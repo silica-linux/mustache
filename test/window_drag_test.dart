@@ -222,6 +222,67 @@ void main() {
       await settle(tester);
       expect(File('${home.path}/Cartella/alfa.txt').existsSync(), isTrue);
     });
+
+    group('spring-loaded folder timing (MU-40)', () {
+      // The folder lit as a destination (icon view): a tint over it.
+      Finder lit() => find.byWidgetPredicate(
+        (w) =>
+            w is Container &&
+            w.foregroundDecoration is BoxDecoration &&
+            (w.foregroundDecoration! as BoxDecoration).color ==
+                const Color(0x400064E1),
+      );
+      String title(WidgetTester tester) =>
+          tester.widget<Text>(find.byKey(const ValueKey('title'))).data!;
+
+      testWidgets('lit, blinks at ~340 ms (off 80, on 107), opens at ~715', (
+        tester,
+      ) async {
+        await pump(tester, 'icons');
+        final mouse = await startDrag(tester, iconOf(tester, 'alfa.txt'));
+        await mouse.moveTo(iconOf(tester, 'Cartella'));
+        await tester.pump();
+        expect(lit(), findsOneWidget);
+        await tester.pump(const Duration(milliseconds: 320));
+        expect(lit(), findsOneWidget);
+        await tester.pump(const Duration(milliseconds: 40)); // 360
+        expect(lit(), findsNothing);
+        await tester.pump(const Duration(milliseconds: 80)); // 440
+        expect(lit(), findsOneWidget);
+        await tester.pump(const Duration(milliseconds: 100)); // 540
+        expect(lit(), findsNothing);
+        expect(title(tester), displayName(home.path));
+        await tester.pump(const Duration(milliseconds: 150)); // 690
+        expect(title(tester), displayName(home.path));
+        await tester.pump(const Duration(milliseconds: 50)); // 740
+        expect(title(tester), 'Cartella');
+        await mouse.up();
+        await settle(tester);
+      });
+
+      testWidgets('a modifier restarts the wait', (tester) async {
+        await pump(tester, 'icons');
+        final mouse = await startDrag(tester, iconOf(tester, 'alfa.txt'));
+        await mouse.moveTo(iconOf(tester, 'Cartella'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+        await tester.pump();
+        // 400 ms after the press: it would have blinked already, and opens at 715 from the press.
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(lit(), findsOneWidget);
+        await tester.pump(
+          const Duration(milliseconds: 300),
+        ); // 400 after: blinking
+        expect(lit(), findsNothing);
+        expect(title(tester), displayName(home.path));
+        await tester.pump(const Duration(milliseconds: 350)); // 750 after
+        expect(title(tester), 'Cartella');
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+        await mouse.up();
+        await settle(tester);
+      });
+    });
   });
 
   group('rename on a slow click (R8)', () {

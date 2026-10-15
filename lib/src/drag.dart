@@ -37,6 +37,12 @@ const int dragImageRows = 5;
 /// The hover time on a folder before it opens (R9.1, spring-loaded folder).
 const Duration springOpen = Duration(milliseconds: 715);
 
+/// The spring-loaded folder blinks before it opens (MU-40): at ~340 ms the highlight goes off for
+/// 80 ms, comes back for 107 ms, and goes off again until the folder opens.
+const Duration springBlinkAt = Duration(milliseconds: 340);
+const Duration springBlinkOff = Duration(milliseconds: 80);
+const Duration springBlinkOn = Duration(milliseconds: 107);
+
 /// What is being dragged: the items and the folder they come from.
 @immutable
 class DragPayload {
@@ -238,6 +244,22 @@ class DropHover extends InheritedNotifier<ValueNotifier<String?>> {
       context.dependOnInheritedWidgetOfExactType<DropHover>()?.notifier?.value;
 }
 
+/// Whether the highlight of the folder under a drag is off in the blink of the spring-loading.
+class DropBlink extends InheritedNotifier<ValueNotifier<bool>> {
+  const DropBlink({
+    super.key,
+    required ValueNotifier<bool> super.notifier,
+    required super.child,
+  });
+
+  static bool of(BuildContext context) =>
+      context
+          .dependOnInheritedWidgetOfExactType<DropBlink>()
+          ?.notifier
+          ?.value ??
+      false;
+}
+
 /// A drop target for dragged items: `builder` receives whether a drag is over it (the window
 /// decides, [DropHover]); the window opens it after hovering for `springOpen` when it has
 /// `onSpring` (spring-loaded folder).
@@ -260,7 +282,10 @@ class FolderDropTarget extends StatelessWidget {
     metaData: FolderDropMeta(path, onDrop: onDrop, onSpring: onSpring),
     behavior: HitTestBehavior.translucent,
     child: Builder(
-      builder: (context) => builder(context, DropHover.of(context) == path),
+      builder: (context) => builder(
+        context,
+        DropHover.of(context) == path && !DropBlink.of(context),
+      ),
     ),
   );
 }

@@ -356,7 +356,7 @@ extension _Drag on _MustacheWindowState {
     _lastDrag = drag;
     _drag = null;
     _dropHover.value = null;
-    _spring?.cancel();
+    _cancelSpring();
     if (mounted) _update(() {});
     // The image may still be on screen in this frame.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -380,14 +380,63 @@ extension _Drag on _MustacheWindowState {
     }
     if (path == _dropHover.value) return;
     _dropHover.value = path;
-    _spring?.cancel();
+    _cancelSpring();
     final spring = meta?.onSpring;
     if (path == null || spring == null) return;
-    _spring = Timer(springOpen, () {
-      if (!mounted) return;
+    _armSpring(spring);
+  }
+
+  /// Stops the wait of a spring-loaded folder, and its blink.
+  void _cancelSpring() {
+    for (final timer in _spring) {
+      timer.cancel();
+    }
+    _spring.clear();
+    _springAction = null;
+    _dropBlink.value = false;
+  }
+
+  /// Starts the wait: the folder blinks at ~340 ms (highlight off 80 ms, on 107 ms, off) and
+  /// opens at ~715 ms (MU-40).
+  void _armSpring(VoidCallback spring) {
+    _cancelSpring();
+    _springAction = spring;
+    void at(Duration after, void Function() action) => _spring.add(
+      Timer(after, () {
+        if (mounted) action();
+      }),
+    );
+    at(springBlinkAt, () => _dropBlink.value = true);
+    at(springBlinkAt + springBlinkOff, () => _dropBlink.value = false);
+    at(springBlinkAt + springBlinkOff + springBlinkOn, () {
+      _dropBlink.value = true;
+    });
+    at(springOpen, () {
       _dropHover.value = null;
+      _cancelSpring();
       spring();
     });
+  }
+
+  /// A modifier pressed or released during the wait restarts the count (MU-40).
+  bool _springKey(KeyEvent event) {
+    final spring = _springAction;
+    if (spring != null && event is! KeyRepeatEvent && _isModifier(event)) {
+      _armSpring(spring);
+    }
+    return false;
+  }
+
+  static bool _isModifier(KeyEvent event) {
+    final key = event.logicalKey;
+    return key == LogicalKeyboardKey.shiftLeft ||
+        key == LogicalKeyboardKey.shiftRight ||
+        key == LogicalKeyboardKey.controlLeft ||
+        key == LogicalKeyboardKey.controlRight ||
+        key == LogicalKeyboardKey.altLeft ||
+        key == LogicalKeyboardKey.altRight ||
+        key == LogicalKeyboardKey.metaLeft ||
+        key == LogicalKeyboardKey.metaRight;
   }
 
   /// Ossido's drags over this window: from here, from another window, from another app.
@@ -398,7 +447,7 @@ extension _Drag on _MustacheWindowState {
         if (widget.focused) _hoverAt(position, _drag?.payload);
       case SilicaDragLeave():
         _dropHover.value = null;
-        _spring?.cancel();
+        _cancelSpring();
       case final SilicaDrop drop:
         _externalDrop(drop);
       case SilicaDragFinished():
@@ -412,7 +461,7 @@ extension _Drag on _MustacheWindowState {
   /// app's. Onto the folder under the pointer, otherwise into the open one.
   void _externalDrop(SilicaDrop drop) {
     _dropHover.value = null;
-    _spring?.cancel();
+    _cancelSpring();
     final paths = drop.paths;
     if (paths.isEmpty || !widget.focused) return;
     final own = _drag ?? _lastDrag;
@@ -433,7 +482,7 @@ extension _Drag on _MustacheWindowState {
   /// elsewhere); released on nothing (the toolbar) nothing moves (R9.3).
   void _dropAt(Offset position, DragPayload payload, {required bool own}) {
     _dropHover.value = null;
-    _spring?.cancel();
+    _cancelSpring();
     final meta = folderAt(position, View.of(context).viewId);
     final inPlace =
         meta != null &&
