@@ -67,6 +67,9 @@ void main(List<String> args) {
   // The toolbar is unified with the window: Ossido draws only the window buttons.
   SilicaWindow.setFullSizeContent(toolbarHeight).ignore();
   if (dialog != null) {
+    // Closing the dialog's window (its close button) cancels it: the process must end so
+    // that the portal answers, instead of running on with no window (APP-LC).
+    SilicaApp.quitWhenLastWindowCloses = true;
     runApp(
       AppLocalizationsScope(
         child: Directionality(
