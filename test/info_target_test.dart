@@ -20,6 +20,10 @@ void main() {
   setUp(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(GlassRegistry.channel, (call) async => true);
+    // A Silica that cannot open windows: the Info panels are drawn in the window
+    // (info_window_test.dart covers the windows).
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SilicaWindow.channel, (call) async => null);
     home = Directory.systemTemp.createTempSync('mustache-info-target');
     doc = Directory('${home.path}/Doc')..createSync();
     sub = Directory('${doc.path}/Progetti')..createSync();

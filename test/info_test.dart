@@ -7,6 +7,7 @@ import 'package:mustache/src/info.dart';
 import 'package:mustache/src/model.dart';
 import 'package:mustache/src/settings.dart';
 import 'package:mustache/src/window.dart';
+import 'package:silica_ui/silica_ui.dart';
 
 void main() {
   test('stat, privileges', () {
@@ -37,6 +38,17 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final settings = Settings('${home.path}/.s.json')..view = 'list';
+    // A Silica that cannot open windows: Get Info is drawn inside the window.
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SilicaWindow.channel,
+      (call) async => null,
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SilicaWindow.channel,
+        null,
+      ),
+    );
     await tester.pumpWidget(
       Directionality(
         textDirection: TextDirection.ltr,
@@ -53,6 +65,8 @@ void main() {
     await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
     await tester.sendKeyEvent(LogicalKeyboardKey.keyI);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+    await tester.pump();
+    // The panel opens once the embedder said it has no window for it.
     await tester.pump();
     final panel = find.byKey(ValueKey('info ${file.path}'));
     expect(panel, findsOneWidget);

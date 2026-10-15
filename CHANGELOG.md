@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+Get Info is a real window (#12): ⌘I, File › Get Info and the context menus open one child
+window of the Mustache window per item (at most five), which can be dragged anywhere, stays above
+its browser window and open while it is used, and is as tall as its content (265 pt wide). Ossido
+draws its title bar and close button; the sections, Name and Comments work as before and a
+section opened in one Info opens in all. Where Silica cannot open windows (the desktop, an older
+Silica) the panels are drawn inside the window as before. Needs silica_ui 0.34.0 and the
+embedder's `--multi-window`, now in the `.desktop` entry (silica-desktop#146).
+
 Desktop: the context menu of the selected icons has the colour dots and Customize Folder… of the
 window's menu. The desktop applies the tag (`desktop.action` `tag:<colour>`), reports the colours
 the selection shares in `desktop.state`, and starts a window with the Customize

@@ -95,22 +95,25 @@ void main(List<String> args) {
     AppLocalizationsScope(
       child: Directionality(
         textDirection: TextDirection.ltr,
-        child: SilicaAppWindow(
-          onClosed: () => opensAt = home,
-          // One window per tab (⌘T).
-          builder: (context) => TabsHost(
-            start: opensAt,
-            build: (tab, tabBar, onLocation, active) => MustacheWindow(
-              start: tab.location,
-              places: places,
-              trash: trash,
-              iconsDir: env['SILICA_ICONS_DIR'],
-              settings: settings,
-              iconPositions: iconPositions,
-              tabBar: tabBar,
-              onLocation: onLocation,
-              focused: active,
-              customize: customize,
+        // The Get Info windows (mustache#12), each in its own window next to this one.
+        child: SilicaWindowHost(
+          child: SilicaAppWindow(
+            onClosed: () => opensAt = home,
+            // One window per tab (⌘T).
+            builder: (context) => TabsHost(
+              start: opensAt,
+              build: (tab, tabBar, onLocation, active) => MustacheWindow(
+                start: tab.location,
+                places: places,
+                trash: trash,
+                iconsDir: env['SILICA_ICONS_DIR'],
+                settings: settings,
+                iconPositions: iconPositions,
+                tabBar: tabBar,
+                onLocation: onLocation,
+                focused: active,
+                customize: customize,
+              ),
             ),
           ),
         ),

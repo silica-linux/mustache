@@ -5,7 +5,10 @@
 // from x 93, ~11 pt text. A folder's colour, symbol and emoji are not here: they have their own
 // popover (folder_customize.dart).
 //
-// In Silica it lives inside the Mustache window (the embedder has no child windows).
+// In Silica every Get Info is its own window, a child of the Mustache window (mustache#12,
+// silica-desktop#146): Ossido draws its title bar and close button, and the panel is its content
+// (`framed: false`). Where the system cannot open windows (the desktop layer, an older Silica)
+// it is drawn inside the Mustache window with its own frame, as before.
 
 import 'dart:io';
 
@@ -173,9 +176,19 @@ class InfoPanel extends StatefulWidget {
     required this.onRename,
     this.openWith,
     this.env,
+    this.framed = true,
+    this.onHeight,
   });
 
   final Entry entry;
+
+  /// Drawn inside the Mustache window, with its own frame, shadow and title bar; false when it
+  /// is the content of a real window (Ossido draws the bar and the close button).
+  final bool framed;
+
+  /// The height of the content, after every layout that changes it (the window follows it:
+  /// as tall as its content, as on the reference).
+  final ValueChanged<double>? onHeight;
 
   /// The description of the type (as in the Kind column).
   final String kind;
@@ -206,6 +219,8 @@ class _InfoPanelState extends State<InfoPanel> {
   );
   final FocusNode _commentFocus = FocusNode();
   final FocusNode _nameFocus = FocusNode();
+  final GlobalKey _contentKey = GlobalKey();
+  double? _reportedHeight;
 
   @override
   void initState() {
@@ -252,9 +267,48 @@ class _InfoPanelState extends State<InfoPanel> {
         color: color ?? _c.text,
       );
 
+  /// Tells [InfoPanel.onHeight] the content's height once it is laid out, if it changed.
+  void _reportHeight() {
+    final report = widget.onHeight;
+    if (report == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final box = _contentKey.currentContext?.findRenderObject();
+      if (!mounted || box is! RenderBox || !box.hasSize) return;
+      final height = box.size.height;
+      if (height == _reportedHeight) return;
+      _reportedHeight = height;
+      report(height);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final entry = widget.entry;
+    _reportHeight();
+    if (!widget.framed) {
+      // The window's content: the window draws the bar, the frame and the shadow.
+      return ColoredBox(
+        key: ValueKey('info ${entry.path}'),
+        color: _c.fill,
+        child: SingleChildScrollView(
+          child: Column(
+            key: _contentKey,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 6),
+              _header(entry),
+              for (final section in InfoSection.values)
+                if (switch (section) {
+                  InfoSection.openWith => !entry.isDirectory,
+                  _ => true,
+                })
+                  _section(section),
+            ],
+          ),
+        ),
+      );
+    }
     return Container(
       key: ValueKey('info ${entry.path}'),
       width: infoWidth,

@@ -67,13 +67,6 @@ extension _Context on _MustacheWindowState {
     });
   }
 
-  /// Opens the Get Info windows (at most 5).
-  void _openInfo(List<String> paths) => _update(() {
-    for (final p in paths.take(5)) {
-      if (!_infos.contains(p)) _infos.add(p);
-    }
-  });
-
   void _closeContextMenu() {
     _update(() {
       _menuAt = null;

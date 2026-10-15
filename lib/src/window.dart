@@ -45,6 +45,7 @@ import 'tags.dart';
 import 'toolbar.dart';
 
 part 'window_arrange.dart';
+part 'window_info.dart';
 part 'window_columns.dart';
 part 'window_context.dart';
 part 'window_dialog.dart';
@@ -384,8 +385,13 @@ class _MustacheWindowState extends State<MustacheWindow>
   String? _customizing;
   final FocusNode _customizeFocus = FocusNode(debugLabel: 'customize folder');
 
-  /// The open Get Info windows (paths) and their open sections (shared by all).
+  /// The Get Info panels drawn inside this window (paths), where Silica cannot open windows,
+  /// and their open sections (shared by all).
   final List<String> _infos = [];
+
+  /// The Get Info windows (window_info.dart) and what rebuilds them (a section, a rename).
+  final List<_InfoWindow> _infoWindows = [];
+  final ValueNotifier<int> _infoRevision = ValueNotifier(0);
   late final Set<InfoSection> _infoOpen = {
     for (final name
         in widget.settings?.infoSections ??
@@ -500,6 +506,8 @@ class _MustacheWindowState extends State<MustacheWindow>
 
   @override
   void dispose() {
+    _closeInfoWindows();
+    _infoRevision.dispose();
     _unwatchStyles();
     _lifecycle.dispose();
     _externalDrags?.cancel();
@@ -1055,14 +1063,11 @@ class _MustacheWindowState extends State<MustacheWindow>
           InfoIntent: CallbackAction<InfoIntent>(
             onInvoke: (_) {
               // The selection, or the open folder if there is none.
-              final paths = _selected.isEmpty
-                  ? [_history.current]
-                  : [for (final e in _selection) e.path];
-              setState(() {
-                for (final p in paths.take(5)) {
-                  if (!_infos.contains(p)) _infos.add(p);
-                }
-              });
+              _openInfo(
+                _selected.isEmpty
+                    ? [_history.current]
+                    : [for (final e in _selection) e.path],
+              );
               return null;
             },
           ),
@@ -1294,7 +1299,7 @@ class _MustacheWindowState extends State<MustacheWindow>
                   // Quick preview: the last chosen item; the arrows change it.
                   if (_quickPreview && _selection.isNotEmpty)
                     Positioned.fill(child: _quickPreviewPanel()),
-                  // The Get Info windows, side by side at +285 pt.
+                  // The Get Info panels (no windows here), side by side at +285 pt.
                   for (var i = 0; i < _infos.length; i++)
                     if (entryAt(_infos[i]) case final entry?)
                       Positioned(
@@ -1311,16 +1316,7 @@ class _MustacheWindowState extends State<MustacheWindow>
                             openWith: entry.isDirectory
                                 ? null
                                 : _registry.defaultFor(_typeOf(entry))?.name,
-                            onToggle: (section) {
-                              setState(() {
-                                _infoOpen.contains(section)
-                                    ? _infoOpen.remove(section)
-                                    : _infoOpen.add(section);
-                              });
-                              widget.settings?.infoSections = [
-                                for (final s in _infoOpen) s.name,
-                              ];
-                            },
+                            onToggle: _toggleInfoSection,
                             onClose: () =>
                                 setState(() => _infos.remove(_infos[i])),
                             onRename: (name) {
