@@ -1228,15 +1228,6 @@ class _MustacheWindowState extends State<MustacheWindow>
                       ),
                     ),
                   ),
-                  // The top of the sidebar, below the window buttons, moves the window like the
-                  // toolbar.
-                  Positioned(
-                    left: 0,
-                    top: 0,
-                    width: visible,
-                    height: toolbarHeight,
-                    child: const WindowDragArea(child: SizedBox.expand()),
-                  ),
                   // The draggable edge, also with the sidebar hidden (pulling it reopens the
                   // sidebar).
                   Positioned(
@@ -1404,6 +1395,9 @@ class _MustacheWindowState extends State<MustacheWindow>
             ),
       headerHeight: header,
       active: _active,
+      // At rest the bar shows the content colour, without a band (silica-ui#87). Under the list
+      // header the band keeps the plain veil, as measured (`#2f2f2f` in dark, MU-98).
+      background: list ? null : WindowColors.of(context).content,
       // The list header has its own line below it, always there (MU-20): no second one.
       showLine: !list,
       // The column view's lists and a wide list scroll vertically below depth 0.

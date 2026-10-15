@@ -136,4 +136,19 @@ void main() {
     await tester.pumpAndSettle();
     expect(lineColor(tester), ToolbarVeil.dark.line);
   });
+
+  testWidgets(
+    'no colour band: the bar keeps the content colour, except over the list '
+    'header (silica-ui#87)',
+    (tester) async {
+      tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+      addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+      await pump(tester);
+      ScrollUnderToolbar bar() =>
+          tester.widget<ScrollUnderToolbar>(find.byType(ScrollUnderToolbar));
+      expect(bar().background, WindowColors.dark.content);
+      await view(tester, LogicalKeyboardKey.digit2);
+      expect(bar().background, isNull);
+    },
+  );
 }

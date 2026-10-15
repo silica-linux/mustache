@@ -62,7 +62,10 @@ void main() {
     expect(documents - heading, closeTo(sidebarHeadingToRow, 0.5));
     expect(downloads - documents, sidebarRow);
     expect(places - downloads, closeTo(sidebarRowToHeading, 0.5));
-    expect(documents, sidebarFirstRowCenter);
+    // The list starts below the sidebar's bar: the leading heading where the first row of a
+    // section without heading would be (mustache#13).
+    expect(heading, closeTo(sidebarFirstRowCenter, 0.5));
+    expect(heading, greaterThan(sidebarBarHeight));
     // The row of the shown folder is selected, with the text in semibold.
     final selection = tester.getRect(
       find.byKey(const ValueKey('sidebar selection')),
@@ -71,6 +74,23 @@ void main() {
     expect(selection.height, sidebarRow);
     final home = tester.widget<Text>(inSidebar('casa'));
     expect(home.style?.fontWeight, FontWeight.w600);
+  });
+
+  testWidgets('the sidebar scrolls under its own bar, as tall as the toolbar', (
+    tester,
+  ) async {
+    await pump(tester);
+    expect(
+      tester.getRect(find.byKey(const ValueKey('sidebar bar'))),
+      const Rect.fromLTWH(0, 0, sidebarDefaultWidth, sidebarBarHeight),
+    );
+    expect(find.byKey(const ValueKey('sidebar bar veil')), findsOneWidget);
+    final list = find.descendant(
+      of: find.byType(Sidebar),
+      matching: find.byType(Scrollable),
+    );
+    // The list fills the sidebar from the top: the rows pass under the bar.
+    expect(tester.getRect(list.first).top, 0);
   });
 
   test('width: minimum, minimum content, snap to 200, hidden', () {
