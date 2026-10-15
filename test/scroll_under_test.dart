@@ -68,7 +68,8 @@ void main() {
     tester,
   ) async {
     await pump(tester);
-    expect(veil, findsOneWidget);
+    // Invisible at rest: the veil appears once content is under it (silica_ui 0.30).
+    expect(veil, findsNothing);
     // The view starts at the top of the window, under the toolbar.
     final top = tester.getTopLeft(find.byType(IconView)).dy;
     expect(top, 0);
@@ -76,11 +77,11 @@ void main() {
       find.byKey(ValueKey('cell ${root.path}/file00.txt')),
     );
     expect(first.dy, greaterThanOrEqualTo(toolbarHeight));
-    expect(tester.getSize(veil).height, toolbarHeight);
     expect(line, findsNothing);
 
     await tester.drag(find.byType(IconView), const Offset(0, -200));
     await tester.pumpAndSettle();
+    expect(tester.getSize(veil).height, toolbarHeight);
     expect(line, findsOneWidget);
     expect(lineColor(tester), ToolbarVeil.light.line);
     // The rows scrolled under the band are still painted (under the veil).
@@ -96,10 +97,10 @@ void main() {
     await view(tester, LogicalKeyboardKey.digit2);
     final header = find.byKey(const ValueKey('column header'));
     expect(tester.getTopLeft(header).dy, toolbarHeight);
-    // Transparent: the veil shows through.
+    // Transparent: the veil shows through once scrolled.
     expect(tester.widget<Container>(header).color, const Color(0x00000000));
     final band = toolbarHeight + listHeaderHeight + listHeaderLine;
-    expect(tester.getSize(veil).height, band);
+    expect(veil, findsNothing);
     final firstRow = find.byKey(ValueKey('${root.path}/file00.txt'));
     expect(tester.getTopLeft(firstRow).dy, greaterThanOrEqualTo(band));
 
@@ -114,6 +115,7 @@ void main() {
         .position
         .jumpTo(40);
     await tester.pumpAndSettle();
+    expect(tester.getSize(veil).height, band);
     expect(tester.getTopLeft(firstRow).dy, lessThan(band));
     // The header has its own line: the band draws none.
     expect(line, findsNothing);

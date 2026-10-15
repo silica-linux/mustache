@@ -84,7 +84,8 @@ void main() {
       tester.getRect(find.byKey(const ValueKey('sidebar bar'))),
       const Rect.fromLTWH(0, 0, sidebarDefaultWidth, sidebarBarHeight),
     );
-    expect(find.byKey(const ValueKey('sidebar bar veil')), findsOneWidget);
+    // No glass since silica_ui 0.30: the rows fade out under the bar.
+    expect(find.byKey(const ValueKey('sidebar bar veil')), findsNothing);
     final list = find.descendant(
       of: find.byType(Sidebar),
       matching: find.byType(Scrollable),
