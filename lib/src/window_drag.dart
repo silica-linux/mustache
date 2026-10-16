@@ -523,7 +523,7 @@ extension _Drag on _MustacheWindowState {
         (context, active) => active
             ? Container(
                 foregroundDecoration: BoxDecoration(
-                  color: const Color(0x400064E1),
+                  color: AmalfiTheme.of(context).colors.accentAmalfiSoft,
                   borderRadius: BorderRadius.circular(radius),
                 ),
                 child: child,

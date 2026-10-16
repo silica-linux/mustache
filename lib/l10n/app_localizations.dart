@@ -317,7 +317,7 @@ abstract class AppLocalizations {
   /// List column header.
   ///
   /// In en, this message translates to:
-  /// **'Modified'**
+  /// **'Date Modified'**
   String get columnModified;
 
   /// List column header.
@@ -329,7 +329,7 @@ abstract class AppLocalizations {
   /// List column header.
   ///
   /// In en, this message translates to:
-  /// **'Type'**
+  /// **'Kind'**
   String get columnKind;
 
   /// Sidebar section with the user folders.
@@ -1717,6 +1717,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show Progress Window'**
   String get menuShowProgress;
+
+  /// Placeholder of the search field in the toolbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get searchPlaceholder;
+
+  /// Accessibility label of the toolbar button that shows or hides the sidebar.
+  ///
+  /// In en, this message translates to:
+  /// **'Sidebar'**
+  String get toggleSidebar;
+
+  /// Accessibility label of the icon size slider in the status bar.
+  ///
+  /// In en, this message translates to:
+  /// **'Icon size'**
+  String get iconSize;
+
+  /// Accessibility label of the close button of a tab.
+  ///
+  /// In en, this message translates to:
+  /// **'Close Tab'**
+  String get menuCloseTab;
 }
 
 class _AppLocalizationsDelegate

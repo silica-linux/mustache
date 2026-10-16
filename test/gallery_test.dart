@@ -42,7 +42,7 @@ void main() {
     expect(settings.view, 'gallery');
     expect(
       tester.getSize(find.byKey(const ValueKey('preview pane'))).width,
-      250,
+      260,
     );
     GalleryView gallery() =>
         tester.widget<GalleryView>(find.byType(GalleryView));
@@ -57,7 +57,7 @@ void main() {
     final thumbs = tester.getRect(
       find.byKey(const ValueKey('thumbnail strip')),
     );
-    expect(thumbs.height, galleryStrip + 12);
+    expect(thumbs.height, galleryStrip + galleryBottom);
   });
 
   testWidgets(

@@ -159,7 +159,7 @@
   "@columnName": {
     "description": "List column header."
   },
-  "columnModified": "Modified",
+  "columnModified": "Date Modified",
   "@columnModified": {
     "description": "List column header."
   },
@@ -167,7 +167,7 @@
   "@columnSize": {
     "description": "List column header."
   },
-  "columnKind": "Type",
+  "columnKind": "Kind",
   "@columnKind": {
     "description": "List column header."
   },
@@ -1390,5 +1390,21 @@
   "menuShowProgress": "Show Progress Window",
   "@menuShowProgress": {
     "description": "Window menu (disabled)."
+  },
+  "searchPlaceholder": "Search",
+  "@searchPlaceholder": {
+    "description": "Placeholder of the search field in the toolbar."
+  },
+  "toggleSidebar": "Sidebar",
+  "@toggleSidebar": {
+    "description": "Accessibility label of the toolbar button that shows or hides the sidebar."
+  },
+  "iconSize": "Icon size",
+  "@iconSize": {
+    "description": "Accessibility label of the icon size slider in the status bar."
+  },
+  "menuCloseTab": "Close Tab",
+  "@menuCloseTab": {
+    "description": "Accessibility label of the close button of a tab."
   }
 }

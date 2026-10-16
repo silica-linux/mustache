@@ -6,10 +6,11 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mustache/src/model.dart';
 import 'package:mustache/src/settings.dart';
-import 'package:mustache/src/sidebar.dart';
 import 'package:mustache/src/toolbar.dart';
 import 'package:mustache/src/window.dart';
 import 'package:silica_ui/silica_ui.dart';
+
+import 'kit.dart';
 
 void main() {
   test('the minimum window keeps the window buttons clear', () {
@@ -58,8 +59,8 @@ void main() {
     expect(find.text('nota.txt'), findsOneWidget);
     expect(find.text('.nascosto'), findsNothing);
 
-    // The sidebar: 192 wide, the row text at 47 pt.
-    expect(tester.getTopLeft(find.text('Prova').first).dx, sidebarTextLeft);
+    // The sidebar: 240 wide, the row label 36 pt from the row (12 from the edge).
+    expect(tester.getTopLeft(find.text('Prova').first).dx, 12 + 36);
 
     await tester.tap(find.text('Alfa'));
     await tester.pump(const Duration(milliseconds: 50));
@@ -114,15 +115,23 @@ void main() {
     'the window inactive for Ossido (flutter/lifecycle) dims the title',
     (tester) async {
       await pump(tester);
-      Color? title() =>
-          tester.widget<Text>(find.byKey(const ValueKey('title'))).style?.color;
-      expect(title(), ToolbarColors.light.title);
+      final colors = AmalfiColors.light;
+      Color? title() => tester
+          .widget<Text>(
+            find.descendant(
+              of: find.byKey(const ValueKey('title')),
+              matching: find.byType(Text),
+            ),
+          )
+          .style
+          ?.color;
+      expect(title(), colors.textPrimary);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
       await tester.pump();
-      expect(title(), ToolbarColors.light.titleInactive);
+      expect(title(), colors.textTertiary);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pump();
-      expect(title(), ToolbarColors.light.title);
+      expect(title(), colors.textPrimary);
     },
   );
 
@@ -135,20 +144,25 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
     await tester.pump();
     expect(find.text('dentro.txt'), findsOneWidget);
-    final back = tester.getCenter(find.byKey(const ValueKey('back')));
-    final hold = await tester.startGesture(back, kind: PointerDeviceKind.mouse);
-    await tester.pump(const Duration(milliseconds: 320));
+    final nav = tester.getRect(find.byKey(const ValueKey('back and forward')));
+    final hold = await tester.startGesture(
+      Offset(nav.left + 16, nav.center.dy),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump(const Duration(milliseconds: 600));
     await hold.up();
     await tester.pump();
-    // The previous place, in the menu below the segment (rect.bottomLeft); the click opens it.
+    // The previous place, in the menu below the segment (its bottom left corner); the click
+    // opens it.
     final name = root.path.split('/').last;
     final item = find.descendant(
-      of: find.byType(MenuPanel),
+      of: find.byType(AmalfiMenu),
       matching: find.text(name),
     );
     expect(item, findsOneWidget);
-    final panel = tester.getRect(find.byType(MenuPanel));
-    expect(panel.top, closeTo(7 + 38, 1));
+    final panel = tester.getRect(find.byType(AmalfiMenu));
+    expect(panel.left, nav.left);
+    expect(panel.top, nav.bottom);
     await tester.tap(item);
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 60));
@@ -156,14 +170,33 @@ void main() {
     expect(find.text('nota.txt'), findsOneWidget);
   });
 
-  testWidgets('the unified toolbar: capsules, views, Back', (tester) async {
+  testWidgets('the toolbar: pieces at the frames of the kit Toolbar Icons', (
+    tester,
+  ) async {
     await pump(tester);
-    // Back/Forward 7 pt from the sidebar, 38 tall with 7 pt above; the title 12 pt after.
-    final nav = tester.getRect(find.byKey(const ValueKey('back and forward')));
-    expect(nav, const Rect.fromLTWH(199, 7, 75, 38));
-    expect(tester.getTopLeft(find.byKey(const ValueKey('title'))).dx, 286);
-    expect(tester.getSize(find.byKey(const ValueKey('view group'))).width, 162);
-    expect(tester.getTopRight(find.byKey(const ValueKey('search'))).dx, 993);
+    final kit = loadKit('Toolbar Icons');
+    // The content section starts at x 240, 52 tall; the controls are inside their pieces (4 pt).
+    final bar = tester.getRect(find.byKey(const ValueKey('toolbar')));
+    expect(bar, Rect.fromLTWH(240, 0, 760, 52));
+    Rect inBar(Finder f) => tester.getRect(f).shift(-bar.topLeft);
+    final nav = inBar(find.byKey(const ValueKey('back and forward')));
+    final navPiece = kit.rect('Nav');
+    expect(nav.left, navPiece.left + 4);
+    expect(nav.size, const Size(64, 32));
+    expect(nav.top, 10);
+    final views = inBar(find.byKey(const ValueKey('view group')));
+    final viewsPiece = kit.rect('Segmented 4');
+    expect(views.left, viewsPiece.left + 4);
+    expect(views.width, viewsPiece.width - 8);
+    expect(views.height, 32);
+    final search = inBar(find.byKey(const ValueKey('search field')));
+    final searchPiece = kit.rect('Search');
+    expect(search.left, searchPiece.left + 4);
+    expect(search.right, searchPiece.right - 4);
+    expect(
+      inBar(find.byKey(const ValueKey('title'))).left,
+      kit.rect('Title').left,
+    );
 
     await tester.tap(find.text('Alfa'));
     await tester.pump(const Duration(milliseconds: 50));
@@ -172,12 +205,17 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
     await tester.pump();
     expect(find.text('dentro.txt'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('back')));
+    await tester.tapAt(
+      tester
+              .getRect(find.byKey(const ValueKey('back and forward')))
+              .centerLeft +
+          const Offset(16, 0),
+    );
     await tester.pump();
     expect(find.text('nota.txt'), findsOneWidget);
 
     // The view group: the grid removes the column header.
-    await tester.tap(find.byKey(const ValueKey('view icons')));
+    await tester.tap(find.bySemanticsLabel('Icons'));
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.byKey(const ValueKey('column header')), findsNothing);
 
@@ -188,9 +226,11 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     await tester.pumpAndSettle();
+    // The content section starts with the slot of the window buttons (96, 12 of it the section's
+    // padding) and the toggle (40), then the 4 pt of the nav piece.
     expect(
       tester.getTopLeft(find.byKey(const ValueKey('back and forward'))).dx,
-      windowButtonsEnd + 7,
+      12 + (windowControlsSlot - 12) + 40 + 4,
     );
   });
 }

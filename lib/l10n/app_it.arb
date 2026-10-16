@@ -269,5 +269,9 @@
   "menuNextTab": "Mostra pannello successivo",
   "menuMoveTabToWindow": "Sposta pannello in una nuova finestra",
   "menuMergeWindows": "Unisci tutte le finestre",
-  "menuShowProgress": "Mostra finestra avanzamento"
+  "menuShowProgress": "Mostra finestra avanzamento",
+  "searchPlaceholder": "Cerca",
+  "toggleSidebar": "Barra laterale",
+  "iconSize": "Dimensione icone",
+  "menuCloseTab": "Chiudi tab"
 }

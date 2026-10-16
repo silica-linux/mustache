@@ -10,14 +10,14 @@ import 'package:mustache/src/window.dart';
 
 void main() {
   test('panel sizes for images (spec/quick-look.md)', () {
-    expect(imagePanelSize(const Size(800, 600)), const Size(810, 643));
-    expect(imagePanelSize(const Size(600, 900)), const Size(610, 943));
+    expect(imagePanelSize(const Size(800, 600)), const Size(800, 641));
+    expect(imagePanelSize(const Size(600, 900)), const Size(600, 941));
     // Small: minimum width.
     expect(imagePanelSize(const Size(320, 240)).width, quickPreviewMinWidth);
     // Large: fitted to the maximum height.
     final big = imagePanelSize(const Size(4000, 3000));
     expect(big.height, quickPreviewMaxHeight);
-    expect(big.width, closeTo(1628, 2));
+    expect(big.width, closeTo(1620, 2));
     // In a smaller window it shrinks proportionally.
     expect(
       fitPanel(const Size(800, 400), const Size(400, 400)),

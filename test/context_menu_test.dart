@@ -80,8 +80,8 @@ void main() {
     await rightClick(tester, at);
     expect(find.text('Open'), findsOneWidget);
     expect(find.text('Move to Trash'), findsOneWidget);
-    // The menu opens with its corner at the pointer (+1, −6).
-    final panel = tester.getRect(find.byType(MenuPanel));
+    // The menu opens with its corner at the pointer (+1, −6), moved inside the window if needed.
+    final panel = tester.getRect(find.byType(AmalfiMenu).first);
     expect(panel.topLeft, at + const Offset(1, -6));
     // The Open With submenu.
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
@@ -115,7 +115,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 60));
     }
     expect(File('${dir.path}/nota.txt').existsSync(), isFalse);
-    expect(find.byType(MenuPanel), findsNothing);
+    expect(find.byType(AmalfiMenu), findsNothing);
   });
 
   testWidgets(

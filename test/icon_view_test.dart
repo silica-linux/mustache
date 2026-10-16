@@ -9,33 +9,35 @@ import 'package:mustache/src/settings.dart';
 import 'package:mustache/src/window.dart';
 import 'package:silica_ui/silica_ui.dart';
 
+import 'kit.dart';
+
 void main() {
-  test('the grid follows the table of spec/icon-view.md', () {
-    // 783 pt of content: 6 columns at 64 (pitch ~126.8), first icon at 24, y pitch 116.
-    final g64 = iconGrid(783);
-    expect(g64.columns, 6);
-    expect(g64.pitchX, closeTo(126.8, 0.1));
-    expect(g64.pitchY, 116);
-    expect(g64.top, 24);
-    expect(g64.centerX(0), closeTo(74, 1.5));
-    // The other sizes: y pitch and top of the first icon.
-    for (final (side, pitchY, top) in [
-      (16.0, 59.0, 21.0),
-      (32.0, 78.0, 22.0),
-      (96.0, 154.0, 26.0),
-      (128.0, 192.0, 28.0),
-    ]) {
-      final g = iconGrid(783, side: side);
-      expect(g.pitchY, pitchY, reason: 'size $side');
-      expect(g.top, top, reason: 'size $side');
-    }
-    expect(iconGrid(783, side: 128).columns, 4);
-    // Text: 10 → 8 columns and y pitch 110; 16 → 5 columns and 122.
-    expect(iconGrid(822, text: 10).columns, 8);
-    expect(iconGrid(822, text: 10).pitchY, 110);
-    expect(iconGrid(783, text: 16).columns, 5);
-    expect(iconGrid(783, text: 16).pitchY, 122);
-  });
+  test(
+    'the grid follows the kit Icons master: 104 tiles, 16 apart, 20 padding',
+    () {
+      final kit = loadKit('Icons');
+      final first = kit.rect('Desktop');
+      final second = kit.rect('Documents');
+      final below = kit.rect('Public');
+      // The content area of the master is 760 wide, from x 240, below the 52 pt toolbar.
+      final g = iconGrid(760);
+      expect(g.columns, 6);
+      expect(g.pitchX, second.left - first.left);
+      expect(g.pitchY, below.top - first.top);
+      expect(g.tile, first.width);
+      expect(g.top, first.top - 52);
+      expect(g.centerX(0) - g.tile / 2, first.left - 240);
+      // The icon size changes the tile (plus 40) and both pitches (plus 56).
+      for (final side in [16.0, 32.0, 96.0, 128.0]) {
+        final s = iconGrid(760, side: side);
+        expect(s.pitchY, side + 56, reason: 'size $side');
+        expect(s.tile, side + 40 < 104 ? 104 : side + 40, reason: 'size $side');
+      }
+      expect(iconGrid(760, side: 128).columns, 4);
+      // Narrow content: one column at least.
+      expect(iconGrid(100).columns, 1);
+    },
+  );
 
   testWidgets('label: at most two lines, the second truncated in the middle', (
     tester,
@@ -139,13 +141,14 @@ void main() {
       DecoratedBox capsule(String name) => tester.widget<DecoratedBox>(
         find.byKey(ValueKey('name ${root.path}/$name 0')),
       );
+      final colors = AmalfiColors.light;
       expect(
-        (capsule('Alfa').decoration as BoxDecoration).color,
-        const Color(0xFF0064E1),
+        (capsule('Alfa').decoration as ShapeDecoration).color,
+        colors.accentAmalfi,
       );
       expect(
         tester.widget<Text>(label('Alfa')).style?.color,
-        const Color(0xFFFFFFFF),
+        colors.textOnAccent,
       );
       // → moves to the cell beside, ↓ to the row below (same column).
       final ordered = [
@@ -159,8 +162,8 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
       await tester.pump();
       expect(
-        (capsule(ordered[start + 1]).decoration as BoxDecoration).color,
-        const Color(0xFF0064E1),
+        (capsule(ordered[start + 1]).decoration as ShapeDecoration).color,
+        colors.accentAmalfi,
       );
       final columns = iconGrid(
         tester.getSize(find.byType(IconView)).width,
@@ -169,8 +172,8 @@ void main() {
       await tester.pump();
       final below = (start + 1 + columns).clamp(0, ordered.length - 1);
       expect(
-        (capsule(ordered[below]).decoration as BoxDecoration).color,
-        const Color(0xFF0064E1),
+        (capsule(ordered[below]).decoration as ShapeDecoration).color,
+        colors.accentAmalfi,
       );
       // Click on the background: no selection.
       await tester.tapAt(
@@ -178,7 +181,7 @@ void main() {
       );
       await tester.pump();
       expect(
-        (capsule(ordered[below]).decoration as BoxDecoration).color,
+        (capsule(ordered[below]).decoration as ShapeDecoration).color,
         isNull,
       );
       // Lets the double-click wait expire.
@@ -214,8 +217,8 @@ void main() {
       final text = tester.widget<Text>(second);
       expect(text.data, startsWith('molto lu'));
       expect(text.softWrap, isFalse);
-      // The row fits on a single line of text (17 pt).
-      expect(tester.getSize(second).height, lessThan(17));
+      // The row fits on a single line of text (16 pt).
+      expect(tester.getSize(second).height, lessThanOrEqualTo(16));
     });
   });
 

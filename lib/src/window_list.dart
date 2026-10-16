@@ -1,6 +1,6 @@
 // The list view in the window (MU-20, docs/spec/list-view.md; geometry and colors in list_view.dart): a
-// header that sorts and resizes, rows with disclosure triangle, icon and cells, folders expanded in
-// place (15 pt indent per level), alternating rows down to the bottom even for an empty folder,
+// header that sorts and resizes, rows with disclosure chevron, icon and cells, folders expanded in
+// place (16 pt indent per level), alternating rows down to the bottom even for an empty folder,
 // block selection. The empty rows after the last one are background: a click clears the selection,
 // a right click opens the folder menu.
 
@@ -118,40 +118,36 @@ extension _ListView on _MustacheWindowState {
     });
   }
 
-  ListColors get _listColors => ListColors.of(
-    dark: MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark,
-  );
+  ListColors get _listColors => ListColors.of(context);
 
-  /// The column header in the veiled band of the glass toolbar (R1.9: the veil continues under
-  /// it); it follows the rows when the table scrolls sideways.
+  /// The column header below the toolbar; it follows the rows when the table scrolls sideways.
   Widget _listHeaderBand() => LayoutBuilder(
     builder: (context, box) {
-      final width = math.max(
-        listTableWidth(_listWidths) + listInset,
-        box.maxWidth,
-      );
-      return ClipRect(
-        child: ListenableBuilder(
-          listenable: _listScrollX,
-          builder: (context, child) => Transform.translate(
-            offset: Offset(
-              _listScrollX.hasClients ? -_listScrollX.offset : 0,
-              0,
+      final width = math.max(listTableWidth(_listWidths), box.maxWidth);
+      return SizedBox(
+        height: listHeaderHeight + listHeaderLine,
+        child: ClipRect(
+          child: ListenableBuilder(
+            listenable: _listScrollX,
+            builder: (context, child) => Transform.translate(
+              offset: Offset(
+                _listScrollX.hasClients ? -_listScrollX.offset : 0,
+                0,
+              ),
+              child: child,
             ),
-            child: child,
-          ),
-          child: OverflowBox(
-            alignment: Alignment.topLeft,
-            minWidth: width,
-            maxWidth: width,
-            child: ListHeader(
-              widths: _listWidths,
-              sort: _sort,
-              descending: _descending,
-              colors: _listColors,
-              background: const Color(0x00000000),
-              onSort: _sortList,
-              onResize: _resizeColumn,
+            child: OverflowBox(
+              alignment: Alignment.topLeft,
+              minWidth: width,
+              maxWidth: width,
+              child: ListHeader(
+                widths: _listWidths,
+                sort: _sort,
+                descending: _descending,
+                colors: _listColors,
+                onSort: _sortList,
+                onResize: _resizeColumn,
+              ),
             ),
           ),
         ),
@@ -162,11 +158,11 @@ extension _ListView on _MustacheWindowState {
   Widget _listView() {
     if (_error != null) {
       return Padding(
-        padding: EdgeInsets.only(top: _topInset),
+        padding: EdgeInsets.zero,
         child: Center(
           child: Text(
             l10n.cantOpenFolder('$_error'),
-            style: text(13, color: secondaryText),
+            style: AmalfiType.body(color: _listColors.secondary),
           ),
         ),
       );
@@ -179,17 +175,17 @@ extension _ListView on _MustacheWindowState {
     return LayoutBuilder(
       builder: (context, box) {
         final table = listTableWidth(_listWidths);
-        final scrolls = table + listInset > box.maxWidth;
-        final width = scrolls ? table + listInset : box.maxWidth;
+        final scrolls = table > box.maxWidth;
+        final width = scrolls ? table : box.maxWidth;
         // Alternating rows continue down to the bottom (R3.10).
-        // The header is in the toolbar band, inside `_topInset`.
-        final fill = ((box.maxHeight - _topInset) / listRowHeight).ceil() + 1;
+        // The header is above the list.
+        final fill = (box.maxHeight / listRowHeight).ceil() + 1;
         final count = math.max(rows.length, fill);
         final content = ColoredBox(
           color: colors.background,
           child: ListView.builder(
             key: const ValueKey('list'),
-            padding: EdgeInsets.only(top: _topInset + listFirstRowGap),
+            padding: const EdgeInsets.only(top: listFirstRowGap),
             itemExtent: listRowHeight,
             itemCount: count,
             itemBuilder: (context, index) => index < rows.length
@@ -247,12 +243,13 @@ extension _ListView on _MustacheWindowState {
     final tags = _tagsOf(entry);
     // The tag dots at the end of the Name column (R3.4).
     final tagsWidth = tags.isEmpty ? 0.0 : 10 + 5.0 * (tags.length - 1) + 8;
-    final nameStyle = listText(13, nameColor);
+    final nameStyle = AmalfiType.body(color: nameColor);
     final nameRoom =
         nameEnd -
+        listNameRight -
         (listNameLeft + indent) -
         tagsWidth -
-        (pending != null ? 20 : 4);
+        (pending != null ? 20 : 0);
     final cells = <Widget>[];
     var x = nameEnd;
     for (var i = 1; i < listColumns.length; i++) {
@@ -264,21 +261,22 @@ extension _ListView on _MustacheWindowState {
         SortKey.kind => _kind(entry),
         SortKey.name => '',
       };
-      final style = listText(13, secondary);
-      final room = w - listCellLeft - listCellRight;
+      final style = AmalfiType.callout(color: secondary);
+      final room = w - listCellRight;
       cells.add(
         Positioned(
-          left: x + listCellLeft,
+          left: x,
           width: math.max(0, room),
-          top: 0,
-          height: listRowHeight,
-          child: baselineText(
+          top: 6,
+          height: 16,
+          child: Text(
             column.key == SortKey.kind
                 ? middleEllipsis(value, style, room)
                 : value,
-            style,
-            baseline: listRowBaseline,
-            align: column.alignRight ? TextAlign.right : TextAlign.left,
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.clip,
+            style: style,
           ),
         ),
       );
@@ -299,7 +297,7 @@ extension _ListView on _MustacheWindowState {
             _rowDragged = false;
             final onTriangle =
                 entry.isDirectory &&
-                e.localPosition.dx >= 11 + indent &&
+                e.localPosition.dx >= listChevronLeft - 2 + indent &&
                 e.localPosition.dx < listIconLeft + indent;
             _rowDown = e.buttons & kPrimaryButton == 0 || onTriangle
                 ? null
@@ -335,12 +333,12 @@ extension _ListView on _MustacheWindowState {
                 ),
                 if (entry.isDirectory && !_searching)
                   Positioned(
-                    // The triangle hit area: 15 × 20 from x 11 (AX 15 × 22).
-                    left: 11 + indent,
-                    width: 15,
+                    // The chevron hit area: 16 wide around the 12 pt glyph.
+                    left: listChevronLeft - 2 + indent,
+                    width: listChevronSide + 4,
                     top: 0,
                     height: listRowHeight,
-                    // The triangle opens on release (MU-25), with ⌥ read at press time; a double
+                    // The chevron opens on release (MU-25), with ⌥ read at press time; a double
                     // click here does not open the folder.
                     child: Listener(
                       key: ValueKey('triangle ${entry.path}'),
@@ -363,22 +361,13 @@ extension _ListView on _MustacheWindowState {
                         behavior: HitTestBehavior.opaque,
                         onTap: () {},
                         onDoubleTap: () {},
-                        child: Stack(
-                          children: [
-                            // › 5 × 8 at x 17–21, ⌄ 8 × 5 centered on the same point.
-                            Positioned(
-                              left: _expanded.contains(entry.path)
-                                  ? listTriangleLeft - 11 - 1.5
-                                  : listTriangleLeft - 11,
-                              top: _expanded.contains(entry.path) ? 7.5 : 6,
-                              child: ListTriangle(
-                                open: _expanded.contains(entry.path),
-                                color: selected && active
-                                    ? colors.selectionName
-                                    : colors.triangle,
-                              ),
-                            ),
-                          ],
+                        child: Center(
+                          child: ListTriangle(
+                            open: _expanded.contains(entry.path),
+                            color: selected && active
+                                ? colors.selectionName
+                                : colors.triangle,
+                          ),
                         ),
                       ),
                     ),
@@ -397,29 +386,25 @@ extension _ListView on _MustacheWindowState {
                 Positioned(
                   left: listNameLeft + indent,
                   width: math.max(0, nameRoom),
-                  top: 0,
-                  height: listRowHeight,
+                  top: 5,
+                  height: 18,
                   child: entry.path == _renaming
                       ? Align(
                           alignment: Alignment.centerLeft,
                           child: _renameField(entry, maxWidth: nameRoom),
                         )
-                      : Baseline(
-                          baseline: listRowBaseline,
-                          baselineType: TextBaseline.alphabetic,
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            heightFactor: 1,
-                            // A press on the name itself may be a slow click (R8).
-                            child: Listener(
-                              onPointerDown: (_) => _namePress(entry),
-                              child: Text(
-                                middleEllipsis(entry.name, nameStyle, nameRoom),
-                                maxLines: 1,
-                                softWrap: false,
-                                overflow: TextOverflow.clip,
-                                style: nameStyle,
-                              ),
+                      // A press on the name itself may be a slow click (R8): the hit area is the
+                      // text, not the whole column.
+                      : Align(
+                          alignment: Alignment.centerLeft,
+                          child: Listener(
+                            onPointerDown: (_) => _namePress(entry),
+                            child: Text(
+                              middleEllipsis(entry.name, nameStyle, nameRoom),
+                              maxLines: 1,
+                              softWrap: false,
+                              overflow: TextOverflow.clip,
+                              style: nameStyle,
                             ),
                           ),
                         ),
@@ -432,8 +417,8 @@ extension _ListView on _MustacheWindowState {
                   ),
                 if (tags.isNotEmpty)
                   Positioned(
-                    left: nameEnd - 7 - (tagsWidth - 8),
-                    top: 5,
+                    left: nameEnd - listNameRight - (tagsWidth - 8),
+                    top: 9,
                     child: TagDots(
                       tags: tags,
                       background: selected

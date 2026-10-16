@@ -50,7 +50,7 @@ void main() {
   testWidgets('English: headers, places, dates and sizes', (tester) async {
     await pump(tester, const Locale('en', 'US'));
     expect(find.text('Name'), findsOneWidget);
-    expect(find.text('Modified'), findsOneWidget);
+    expect(find.text('Date Modified'), findsOneWidget);
     expect(find.text('Places'), findsOneWidget);
     expect(find.text('Trash'), findsOneWidget);
     expect(find.textContaining('Today, '), findsWidgets);

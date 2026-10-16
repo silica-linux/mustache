@@ -73,8 +73,9 @@ const Color desktopSelectionOutline = Color(0x1AFFFFFF);
 /// The selected name's capsule (MU-90, DESKTOP-SEL): 17 pt tall with fully round ends, 5 pt of side
 /// padding, accent blue with white text; light grey `#d0d0d0` with dark text while the desktop is
 /// not the active surface (a window is key), the square unchanged.
-const Color desktopCapsule = Color(0xFF0064E1);
-const Color desktopCapsuleDark = Color(0xFF0059D1);
+/// `Accent/Amalfi`, light and dark (the kit has no desktop screen: the geometry stays as measured).
+const Color desktopCapsule = Color(0xFF0E77E6);
+const Color desktopCapsuleDark = Color(0xFF3D95FF);
 const Color desktopCapsuleInactive = Color(0xFFD0D0D0);
 const Color desktopCapsuleInactiveText = Color(0xFF1D1D1F);
 const double desktopCapsulePad = 5;

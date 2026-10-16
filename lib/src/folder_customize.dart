@@ -48,19 +48,13 @@ const double folderButtonHeight = 24;
 const Duration folderSlide = Duration(milliseconds: 280);
 const Duration folderSlideAll = Duration(milliseconds: 470);
 
-/// The disc colours (dark, light); the vivid system colours, not the dots' of the lists.
-Color folderDiscColor(TagColor c, {required bool dark}) => switch (c) {
-  TagColor.red => dark ? const Color(0xFFFF4747) : const Color(0xFFFF383C),
-  TagColor.orange => dark ? const Color(0xFFFF9E32) : const Color(0xFFFF8D28),
-  TagColor.yellow => dark ? const Color(0xFFFFE014) : const Color(0xFFF5C202),
-  TagColor.green => dark ? const Color(0xFF3BDB63) : const Color(0xFF27BF4D),
-  TagColor.blue => dark ? const Color(0xFF0C99FF) : const Color(0xFF0178F0),
-  TagColor.purple => dark ? const Color(0xFFE647FC) : const Color(0xFFB72BC8),
-  TagColor.gray => const Color(0xFF8E8E93),
-};
+/// The disc colours: the Amalfi palette of the tags (tags.dart).
+Color folderDiscColor(TagColor c, {required bool dark}) =>
+    tagPaletteColor(c, dark: dark);
 
-/// The selection ring and the selected glyph.
-const Color folderAccent = Color(0xFF0479FC);
+/// The selection ring and the selected glyph: `Accent/Amalfi` (light; the dark one is read from
+/// the theme where it is drawn).
+const Color folderAccent = Color(0xFF0E77E6);
 
 /// The seven categories of the symbol grid, in order.
 enum SymbolCategoryId {
@@ -213,23 +207,22 @@ class _FolderIconAnchorState extends State<FolderIconAnchor> {
   Widget build(BuildContext context) => widget.child;
 }
 
+/// The colors of the popover: Amalfi tokens (neutral greys, no warm tones).
 class _Palette {
-  const _Palette(this.dark);
+  const _Palette(this.dark, this.tokens);
   final bool dark;
+  final AmalfiColors tokens;
 
-  Color get text => dark ? const Color(0xFFECECEB) : const Color(0xFF4D4C4C);
-  Color get secondary =>
-      dark ? const Color(0xFF85827E) : const Color(0xFF8A8785);
-  Color get line => dark ? const Color(0xFF6F6B69) : const Color(0xFFE6E4E3);
-  Color get glyph => dark ? const Color(0xFFC1BCB9) : const Color(0xFF807E7D);
-  Color get plusFill =>
-      dark ? const Color(0xFF676460) : const Color(0xFFE5E4E5);
-  Color get button => dark ? const Color(0x24FFFFFF) : const Color(0x14000000);
-  Color get removeOn =>
-      dark ? const Color(0xFF8C8481) : const Color(0xFF7A7775);
-  Color get removeOff =>
-      dark ? const Color(0xFF6B6A6A) : const Color(0xFFBDBBBA);
-  Color get divider => dark ? const Color(0xFF706B68) : const Color(0xFFD6D3D1);
+  Color get text => tokens.textPrimary;
+  Color get secondary => tokens.textSecondary;
+  Color get line => tokens.lineSeparator;
+  Color get glyph => tokens.textSecondary;
+  Color get plusFill => tokens.surfaceSunken;
+  Color get button => tokens.surfaceControl;
+  Color get removeOn => tokens.textSecondary;
+  Color get removeOff => tokens.textTertiary;
+  Color get divider => tokens.lineBorder;
+  Color get accent => tokens.accentAmalfi;
 }
 
 TextStyle _text(Color color, {double size = 13, FontWeight? weight}) =>
@@ -305,8 +298,7 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
   Rect _emojiAnchor = Rect.zero;
   Rect _mainRect = Rect.zero;
   Rect _emojiRect = Rect.zero;
-  Offset? _menuAt;
-  List<MenuEntry> _menu = const [];
+  bool _menuOpen = false;
   Object? _hover;
   Object? _pressed;
   Duration _slide = folderSlide;
@@ -377,9 +369,8 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
     return box.localToGlobal(Offset.zero, ancestor: own) & box.size;
   }
 
-  _Palette get _p => _Palette(
-    MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark,
-  );
+  _Palette get _p =>
+      _Palette(AmalfiTheme.of(context).isDark, AmalfiTheme.of(context).colors);
 
   // Tags ------------------------------------------------------------------------------------
 
@@ -451,13 +442,20 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
       for (final t in _tags)
         if (tagColor(t) == null) t,
     ];
-    setState(() {
-      _menuAt = rect.bottomLeft + const Offset(0, 4);
-      _menu = [
+    final host = context;
+    setState(() => _menuOpen = true);
+    final at = rect.bottomLeft + const Offset(0, 4);
+    final box = context.findRenderObject();
+    final global = box is RenderBox ? box.localToGlobal(at) : at;
+    showAmalfiMenu(
+      context: host,
+      position: global,
+      opaque: true,
+      entries: [
         for (final t in colourless)
-          MenuAction(
+          AmalfiMenuAction(
             t,
-            icon: (_) => const TagDot(color: null, side: 12),
+            icon: const TagDot(color: null, side: 12),
             checked: true,
             onSelected: () => _setTags([
               for (final x in _tags)
@@ -465,10 +463,12 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
             ]),
           ),
         if (colourless.isNotEmpty && widget.onEditTags != null)
-          const MenuDivider(),
+          const AmalfiMenuDivider(),
         if (widget.onEditTags != null)
-          MenuAction(l10n.folderEditTags, onSelected: widget.onEditTags),
-      ];
+          AmalfiMenuAction(l10n.folderEditTags, onSelected: widget.onEditTags),
+      ],
+    ).whenComplete(() {
+      if (mounted) setState(() => _menuOpen = false);
     });
   }
 
@@ -486,7 +486,7 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
   }
 
   void _escape() {
-    if (_menuAt != null) return;
+    if (_menuOpen) return;
     if (_emojiOpen) {
       setState(() => _emojiOpen = false);
     } else {
@@ -536,7 +536,7 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
                     key: const ValueKey('folder popover outside'),
                     behavior: HitTestBehavior.translucent,
                     onPointerDown: (e) {
-                      if (_menuAt != null) return;
+                      if (_menuOpen) return;
                       final at = e.localPosition;
                       if (_emojiOpen && !_emojiRect.contains(at)) {
                         setState(() => _emojiOpen = false);
@@ -566,17 +566,6 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
                       edge: emoji.edge,
                       tip: emoji.tip,
                       child: EmojiPicker(onPick: _pickEmoji),
-                    ),
-                  ),
-                if (_menuAt != null)
-                  Positioned.fill(
-                    key: const ValueKey('plus menu host'),
-                    child: MenuHost(
-                      key: ValueKey(_menuAt),
-                      entries: _menu,
-                      anchor: _menuAt!,
-                      opaque: true,
-                      onDismissed: () => setState(() => _menuAt = null),
                     ),
                   ),
               ],
@@ -794,12 +783,7 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
                   shape: BoxShape.circle,
                   color: p.plusFill,
                 ),
-                child: CustomPaint(
-                  painter: _PlusPainter(
-                    p.dark ? const Color(0xFFFFFFFF) : const Color(0xFF8A8785),
-                    10,
-                  ),
-                ),
+                child: CustomPaint(painter: _PlusPainter(p.secondary, 10)),
               ),
             ),
           ),
@@ -817,7 +801,7 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: _text(
-                _failed ? const Color(0xFFE0443E) : p.secondary,
+                _failed ? p.tokens.paletteTerracotta : p.secondary,
                 size: 11,
               ).copyWith(height: 1.2),
             ),
@@ -972,7 +956,7 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
           decoration: selected
               ? BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: folderAccent, width: 2),
+                  border: Border.all(color: p.accent, width: 2),
                 )
               : null,
           child: SvgPicture.file(
@@ -980,7 +964,7 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
             width: 18,
             height: 18,
             colorFilter: ColorFilter.mode(
-              selected ? folderAccent : p.glyph,
+              selected ? p.accent : p.glyph,
               BlendMode.srcIn,
             ),
           ),
@@ -1079,9 +1063,8 @@ class _EmojiPickerState extends State<EmojiPicker> {
 
   // The emoji picker is dark only in the reference (light is not measured): light follows the
   // popover's colours.
-  _Palette get _p => _Palette(
-    MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark,
-  );
+  _Palette get _p =>
+      _Palette(AmalfiTheme.of(context).isDark, AmalfiTheme.of(context).colors);
 
   String _title(int i) => switch (i) {
     0 => l10n.emojiFrequent,
@@ -1250,7 +1233,7 @@ class _EmojiPickerState extends State<EmojiPicker> {
             style: _text(p.text),
             cursorColor: p.text,
             backgroundCursorColor: p.text,
-            selectionColor: const Color(0x660479FC),
+            selectionColor: p.tokens.accentAmalfiSoft,
             maxLines: 1,
             onSubmitted: (_) {},
           ),

@@ -107,7 +107,7 @@ void main() {
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey('dialog Save')));
       await tester.pump();
-      expect(find.byType(SilicaAlert), findsOneWidget);
+      expect(find.byType(AmalfiAlert), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('alert Replace')));
       await tester.pump();
       expect(finished.last, ['${home.path}/nota.txt']);

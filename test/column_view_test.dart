@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:silica_ui/silica_ui.dart';
 import 'package:mustache/src/column_view.dart';
 import 'package:mustache/src/model.dart';
 import 'package:mustache/src/settings.dart';
@@ -71,7 +72,7 @@ void main() {
           .toList();
       return boxes.isEmpty
           ? null
-          : (boxes.first.decoration as BoxDecoration).color;
+          : (boxes.first.decoration as ShapeDecoration).color;
     }
 
     testWidgets('a chosen folder opens its column; dimmed selection on the '
@@ -82,8 +83,8 @@ void main() {
       await tester.tap(find.text('Documenti'));
       await tester.pump();
       expect(column(docs), findsOneWidget);
-      expect(fillOf(tester, docs), const Color(0xFF0064E1));
-      // The column is 245 pt from the first one.
+      expect(fillOf(tester, docs), AmalfiColors.light.accentAmalfi);
+      // The column is 240 pt from the first one (kit `Columns`).
       expect(
         tester.getTopLeft(column(docs)).dx -
             tester.getTopLeft(column(home.path)).dx,
@@ -93,18 +94,18 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
       await tester.pump();
       final letters = '$docs/Lettere';
-      expect(fillOf(tester, letters), const Color(0xFF0064E1));
-      expect(fillOf(tester, docs), const Color(0xFFDCDCDC));
+      expect(fillOf(tester, letters), AmalfiColors.light.accentAmalfi);
+      expect(fillOf(tester, docs), AmalfiColors.light.lineSeparator);
       expect(column(letters), findsOneWidget);
       // ↓ moves to nota.txt (same column): the column of Lettere disappears.
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
       await tester.pump();
-      expect(fillOf(tester, '$docs/nota.txt'), const Color(0xFF0064E1));
+      expect(fillOf(tester, '$docs/nota.txt'), AmalfiColors.light.accentAmalfi);
       expect(column(letters), findsNothing);
       // ← goes back to the folder on the left.
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
       await tester.pump();
-      expect(fillOf(tester, docs), const Color(0xFF0064E1));
+      expect(fillOf(tester, docs), AmalfiColors.light.accentAmalfi);
       await tester.pump(const Duration(milliseconds: 400));
     });
 

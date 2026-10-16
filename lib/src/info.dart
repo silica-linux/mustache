@@ -1,9 +1,11 @@
-// The Get Info window (⌘I, MU-60, docs/spec/info.md): 265 wide, as tall as its content; a header
-// with the 44 pt icon, the name in semibold, the size and the date; sections with a chevron that
-// open and close (the state applies to all Info windows, R11.1): General, Name & Extension,
-// Comments, Open With, Preview, Sharing & Permissions. Labels right-aligned up to x 91, values
-// from x 93, ~11 pt text. A folder's colour, symbol and emoji are not here: they have their own
-// popover (folder_customize.dart).
+// The Get Info window (⌘I, MU-60, docs/spec/info.md for the behaviour; kit `Apps/Mustache/Info`):
+// 264 wide, as tall as its content, content padding 16; a header with the 48 pt icon, the name in
+// Body Emphasis, the size (an item count for a folder) and the date, then the tags field; sections
+// separated by 1 pt lines with a 12 pt disclosure chevron that open and close (the state applies to
+// all Info windows, R11.1): General, Name & Extension, Comments, Open With, Preview, Sharing &
+// Permissions. Labels in a 64 pt column, values from x 92, Callout text. A folder's colour, symbol
+// and emoji are not here: they have their own popover (folder_customize.dart). The kit's "More
+// Info" section is not here: there is nothing to put in it yet (mustache issue).
 //
 // In Silica every Get Info is its own window, a child of the Mustache window (mustache#12,
 // silica-desktop#146): Ossido draws its title bar and close button, and the panel is its content
@@ -20,9 +22,11 @@ import 'icon_view.dart' show EntryIcon;
 import 'model.dart';
 import 'xattr.dart';
 
-const double infoWidth = 265;
-const double infoLabelRight = 91;
-const double infoValueLeft = 93;
+const double infoWidth = 264;
+const double infoPadding = 16;
+const double infoLabelWidth = 64;
+const double infoSectionHeight = 28;
+const double infoRow = 20;
 
 /// The sections, in order.
 enum InfoSection { general, name, comments, openWith, preview, permissions }
@@ -117,54 +121,6 @@ int withPrivilege(int mode, int shift, Privilege p) {
 
 String _date(DateTime? t) => t == null ? '--' : longDate(t);
 
-/// Window colors (MU-60); in dark: background `#272728`, white text,
-/// secondary `#9e9e9e`, title `#a1a1a1`, lines `#3c3c3d`; the link in dark is *estimated*.
-@immutable
-class InfoColors {
-  const InfoColors({
-    required this.fill,
-    required this.text,
-    required this.secondary,
-    required this.title,
-    required this.line,
-    required this.fieldBorder,
-    required this.link,
-  });
-
-  final Color fill;
-  final Color text;
-  final Color secondary;
-  final Color title;
-  final Color line;
-  final Color fieldBorder;
-  final Color link;
-
-  static const InfoColors light = InfoColors(
-    fill: Color(0xFFFFFFFF),
-    text: Color(0xFF1A1A1A),
-    secondary: Color(0xFF6E6E73),
-    title: Color(0xFF4D4D4D),
-    line: Color(0xFFE6E6E6),
-    fieldBorder: Color(0xFFD0D0D0),
-    link: Color(0xFF0064E1),
-  );
-
-  static const InfoColors dark = InfoColors(
-    fill: Color(0xFF272728),
-    text: Color(0xFFFFFFFF),
-    secondary: Color(0xFF9E9E9E),
-    title: Color(0xFFA1A1A1),
-    line: Color(0xFF3C3C3D),
-    fieldBorder: Color(0xFF353535),
-    link: Color(0xFF0A84FF),
-  );
-
-  static InfoColors of(BuildContext context) =>
-      MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark
-      ? dark
-      : light;
-}
-
 class InfoPanel extends StatefulWidget {
   const InfoPanel({
     super.key,
@@ -178,6 +134,8 @@ class InfoPanel extends StatefulWidget {
     this.env,
     this.framed = true,
     this.onHeight,
+    this.tags,
+    this.onAddTag,
   });
 
   final Entry entry;
@@ -205,6 +163,10 @@ class InfoPanel extends StatefulWidget {
   final String? openWith;
   final Map<String, String>? env;
 
+  /// The item's tags and adding one from the field (null: no field).
+  final List<String>? tags;
+  final ValueChanged<String>? onAddTag;
+
   @override
   State<InfoPanel> createState() => _InfoPanelState();
 }
@@ -217,6 +179,7 @@ class _InfoPanelState extends State<InfoPanel> {
   late final TextEditingController _comment = TextEditingController(
     text: readAttribute(widget.entry.path, commentAttribute) ?? '',
   );
+  final TextEditingController _tagInput = TextEditingController();
   final FocusNode _commentFocus = FocusNode();
   final FocusNode _nameFocus = FocusNode();
   final GlobalKey _contentKey = GlobalKey();
@@ -251,21 +214,13 @@ class _InfoPanelState extends State<InfoPanel> {
   void dispose() {
     _name.dispose();
     _comment.dispose();
+    _tagInput.dispose();
     _commentFocus.dispose();
     _nameFocus.dispose();
     super.dispose();
   }
 
-  InfoColors get _c => InfoColors.of(context);
-
-  TextStyle _text({double size = 11, FontWeight? weight, Color? color}) =>
-      TextStyle(
-        fontFamily: uiFontFamily,
-        package: 'silica_ui',
-        fontSize: size,
-        fontWeight: weight,
-        color: color ?? _c.text,
-      );
+  AmalfiColors get _c => AmalfiTheme.of(context).colors;
 
   /// Tells [InfoPanel.onHeight] the content's height once it is laid out, if it changed.
   void _reportHeight() {
@@ -281,6 +236,22 @@ class _InfoPanelState extends State<InfoPanel> {
     });
   }
 
+  Widget _body(Entry entry) => Column(
+    key: _contentKey,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      _header(entry),
+      for (final section in InfoSection.values)
+        if (switch (section) {
+          InfoSection.openWith => !entry.isDirectory,
+          _ => true,
+        })
+          _section(section),
+      const SizedBox(height: infoPadding),
+    ],
+  );
+
   @override
   Widget build(BuildContext context) {
     final entry = widget.entry;
@@ -289,130 +260,126 @@ class _InfoPanelState extends State<InfoPanel> {
       // The window's content: the window draws the bar, the frame and the shadow.
       return ColoredBox(
         key: ValueKey('info ${entry.path}'),
-        color: _c.fill,
-        child: SingleChildScrollView(
-          child: Column(
-            key: _contentKey,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 6),
-              _header(entry),
-              for (final section in InfoSection.values)
-                if (switch (section) {
-                  InfoSection.openWith => !entry.isDirectory,
-                  _ => true,
-                })
-                  _section(section),
-            ],
-          ),
-        ),
+        color: _c.surfaceWindow,
+        child: SingleChildScrollView(child: _body(entry)),
       );
     }
-    return Container(
+    return SizedBox(
       key: ValueKey('info ${entry.path}'),
       width: infoWidth,
-      decoration: BoxDecoration(
-        color: _c.fill,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0x40000000), width: 0.5),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x40000000),
-            blurRadius: 30,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+      child: AmalfiWindow(
+        kind: AmalfiWindowKind.utility,
+        active: true,
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
-            children: [
-              _titleBar(entry),
-              _header(entry),
-              for (final section in InfoSection.values)
-                if (switch (section) {
-                  InfoSection.openWith => !entry.isDirectory,
-                  _ => true,
-                })
-                  _section(section),
-            ],
+            children: [_titleBar(entry), _body(entry)],
           ),
         ),
       ),
     );
   }
 
+  /// The title-only bar (kit `Titlebars/Bar/Title Only`): 32 tall, the close control on the left
+  /// and the title.
   Widget _titleBar(Entry entry) => SizedBox(
-    height: 28,
-    child: Row(
+    height: AmalfiToolbarMetrics.titleOnlyHeight,
+    child: Stack(
       children: [
-        const SizedBox(width: 10),
-        GestureDetector(
-          key: const ValueKey('close info'),
-          onTap: widget.onClose,
-          child: Container(
-            width: 12,
-            height: 12,
-            decoration: const BoxDecoration(
-              color: Color(0xFFFF5F57),
-              shape: BoxShape.circle,
+        Positioned(
+          left: 12,
+          top: 8,
+          child: GestureDetector(
+            key: const ValueKey('close info'),
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.onClose,
+            child: const AmalfiWindowDot(kind: AmalfiWindowControlKind.close),
+          ),
+        ),
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 48),
+            child: Text(
+              l10n.infoTitle(entry.name),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AmalfiType.headline(color: _c.textPrimary),
             ),
           ),
         ),
-        Expanded(
-          child: Text(
-            l10n.infoTitle(entry.name),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: _text(size: 12, weight: FontWeight.w600, color: _c.title),
-          ),
-        ),
-        const SizedBox(width: 22),
       ],
     ),
   );
 
+  /// The item count of a folder, for the line under the name (the size for a file).
+  String _sizeLine(Entry entry) {
+    if (!entry.isDirectory) return formatSize(entry);
+    try {
+      return l10n.itemCount(Directory(entry.path).listSync().length);
+    } on FileSystemException {
+      return '--';
+    }
+  }
+
   Widget _header(Entry entry) => Padding(
-    padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
-    child: Row(
+    padding: const EdgeInsets.fromLTRB(infoPadding, 16, infoPadding, 16),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(
-          width: 44,
-          height: 44,
-          child: EntryIcon(entry: entry, side: 44, env: widget.env),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 48,
+              height: 48,
+              child: EntryIcon(entry: entry, side: 48, env: widget.env),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
                       entry.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: _text(size: 13, weight: FontWeight.w600),
+                      style: AmalfiType.bodyEmphasis(color: _c.textPrimary),
                     ),
-                  ),
-                  if (!entry.isDirectory)
-                    Text(formatSize(entry), style: _text(color: _c.secondary)),
-                ],
+                    const SizedBox(height: 2),
+                    Text(
+                      _sizeLine(entry),
+                      style: AmalfiType.callout(color: _c.textSecondary),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                l10n.modifiedOn(_date(entry.modified)),
-                style: _text(color: _c.secondary),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
+        const SizedBox(height: 12),
+        Text(
+          l10n.modifiedOn(_date(entry.modified)),
+          style: AmalfiType.callout(color: _c.textSecondary),
+        ),
+        if (widget.tags != null) ...[
+          const SizedBox(height: 12),
+          AmalfiSearchField(
+            key: ValueKey('info tags ${entry.path}'),
+            controller: _tagInput,
+            placeholder: l10n.addTag,
+            tokens: widget.tags!,
+            width: infoWidth - 2 * infoPadding,
+            onSubmitted: (value) {
+              final tag = value.trim();
+              if (tag.isEmpty) return;
+              widget.onAddTag?.call(tag);
+              _tagInput.clear();
+            },
+          ),
+        ],
       ],
     ),
   );
@@ -422,29 +389,28 @@ class _InfoPanelState extends State<InfoPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(height: 1, color: _c.line),
+        Container(height: 1, color: _c.lineSeparator),
         GestureDetector(
           key: ValueKey('section ${section.name}'),
           behavior: HitTestBehavior.opaque,
           onTap: () => widget.onToggle(section),
           child: SizedBox(
-            height: 20,
+            height: infoSectionHeight - 1,
             child: Row(
               children: [
-                const SizedBox(width: 16),
-                SizedBox(
-                  width: 15,
-                  child: Text(
-                    open ? '⌄' : '›',
-                    style: _text(size: 12, color: _c.secondary),
-                  ),
+                const SizedBox(width: infoPadding),
+                AmalfiGlyph(
+                  open ? AmalfiGlyphs.chevronDown : AmalfiGlyphs.chevronRight,
+                  size: 12,
+                  color: _c.textSecondary,
                 ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     infoSectionTitle(section),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: _text(weight: FontWeight.w600),
+                    style: AmalfiType.bodyEmphasis(color: _c.textPrimary),
                   ),
                 ),
               ],
@@ -453,30 +419,39 @@ class _InfoPanelState extends State<InfoPanel> {
         ),
         if (open)
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(top: 4, bottom: 12),
             child: _content(section),
           ),
       ],
     );
   }
 
-  Widget _row(String label, String value) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 1.5),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: infoLabelRight,
-          child: Text(
-            '$label:',
-            textAlign: TextAlign.right,
-            style: _text(color: _c.secondary),
+  Widget _row(String label, String value) => SizedBox(
+    height: infoRow,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: infoPadding),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: infoLabelWidth + 12,
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AmalfiType.callout(color: _c.textSecondary),
+            ),
           ),
-        ),
-        const SizedBox(width: infoValueLeft - infoLabelRight),
-        Expanded(child: Text(value, style: _text())),
-        const SizedBox(width: 10),
-      ],
+          Expanded(
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AmalfiType.callout(color: _c.textPrimary),
+            ),
+          ),
+        ],
+      ),
     ),
   );
 
@@ -510,11 +485,13 @@ class _InfoPanelState extends State<InfoPanel> {
         );
       case InfoSection.name:
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: _field(
-            _name,
-            _nameFocus,
-            key: 'name field',
+          padding: const EdgeInsets.symmetric(horizontal: infoPadding),
+          child: AmalfiTextField(
+            key: const ValueKey('name field'),
+            controller: _name,
+            focusNode: _nameFocus,
+            width: infoWidth - 2 * infoPadding,
+            semanticLabel: l10n.infoNameExtension,
             onSubmitted: (value) {
               if (value.trim().isNotEmpty) widget.onRename(value.trim());
             },
@@ -522,13 +499,13 @@ class _InfoPanelState extends State<InfoPanel> {
         );
       case InfoSection.comments:
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: _field(
-            _comment,
-            _commentFocus,
-            key: 'comment field',
-            lines: 3,
-            onSubmitted: (_) => _commentFocus.unfocus(),
+          padding: const EdgeInsets.symmetric(horizontal: infoPadding),
+          child: AmalfiTextArea(
+            key: const ValueKey('comment field'),
+            controller: _comment,
+            focusNode: _commentFocus,
+            size: const Size(infoWidth - 2 * infoPadding, 64),
+            semanticLabel: l10n.infoComments,
           ),
         );
       case InfoSection.openWith:
@@ -557,68 +534,50 @@ class _InfoPanelState extends State<InfoPanel> {
 
   Widget _permission(String who, int shift) {
     final current = privilegeOf(_stat.mode, shift);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 1),
-      child: Row(
-        children: [
-          Expanded(child: Text(who, style: _text())),
-          // A click moves to the next privilege, applied on disk right away (R11.4).
-          GestureDetector(
-            key: ValueKey('privilege $shift'),
-            onTap: () {
-              const order = [
-                Privilege.readWrite,
-                Privilege.readOnly,
-                Privilege.none,
-              ];
-              final next = order[(order.indexOf(current) + 1) % order.length];
-              final mode = withPrivilege(_stat.mode, shift, next);
-              try {
-                final r = Process.runSync('chmod', [
-                  mode.toRadixString(8),
-                  widget.entry.path,
-                ]);
-                if (r.exitCode == 0) {
-                  setState(() => _stat = StatDetails.of(widget.entry.path));
+    return SizedBox(
+      height: infoRow,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: infoPadding),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                who,
+                style: AmalfiType.callout(color: _c.textPrimary),
+              ),
+            ),
+            // A click moves to the next privilege, applied on disk right away (R11.4).
+            GestureDetector(
+              key: ValueKey('privilege $shift'),
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                const order = [
+                  Privilege.readWrite,
+                  Privilege.readOnly,
+                  Privilege.none,
+                ];
+                final next = order[(order.indexOf(current) + 1) % order.length];
+                final mode = withPrivilege(_stat.mode, shift, next);
+                try {
+                  final r = Process.runSync('chmod', [
+                    mode.toRadixString(8),
+                    widget.entry.path,
+                  ]);
+                  if (r.exitCode == 0) {
+                    setState(() => _stat = StatDetails.of(widget.entry.path));
+                  }
+                } on ProcessException {
+                  // Without chmod it stays as it was.
                 }
-              } on ProcessException {
-                // Without chmod it stays as it was.
-              }
-            },
-            child: Text(privilegeLabel(current), style: _text(color: _c.link)),
-          ),
-        ],
+              },
+              child: Text(
+                privilegeLabel(current),
+                style: AmalfiType.callout(color: _c.accentAmalfi),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
-
-  Widget _field(
-    TextEditingController controller,
-    FocusNode focus, {
-    required String key,
-    int lines = 1,
-    required ValueChanged<String> onSubmitted,
-  }) => Container(
-    key: ValueKey(key),
-    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-    decoration: BoxDecoration(
-      border: Border.all(color: _c.fieldBorder),
-      borderRadius: BorderRadius.circular(5),
-    ),
-    child: DefaultTextEditingShortcuts(
-      child: EditableText(
-        controller: controller,
-        focusNode: focus,
-        style: _text(size: 12),
-        cursorColor: _c.text,
-        backgroundCursorColor: _c.text,
-        selectionColor: const Color(0xFFB3D7FF),
-        selectAllOnFocus: false,
-        maxLines: lines,
-        minLines: lines,
-        onSubmitted: onSubmitted,
-        onTapOutside: (_) => focus.unfocus(),
-      ),
-    ),
-  );
 }

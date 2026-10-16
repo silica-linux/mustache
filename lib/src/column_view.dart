@@ -1,7 +1,9 @@
-// The column view (MU-22, docs/spec/column-view.md): one column for each folder from the root (the sidebar
-// entry it starts from, R5.6) down to the open one; the chosen item is highlighted in its column
-// (blue in the active column, gray in those on the left, R5.1). Columns do not shrink: the view
-// scrolls horizontally and jumps to the end right away when a new one opens (R5.4, R5.5).
+// The column view (MU-22, docs/spec/column-view.md for the behaviour; kit `Apps/Mustache/Columns`,
+// `Column Row/*`): one column for each folder from the root (the sidebar entry it starts from, R5.1)
+// down to the open one; the chosen item is highlighted in its column (accent in the active column,
+// a soft separator tone in those on the left). Columns are 240 wide with a 1 pt separator between
+// them; rows 28 tall from 8 below the top. Columns do not shrink: the view scrolls horizontally and
+// jumps to the end right away when a new one opens (R5.4, R5.5).
 
 import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
@@ -11,61 +13,19 @@ import 'list_view.dart' show middleEllipsis;
 import 'model.dart';
 import 'tags.dart' show TagDots;
 
-/// Pitch of a column (list 234 + separator band 11).
-const double columnPitch = 245;
-const double columnBand = 11;
-const double columnRow = 24;
-const double columnTop = 6;
-const double columnIconLeft = 17;
+/// A column: 240 wide, rows 28 tall from 8 below the top, the selection inset 8 (radius 8), the icon
+/// at 16, the name at 40, the 12 pt chevron at 208.
+const double columnPitch = 240;
+const double columnRow = 28;
+const double columnTop = 8;
+const double columnIconLeft = 16;
 const double columnIconSide = 16;
-const double columnTextLeft = 39;
+const double columnTextLeft = 40;
 const double columnChevronLeft = 208;
-const double columnSelectionLeft = 10;
-const double columnSelectionWidth = 208;
-const double columnSelectionRadius = 7;
-
-@immutable
-class ColumnColors {
-  const ColumnColors({
-    required this.fill,
-    required this.band,
-    required this.text,
-    required this.active,
-    required this.activeText,
-    required this.path,
-    required this.chevron,
-  });
-
-  final Color fill;
-  final Color band;
-  final Color text;
-  final Color active;
-  final Color activeText;
-
-  /// The selection in the columns left of the active one.
-  final Color path;
-  final Color chevron;
-
-  static ColumnColors of({required bool dark}) => dark
-      ? const ColumnColors(
-          fill: Color(0xFF272728),
-          band: Color(0xFF313132),
-          text: Color(0xFFFFFFFF),
-          active: Color(0xFF0059D1),
-          activeText: Color(0xFFFFFFFF),
-          path: Color(0xFF464646),
-          chevron: Color(0xFF8E8E93),
-        )
-      : const ColumnColors(
-          fill: Color(0xFFFFFFFF),
-          band: Color(0xFFF3F3F3),
-          text: Color(0xFF000000),
-          active: Color(0xFF0064E1),
-          activeText: Color(0xFFFFFFFF),
-          path: Color(0xFFDCDCDC),
-          chevron: Color(0xFF8E8E93),
-        );
-}
+const double columnChevronSide = 12;
+const double columnSelectionLeft = 8;
+const double columnSelectionWidth = 224;
+const double columnSelectionRadius = 8;
 
 /// The folders of the columns: from the root to `current` included (only if `current` is inside
 /// `root`; otherwise `current` alone).
@@ -96,16 +56,11 @@ class ColumnView extends StatefulWidget {
     this.active = true,
     this.env,
     this.tagsOf,
-    this.topInset = 0,
     this.wrapItem,
   });
 
   /// Wraps every row (dragging, drop target).
   final Widget Function(Entry entry, Widget child)? wrapItem;
-
-  /// The band of the glass toolbar above the columns (R1.9): each column starts below it and
-  /// scrolls under it.
-  final double topInset;
 
   /// The tags of an item: the dots before the arrow (MU-22).
   final List<String> Function(Entry entry)? tagsOf;
@@ -143,9 +98,7 @@ class _ColumnViewState extends State<ColumnView> {
 
   @override
   Widget build(BuildContext context) {
-    final dark =
-        MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark;
-    final colors = ColumnColors.of(dark: dark);
+    final colors = AmalfiTheme.of(context).colors;
     final chain = columnChain(widget.root, widget.current);
     final leaf = widget.leaf;
     // The active column is the one of the chosen item: the file's, or the one containing the chosen
@@ -162,7 +115,7 @@ class _ColumnViewState extends State<ColumnView> {
       });
     }
     return ColoredBox(
-      color: colors.fill,
+      color: colors.surfaceWindow,
       child: SingleChildScrollView(
         controller: _scroll,
         scrollDirection: Axis.horizontal,
@@ -172,6 +125,7 @@ class _ColumnViewState extends State<ColumnView> {
             for (var i = 0; i < chain.length; i++)
               _column(
                 chain[i],
+                separator: i > 0,
                 // In column i the next folder in the chain, or the item, is highlighted.
                 highlighted: i + 1 < chain.length
                     ? chain[i + 1]
@@ -187,21 +141,20 @@ class _ColumnViewState extends State<ColumnView> {
 
   Widget _column(
     String dir, {
+    required bool separator,
     required String? highlighted,
     required bool active,
-    required ColumnColors colors,
+    required AmalfiColors colors,
   }) {
     final entries = widget.list(dir);
     return SizedBox(
       key: ValueKey('column $dir'),
       width: columnPitch,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Stack(
         children: [
-          Expanded(
+          Positioned.fill(
             child: _RevealList(
               key: ValueKey('list $dir'),
-              topInset: widget.topInset,
               reveal: entries.indexWhere((e) => e.path == highlighted),
               itemCount: entries.length,
               itemBuilder: (context, index) {
@@ -209,10 +162,10 @@ class _ColumnViewState extends State<ColumnView> {
                 final lit = entry.path == highlighted;
                 final fill = !lit
                     ? null
-                    : (active ? colors.active : colors.path);
+                    : (active ? colors.accentAmalfi : colors.lineSeparator);
                 final textColor = lit && active
-                    ? colors.activeText
-                    : colors.text;
+                    ? colors.textOnAccent
+                    : colors.textPrimary;
                 final tags = widget.tagsOf?.call(entry) ?? const <String>[];
                 final tagsWidth = tags.isEmpty
                     ? 0.0
@@ -236,10 +189,10 @@ class _ColumnViewState extends State<ColumnView> {
                               top: 0,
                               bottom: 0,
                               child: DecoratedBox(
-                                decoration: BoxDecoration(
+                                decoration: ShapeDecoration(
                                   color: fill,
-                                  borderRadius: BorderRadius.circular(
-                                    columnSelectionRadius,
+                                  shape: AmalfiSmoothBorder(
+                                    radius: columnSelectionRadius,
                                   ),
                                 ),
                               ),
@@ -261,7 +214,6 @@ class _ColumnViewState extends State<ColumnView> {
                             left: columnTextLeft,
                             right:
                                 columnPitch -
-                                columnBand -
                                 columnChevronLeft +
                                 4 +
                                 (tags.isEmpty ? 0 : tagsWidth + 6),
@@ -269,12 +221,7 @@ class _ColumnViewState extends State<ColumnView> {
                             bottom: 0,
                             child: LayoutBuilder(
                               builder: (context, box) {
-                                final style = TextStyle(
-                                  fontFamily: uiFontFamily,
-                                  package: 'silica_ui',
-                                  fontSize: 13,
-                                  color: textColor,
-                                );
+                                final style = AmalfiType.body(color: textColor);
                                 return Align(
                                   alignment: Alignment.centerLeft,
                                   child: Text(
@@ -297,21 +244,19 @@ class _ColumnViewState extends State<ColumnView> {
                               top: (columnRow - 10) / 2,
                               child: TagDots(
                                 tags: tags,
-                                background: fill ?? colors.fill,
+                                background: fill ?? colors.surfaceWindow,
                               ),
                             ),
                           if (entry.isDirectory)
                             Positioned(
                               left: columnChevronLeft,
-                              top: (columnRow - 7) / 2,
-                              width: 4,
-                              height: 7,
-                              child: CustomPaint(
-                                painter: _Chevron(
-                                  lit && active
-                                      ? colors.activeText
-                                      : colors.chevron,
-                                ),
+                              top: (columnRow - columnChevronSide) / 2,
+                              child: AmalfiGlyph(
+                                AmalfiGlyphs.chevronRight,
+                                size: columnChevronSide,
+                                color: lit && active
+                                    ? colors.textOnAccent
+                                    : colors.textTertiary,
                               ),
                             ),
                         ],
@@ -322,11 +267,15 @@ class _ColumnViewState extends State<ColumnView> {
               },
             ),
           ),
-          // The separator band on the right side.
-          SizedBox(
-            width: columnBand,
-            child: ColoredBox(color: colors.band),
-          ),
+          // The 1 pt separator along the left edge (kit: over the first pixel of the column).
+          if (separator)
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 1,
+              child: ColoredBox(color: colors.lineSeparator),
+            ),
         ],
       ),
     );
@@ -341,10 +290,7 @@ class _RevealList extends StatefulWidget {
     required this.reveal,
     required this.itemCount,
     required this.itemBuilder,
-    this.topInset = 0,
   });
-
-  final double topInset;
 
   final int reveal;
   final int itemCount;
@@ -363,8 +309,7 @@ class _RevealListState extends State<_RevealList> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scroll.hasClients || widget.reveal < 0) return;
       final position = _scroll.position;
-      final bottom =
-          widget.topInset + columnTop + columnRow * (widget.reveal + 1);
+      final bottom = columnTop + columnRow * (widget.reveal + 1);
       if (bottom > position.viewportDimension) {
         _scroll.jumpTo(
           (bottom - position.viewportDimension).clamp(
@@ -385,33 +330,9 @@ class _RevealListState extends State<_RevealList> {
   @override
   Widget build(BuildContext context) => ListView.builder(
     controller: _scroll,
-    padding: EdgeInsets.only(top: widget.topInset + columnTop),
+    padding: const EdgeInsets.only(top: columnTop),
     itemCount: widget.itemCount,
     itemExtent: columnRow,
     itemBuilder: widget.itemBuilder,
   );
-}
-
-class _Chevron extends CustomPainter {
-  const _Chevron(this.color);
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawPath(
-      Path()
-        ..moveTo(0.5, 0.5)
-        ..lineTo(size.width - 0.5, size.height / 2)
-        ..lineTo(0.5, size.height - 0.5),
-      Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.4
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_Chevron old) => old.color != color;
 }

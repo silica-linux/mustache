@@ -17,6 +17,7 @@ import 'package:silica_ui/silica_ui.dart';
 import 'l10n.dart';
 import 'model.dart';
 import 'settings.dart';
+import 'alerts.dart';
 import 'apps.dart';
 import 'column_view.dart';
 import 'dialog.dart';
@@ -71,55 +72,6 @@ const double minimumWindowWidth = 516;
 const double minimumWindowHeight = 252;
 
 const Size minimumWindowSize = Size(minimumWindowWidth, minimumWindowHeight);
-
-const Color accent = Color(0xFF0075F2);
-const Color textColor = Color(0xFF000000);
-const Color secondaryText = Color(0xFF808182);
-const Color contentFill = Color(0xFFFFFFFF);
-
-/// Background and text colors of the window, light and dark (mustache.md MU-20, MU-03, MU-04:
-/// content `#272728`, toolbar and header `#2f2f2f` in dark).
-@immutable
-class WindowColors {
-  const WindowColors({
-    required this.content,
-    required this.text,
-    required this.secondary,
-  });
-
-  final Color content;
-  final Color text;
-  final Color secondary;
-
-  static const WindowColors light = WindowColors(
-    content: contentFill,
-    text: textColor,
-    secondary: secondaryText,
-  );
-
-  static const WindowColors dark = WindowColors(
-    content: Color(0xFF272728),
-    text: Color(0xFFDFDFE0),
-    secondary: Color(0xFF9E9E9E),
-  );
-
-  static WindowColors of(BuildContext context) =>
-      MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark
-      ? dark
-      : light;
-}
-
-const Color selectionFill = accent;
-const Color selectionText = Color(0xFFFFFFFF);
-
-TextStyle text(double size, {Color color = textColor, FontWeight? weight}) =>
-    TextStyle(
-      fontFamily: uiFontFamily,
-      package: 'silica_ui',
-      fontSize: size,
-      fontWeight: weight,
-      color: color,
-    );
 
 /// Intents of the window shortcuts (`mustache.*` commands, docs/spec/product.md).
 class OpenIntent extends Intent {
@@ -372,8 +324,9 @@ class _MustacheWindowState extends State<MustacheWindow>
   /// The apps (read the first time an app is opened), the MIME types and the open context menu.
   AppRegistry? _apps;
   final Map<String, String> _types = {};
-  Offset? _menuAt;
-  List<MenuEntry> _menuEntries = const [];
+
+  /// The key of the body, to find the overlay the menus are shown in.
+  final GlobalKey _bodyKey = GlobalKey();
 
   /// Copies in progress, the one with the progress window and the pending conflict.
   final List<Transfer> _transfers = [];
@@ -475,7 +428,6 @@ class _MustacheWindowState extends State<MustacheWindow>
 
   /// The height of the veiled band over the content (toolbar and the bars below it, R1.9): the
   /// views start below it and scroll under it.
-  double _topInset = toolbarHeight;
 
   /// The sideways scroll of a list wider than the window (the header in the band follows it).
   final ScrollController _listScrollX = ScrollController();
@@ -1126,38 +1078,59 @@ class _MustacheWindowState extends State<MustacheWindow>
               // While hiding, the sidebar slides left (keeping its width) and the content widens.
               final shown = _resizing ? _sidebarShown.value : _sidebarProgress;
               final visible = _sidebarWidth * shown;
-              final dark =
-                  MediaQuery.maybePlatformBrightnessOf(context) ==
-                  Brightness.dark;
+              final colors = AmalfiTheme.of(context).colors;
+              // The preview section: the preview pane (⇧⌘P), always in the gallery and in the
+              // column view (kit `Gallery`, `Columns`).
+              // (A dialog has no pane: the file chooser keeps the columns alone.)
+              final pane =
+                  _previewPane ||
+                  (widget.dialog == null &&
+                      !_searching &&
+                      (_view == ViewMode.gallery || _view == ViewMode.columns));
               return Stack(
+                key: _bodyKey,
                 children: [
+                  // The sidebar: its section of the toolbar over its list (the surface is the
+                  // sidebar's, so the bar and the list are one region).
                   Positioned(
                     left: visible - _sidebarWidth,
                     top: 0,
                     bottom: 0,
                     width: _sidebarWidth,
-                    child: Sidebar(
-                      sections: [
-                        SidebarSection(l10n.sidebarPinned, [
-                          for (final place in widget.places)
-                            if (place.kind != PlaceKind.home) place,
-                        ]),
-                        SidebarSection(l10n.sidebarPlaces, [
-                          for (final place in widget.places)
-                            if (place.kind == PlaceKind.home) place,
-                          widget.trash,
-                        ]),
-                        SidebarSection(l10n.sidebarTags, _tagPlaces),
-                      ],
-                      current: _tagView == null
-                          ? _history.current
-                          : '$tagPathPrefix$_tagView',
-                      onSelect: (place) => place.kind == PlaceKind.tag
-                          ? _showTag(place.label)
-                          : _navigate(place.path),
-                      onDrop: _drop,
-                      colors: SidebarColors.of(dark: dark, active: _active),
-                      iconsDir: widget.iconsDir,
+                    child: ColoredBox(
+                      color: colors.surfaceSidebar,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          MustacheSidebarBar(
+                            active: _active,
+                            onToggle: _toggleSidebar,
+                          ),
+                          Expanded(
+                            child: Sidebar(
+                              sections: [
+                                SidebarSection(l10n.sidebarPinned, [
+                                  for (final place in widget.places)
+                                    if (place.kind != PlaceKind.home) place,
+                                ]),
+                                SidebarSection(l10n.sidebarPlaces, [
+                                  for (final place in widget.places)
+                                    if (place.kind == PlaceKind.home) place,
+                                  widget.trash,
+                                ]),
+                                SidebarSection(l10n.sidebarTags, _tagPlaces),
+                              ],
+                              current: _tagView == null
+                                  ? _history.current
+                                  : '$tagPathPrefix$_tagView',
+                              onSelect: (place) => place.kind == PlaceKind.tag
+                                  ? _showTag(place.label)
+                                  : _navigate(place.path),
+                              onDrop: _drop,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   Positioned(
@@ -1166,85 +1139,89 @@ class _MustacheWindowState extends State<MustacheWindow>
                     right: 0,
                     bottom: 0,
                     child: ColoredBox(
-                      color: WindowColors.of(context).content,
-                      child: Column(
+                      color: colors.surfaceWindow,
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Expanded(
-                            // The content scrolls under the glass toolbar (R1.9, mustache#3).
-                            child: _underToolbar(
-                              visible,
-                              // The open folder as a drop target: a 2 pt line along the edge of
-                              // the content, below the band.
-                              (band) => FolderDropTarget(
-                                path: _history.current,
-                                onDrop: _drop,
-                                builder: (context, active) => Stack(
-                                  children: [
-                                    Positioned.fill(child: _views()),
-                                    if (active)
-                                      Positioned(
-                                        left: 0,
-                                        top: band,
-                                        right: 0,
-                                        bottom: 0,
-                                        child: IgnorePointer(
-                                          child: DecoratedBox(
-                                            decoration: BoxDecoration(
-                                              border: Border.all(
-                                                color: dropLine,
-                                                width: 2,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _toolbar(visible, withSearch: !pane),
+                                ..._bars(),
+                                Expanded(
+                                  // The open folder as a drop target: a 2 pt line along the edge
+                                  // of the content.
+                                  child: FolderDropTarget(
+                                    path: _history.current,
+                                    onDrop: _drop,
+                                    builder: (context, active) => Stack(
+                                      children: [
+                                        Positioned.fill(child: _views()),
+                                        if (active)
+                                          Positioned.fill(
+                                            child: IgnorePointer(
+                                              child: DecoratedBox(
+                                                decoration: BoxDecoration(
+                                                  border: Border.all(
+                                                    color: dropLine,
+                                                    width: 2,
+                                                  ),
+                                                ),
                                               ),
                                             ),
                                           ),
-                                        ),
-                                      ),
-                                  ],
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                if (_pathBar)
+                                  PathBar(
+                                    // The chosen item is the last segment (R1.17).
+                                    path: _selected.length == 1
+                                        ? _selected.first
+                                        : _history.current,
+                                    env: widget.iconsEnv,
+                                    onOpen: (path) {
+                                      final entry = entryAt(path);
+                                      if (entry == null) return;
+                                      if (entry.isDirectory) {
+                                        _navigate(path);
+                                      } else {
+                                        _openEntry(entry);
+                                      }
+                                    },
+                                  ),
+                                if (widget.dialog != null) _dialogButtons(),
+                                // The status bar below the path bar (spec/bars.md); it moves the
+                                // window (MU-08).
+                                if (_statusBar)
+                                  WindowDragArea(
+                                    child: StatusBar(
+                                      active: _active,
+                                      text: statusText(
+                                        count: _entries.length,
+                                        selected: _selected.length,
+                                        free: _free,
+                                        listing:
+                                            !_searching && _tagView == null,
+                                      ),
+                                      slider:
+                                          _view == ViewMode.icons && !_searching
+                                          ? sliderValueFor(_iconSide)
+                                          : null,
+                                      onSlider: (value) {
+                                        setState(
+                                          () => _iconSide = iconSideFor(value),
+                                        );
+                                        widget.settings?.iconSide = _iconSide;
+                                      },
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
-                          if (_pathBar)
-                            PathBar(
-                              // The chosen item is the last segment (R1.17).
-                              path: _selected.length == 1
-                                  ? _selected.first
-                                  : _history.current,
-                              env: widget.iconsEnv,
-                              onOpen: (path) {
-                                final entry = entryAt(path);
-                                if (entry == null) return;
-                                if (entry.isDirectory) {
-                                  _navigate(path);
-                                } else {
-                                  _openEntry(entry);
-                                }
-                              },
-                            ),
-                          if (widget.dialog != null) _dialogButtons(),
-                          // The status bar below the path bar (spec/bars.md).
-                          // The status bar moves the window (MU-08).
-                          if (_statusBar)
-                            WindowDragArea(
-                              child: StatusBar(
-                                active: _active,
-                                text: statusText(
-                                  count: _entries.length,
-                                  selected: _selected.length,
-                                  free: _free,
-                                  listing: !_searching && _tagView == null,
-                                ),
-                                slider: _view == ViewMode.icons && !_searching
-                                    ? sliderValueFor(_iconSide)
-                                    : null,
-                                onSlider: (value) {
-                                  setState(
-                                    () => _iconSide = iconSideFor(value),
-                                  );
-                                  widget.settings?.iconSide = _iconSide;
-                                },
-                              ),
-                            ),
+                          if (pane) _previewColumn(),
                         ],
                       ),
                     ),
@@ -1284,18 +1261,6 @@ class _MustacheWindowState extends State<MustacheWindow>
                         },
                       ),
                     ),
-                  // The context menu: a click outside closes it.
-                  if (_menuAt != null)
-                    Positioned.fill(
-                      key: const ValueKey('context menu host'),
-                      child: MenuHost(
-                        key: ValueKey(_menuAt),
-                        entries: _menuEntries,
-                        anchor: _menuAt!,
-                        opaque: true,
-                        onDismissed: _closeContextMenu,
-                      ),
-                    ),
                   // Quick preview: the last chosen item; the arrows change it.
                   if (_quickPreview && _selection.isNotEmpty)
                     Positioned.fill(child: _quickPreviewPanel()),
@@ -1317,6 +1282,8 @@ class _MustacheWindowState extends State<MustacheWindow>
                                 ? null
                                 : _registry.defaultFor(_typeOf(entry))?.name,
                             onToggle: _toggleInfoSection,
+                            tags: _tagsOf(entry),
+                            onAddTag: (tag) => _addTag(entry, tag),
                             onClose: () =>
                                 setState(() => _infos.remove(_infos[i])),
                             onRename: (name) {
@@ -1385,68 +1352,39 @@ class _MustacheWindowState extends State<MustacheWindow>
   void _historyMenu(Offset at, {required bool back}) {
     final places = back ? _history.backList : _history.forwardList;
     if (places.isEmpty) return;
-    _update(() {
-      _menuAt = at;
-      _menuEntries = [
-        for (var i = 0; i < places.length; i++)
-          MenuAction(
-            displayName(places[i]),
-            icon: (_) =>
-                switch (styledFolderIcon(places[i], env: widget.iconsEnv)) {
-                  final folder? => SilicaIcon(FolderSource(folder), side: 16),
-                  null => const SizedBox(width: 16, height: 16),
-                },
-            onSelected: () {
-              if (_history.jump(back ? -(i + 1) : i + 1)) _load();
-            },
-          ),
-      ];
-    });
+    _showMenu(at, [
+      for (var i = 0; i < places.length; i++)
+        AmalfiMenuAction(
+          displayName(places[i]),
+          icon: switch (styledFolderIcon(places[i], env: widget.iconsEnv)) {
+            final folder? => SilicaIcon(FolderSource(folder), side: 16),
+            null => const SizedBox(width: 16, height: 16),
+          },
+          onSelected: () {
+            if (_history.jump(back ? -(i + 1) : i + 1)) _load();
+          },
+        ),
+    ]);
   }
 
-  /// The glass toolbar over the content (R1.9, R4.9): the toolbar, then the bars below it (Save
-  /// name row, tabs, search scope, list column header) in one veiled band; `content` gets the
-  /// band's height and fills the whole area, scrolling under it.
-  Widget _underToolbar(double visible, Widget Function(double band) content) {
+  /// The bars between the toolbar and the content (kit `Tab Bar`, `Scope Bar`, `List Header`): the
+  /// Save name row, the tabs, the search scope and, in the list, the column header.
+  List<Widget> _bars() {
     final list = _error == null && (_searching || _view == ViewMode.list);
-    final bars = <(Widget, double)>[
-      if (widget.dialog?.save ?? false) (_saveBar(), saveBarHeight),
-      if (widget.tabBar case final tabBar?) (tabBar, tabBarHeight),
-      if (_searching) (_scopeBar(), scopeBarHeight),
-      if (list) (_listHeaderBand(), listHeaderHeight + listHeaderLine),
+    return [
+      if (widget.dialog?.save ?? false) _saveBar(),
+      ?widget.tabBar,
+      if (_searching) _scopeBar(),
+      if (list) _listHeaderBand(),
     ];
-    final header = bars.fold(0.0, (sum, bar) => sum + bar.$2);
-    _topInset = toolbarHeight + header;
-    return ScrollUnderToolbar(
-      toolbar: _toolbar(visible),
-      header: bars.isEmpty
-          ? null
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final (bar, height) in bars)
-                  SizedBox(height: height, child: bar),
-              ],
-            ),
-      headerHeight: header,
-      active: _active,
-      // At rest the bar shows the content colour, without a band (silica-ui#87). Under the list
-      // header the band keeps the plain veil, as measured (`#2f2f2f` in dark, MU-98).
-      background: list ? null : WindowColors.of(context).content,
-      // The list header has its own line below it, always there (MU-20): no second one.
-      showLine: !list,
-      // The column view's lists and a wide list scroll vertically below depth 0.
-      scrollPredicate: anyVerticalScrollUnderPredicate,
-      body: (context, padding) => content(padding.top),
-    );
   }
 
-  /// The view of the folder (or of the search results), with the preview pane on the right.
+  /// The view of the folder (or of the search results).
   Widget _views() => LayoutBuilder(
     builder: (context, box) {
       _contentWidth = box.maxWidth;
       // Search results are always a list.
-      final view = _searching
+      return _searching
           ? _listView()
           : switch (_view) {
               ViewMode.icons => _icons(),
@@ -1454,41 +1392,46 @@ class _MustacheWindowState extends State<MustacheWindow>
               ViewMode.columns => _columnsView(),
               ViewMode.gallery => _galleryView(),
             };
-      // In the gallery the pane is always there, 250 wide (spec/gallery.md).
-      final pane = _previewPane || _view == ViewMode.gallery;
-      if (!pane) return view;
-      // The preview pane on the right (spec/preview-pane.md), below the band.
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(child: view),
-          Padding(
-            padding: EdgeInsets.only(top: _topInset),
-            child: PreviewPane(
-              width: _view == ViewMode.gallery ? 250 : previewPaneWidth,
-              compact: _view == ViewMode.gallery,
-              items: _selection,
-              kindOf: _kind,
-              env: widget.iconsEnv,
-              now: widget.now,
-              tagsOf: _tagsOf,
-              onAddTag: _addTag,
-              actions: _paneActions(),
-              iconsDir: widget.iconsDir,
-            ),
-          ),
-        ],
-      );
     },
   );
 
-  /// The toolbar (spec/toolbar.md); `visible` is the visible part of the sidebar. No background: the
-  /// veil of the band is under it (R1.9).
-  Widget _toolbar(double visible) => MustacheToolbar(
+  /// The preview section: its part of the toolbar (the search field) over the preview pane (kit
+  /// `Toolbar Preview`, `Preview Pane`).
+  Widget _previewColumn() => SizedBox(
+    width: previewPaneWidth,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        MustachePreviewBar(
+          active: _active,
+          search: AmalfiToolbarPiece(child: _searchField(previewSearchWidth)),
+        ),
+        Expanded(
+          child: PreviewPane(
+            items: _selection,
+            kindOf: _kind,
+            env: widget.iconsEnv,
+            now: widget.now,
+            tagsOf: _tagsOf,
+            onAddTag: _addTag,
+            actions: _paneActions(),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  /// The content section of the toolbar (spec/toolbar.md, kit `Toolbar *`); `visible` is the
+  /// visible part of the sidebar.
+  Widget _toolbar(
+    double visible, {
+    required bool withSearch,
+  }) => MustacheToolbar(
     onBackHistory: (at) => _historyMenu(at, back: true),
     onForwardHistory: (at) => _historyMenu(at, back: false),
-    // With the sidebar hidden the toolbar leaves room for the window buttons.
-    leading: visible < windowButtonsEnd ? windowButtonsEnd - visible + 7 : 7,
+    // With the sidebar hidden the toolbar starts with the slot of the window buttons and the
+    // toggle that shows the sidebar again.
+    sidebarToggleWhenHidden: visible < 60 ? _toggleSidebar : null,
     title: widget.dialog != null && widget.dialog!.title.isNotEmpty
         ? widget.dialog!.title
         : _searching
@@ -1514,9 +1457,9 @@ class _MustacheWindowState extends State<MustacheWindow>
     },
     view: _searching ? null : _view,
     onView: _setView,
-    onSearch: _startSearch,
-    searchField: _searching ? _searchField() : null,
-    iconsDir: widget.iconsDir,
+    search: withSearch
+        ? AmalfiToolbarPiece(child: _searchField(toolbarSearchWidth))
+        : null,
   );
 
   Widget _renameField(Entry entry, {double maxWidth = 400}) => RenameField(
@@ -1550,21 +1493,17 @@ class _MustacheWindowState extends State<MustacheWindow>
     );
   }
 
-  // The gallery does not scroll vertically: it starts below the band.
-  Widget _galleryView() => Padding(
-    padding: EdgeInsets.only(top: _topInset),
-    child: GalleryView(
-      entries: _entries,
-      selected: _cursor ?? (_selected.isEmpty ? null : _selected.last),
-      onTap: _tap,
-      onOpen: _openEntry,
-      env: widget.iconsEnv,
-      wrapItem: (entry, child) => _itemPress(
-        entry,
-        _litFolder(entry, child),
-        threshold: iconDragThreshold,
-        faces: true,
-      ),
+  Widget _galleryView() => GalleryView(
+    entries: _entries,
+    selected: _cursor ?? (_selected.isEmpty ? null : _selected.last),
+    onTap: _tap,
+    onOpen: _openEntry,
+    env: widget.iconsEnv,
+    wrapItem: (entry, child) => _itemPress(
+      entry,
+      _litFolder(entry, child),
+      threshold: iconDragThreshold,
+      faces: true,
     ),
   );
 
@@ -1578,7 +1517,6 @@ class _MustacheWindowState extends State<MustacheWindow>
     active: _active,
     env: widget.iconsEnv,
     tagsOf: _tagsOf,
-    topInset: _topInset,
     wrapItem: (entry, child) => GestureDetector(
       behavior: HitTestBehavior.translucent,
       // The menu applies to the item under the pointer: it becomes the chosen one first.
@@ -1601,7 +1539,6 @@ class _MustacheWindowState extends State<MustacheWindow>
     if (_error != null) return _listView();
     final positions = _freePositions;
     final view = IconView(
-      topInset: _topInset,
       side: _iconSide,
       positions: positions,
       moveDuration: _moveDuration,

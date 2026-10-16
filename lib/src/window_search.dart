@@ -18,11 +18,10 @@ const Duration searchDebounce = Duration(milliseconds: 250);
 enum SearchScope { computer, folder }
 
 extension _Search on _MustacheWindowState {
-  void _startSearch() => _update(() {
-    _searching = true;
-    _searchFolder = _history.current;
+  void _startSearch() {
+    _enterSearch();
     _searchFocus.requestFocus();
-  });
+  }
 
   /// Esc in the field: it is cleared, but the window stays in search (R13.4).
   void _clearSearchField() {
@@ -108,100 +107,108 @@ extension _Search on _MustacheWindowState {
     if (token == _searchToken && mounted) show();
   }
 
-  bool get _dark =>
-      MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark;
+  /// Search starts when the field takes the focus or ⌘F is pressed: the scope bar and the results
+  /// replace the folder's view.
+  void _enterSearch() {
+    if (_searching) return;
+    _update(() {
+      _searching = true;
+      _searchFolder = _history.current;
+    });
+  }
 
-  /// The search field in the toolbar: 242 × 38 with the focus ring (spec/search.md); in dark background
-  /// `#4b4b4b` and ring `#3a6996` (MU-70).
-  Widget _searchField() => Container(
+  /// The search field in the toolbar (kit `Piece/Search`, a large field); Esc clears it but stays in
+  /// search (R13.4).
+  Widget _searchField(double width) => Focus(
     key: const ValueKey('search field'),
-    width: 242,
-    height: toolbarCapsuleHeight,
-    padding: const EdgeInsets.symmetric(horizontal: 14),
-    decoration: BoxDecoration(
-      color: _dark ? const Color(0xFF4B4B4B) : const Color(0xFFF2F2F7),
-      borderRadius: BorderRadius.circular(toolbarCapsuleHeight / 2),
-      border: Border.all(
-        color: _dark ? const Color(0xFF3A6996) : const Color(0xFF8FB4FB),
-        width: 2,
-      ),
-    ),
-    alignment: Alignment.centerLeft,
-    child: Focus(
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.escape) {
-          _clearSearchField();
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
+    canRequestFocus: false,
+    skipTraversal: true,
+    onFocusChange: (focused) {
+      if (focused) _enterSearch();
+    },
+    child: AmalfiSearchField(
+      controller: _searchQuery,
+      focusNode: _searchFocus,
+      size: AmalfiFieldSize.large,
+      width: width,
+      placeholder: l10n.searchPlaceholder,
+      onChanged: (_) {
+        _enterSearch();
+        _queryChanged();
       },
-      child: DefaultTextEditingShortcuts(
-        child: EditableText(
-          controller: _searchQuery,
-          focusNode: _searchFocus,
-          style: text(13, color: WindowColors.of(context).text),
-          cursorColor: WindowColors.of(context).text,
-          backgroundCursorColor: WindowColors.of(context).text,
-          selectionColor: const Color(0xFFB3D7FF),
-          maxLines: 1,
-          onChanged: (_) => _queryChanged(),
-        ),
-      ),
+      onCleared: _clearSearchField,
     ),
   );
 
-  /// The scope bar: 32 pt, a "search in" label and the two 22 pt capsules; the chosen one on a gray
-  /// background with dark text, the other in gray (MU-70: light `#222222` / `#808080`, dark
-  /// `#e3e3e3` / `#a1a1a1` on `#494949`; the bar `#2f2f2f`).
+  /// The scope bar (kit `Scope Bar`): 32 tall, a "search in" label and the two scopes, the chosen
+  /// one on a sunken capsule, a 1 pt separator below. The kit's "Save" button is not here: saving a
+  /// search is not implemented (mustache issue).
   Widget _scopeBar() {
-    final dark = _dark;
-    final minor = dark ? const Color(0xFFA1A1A1) : secondaryText;
+    final colors = AmalfiTheme.of(context).colors;
     Widget capsule(String label, SearchScope scope) {
       final chosen = _searchScope == scope;
       return GestureDetector(
         key: ValueKey('scope $label'),
+        behavior: HitTestBehavior.opaque,
         onTap: () {
           _update(() => _searchScope = scope);
           _runSearch();
         },
-        child: Container(
-          height: 22,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          margin: const EdgeInsets.only(right: 6),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: chosen
-                ? (dark ? const Color(0xFF494949) : const Color(0xFFDFDFDF))
-                : null,
-            borderRadius: BorderRadius.circular(11),
-          ),
-          child: Text(
-            label,
-            style: text(
-              12,
-              color: !chosen
-                  ? minor
-                  : dark
-                  ? const Color(0xFFE3E3E3)
-                  : const Color(0xFF222222),
+        child: Center(
+          child: DecoratedBox(
+            decoration: ShapeDecoration(
+              color: chosen ? colors.surfaceSunken : null,
+              shape: AmalfiSmoothBorder(radius: 12),
+            ),
+            child: SizedBox(
+              height: 24,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Center(
+                  widthFactor: 1,
+                  child: Text(
+                    label,
+                    style: AmalfiType.callout(
+                      color: chosen ? colors.textPrimary : colors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ),
       );
     }
 
-    return Container(
+    return SizedBox(
       key: const ValueKey('scope bar'),
       height: scopeBarHeight,
-      color: _listColors.header,
-      child: Row(
+      child: Stack(
         children: [
-          const SizedBox(width: 14),
-          Text(l10n.searchIn, style: text(12, color: minor)),
-          const SizedBox(width: 8),
-          capsule(l10n.thisComputer, SearchScope.computer),
-          capsule(l10n.quoted(displayName(_searchFolder)), SearchScope.folder),
+          Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: Row(
+              spacing: 8,
+              children: [
+                Text(
+                  l10n.searchIn,
+                  style: AmalfiType.callout(color: colors.textSecondary),
+                ),
+                capsule(l10n.thisComputer, SearchScope.computer),
+                capsule(
+                  l10n.quoted(displayName(_searchFolder)),
+                  SearchScope.folder,
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 1,
+            child: ColoredBox(color: colors.lineSeparator),
+          ),
         ],
       ),
     );

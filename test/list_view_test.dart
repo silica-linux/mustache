@@ -8,6 +8,9 @@ import 'package:mustache/src/list_view.dart';
 import 'package:mustache/src/model.dart';
 import 'package:mustache/src/settings.dart';
 import 'package:mustache/src/window.dart';
+import 'package:silica_ui/silica_ui.dart';
+
+import 'kit.dart';
 
 void main() {
   late Directory root;
@@ -51,19 +54,48 @@ void main() {
   Rect row(WidgetTester tester, String name) =>
       tester.getRect(find.byKey(ValueKey('${root.path}/$name')));
 
-  testWidgets('measured geometry: header, 20 pt rows, columns', (tester) async {
+  testWidgets('geometry of the kit List master: header, 28 pt rows, columns', (
+    tester,
+  ) async {
     await pump(tester);
+    final kit = loadKit('List');
     final header = tester.getRect(find.byKey(const ValueKey('column header')));
-    expect(header.top, 52);
-    expect(header.height, listHeaderHeight + listHeaderLine);
-    // The first row at y 85, then a 20 pitch.
+    expect(header.top, kit.rect('Header').top);
+    expect(header.height, kit.rect('Header').height);
+    // The first row follows the header, then a 28 pitch.
     final first = row(tester, 'Annidata');
-    expect(first.top, 85);
-    expect(first.height, listRowHeight);
-    expect(row(tester, 'appunti.txt').top, 105);
-    // The name at x 47 from the edge of the content.
+    expect(first.top, kit.rect('Desktop').top);
+    expect(first.height, kit.rect('Desktop').height);
+    expect(row(tester, 'appunti.txt').top - first.top, 28);
+    // Kit `List Row`: the name at x 44 and the cells at 340, 520 and 620, from the content edge.
     final content = header.left;
-    expect(tester.getTopLeft(find.text('Annidata')).dx - content, listNameLeft);
+    final master = loadKit('List Row/Even');
+    expect(
+      tester.getTopLeft(find.text('Annidata')).dx - content,
+      master.rect('Name').left,
+    );
+    final today = tester.getTopLeft(find.textContaining('Today, ').first).dx;
+    expect(today - content, master.rect('Date').left);
+    // The header labels sit over the columns: Name at 44, Date Modified at 340.
+    final headers = loadKit('List Header');
+    expect(
+      tester.getTopLeft(find.text('Name')).dx - content,
+      headers.rect('Name').left,
+    );
+    expect(
+      tester.getTopLeft(find.text('Date Modified')).dx - content,
+      headers.rect('Date').left,
+    );
+    // The stripe of an odd row runs across the whole width.
+    final odd = tester.getRect(
+      find
+          .descendant(
+            of: find.byKey(ValueKey('${root.path}/appunti.txt')),
+            matching: find.byType(ColoredBox),
+          )
+          .first,
+    );
+    expect(odd.width, first.width);
   });
 
   testWidgets(
@@ -71,24 +103,24 @@ void main() {
     (tester) async {
       await pump(tester);
       final r = row(tester, 'Annidata');
-      await tester.tapAt(Offset(r.left + 19, r.center.dy));
+      await tester.tapAt(Offset(r.left + 10, r.center.dy));
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.text('Livello 2'), findsOneWidget);
       expect(find.text('Livello 3'), findsNothing);
       // The row was not chosen: the name stays dark.
       final name = tester.widget<Text>(find.text('Annidata'));
-      expect(name.style?.color, ListColors.light.name);
+      expect(name.style?.color, AmalfiColors.light.textPrimary);
       // ⌥-click collapses; ⌥-click again expands everything.
-      await tester.tapAt(Offset(r.left + 19, r.center.dy));
+      await tester.tapAt(Offset(r.left + 10, r.center.dy));
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.text('Livello 2'), findsNothing);
       await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
-      await tester.tapAt(Offset(r.left + 19, r.center.dy));
+      await tester.tapAt(Offset(r.left + 10, r.center.dy));
       await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.text('Livello 3'), findsOneWidget);
       expect(find.text('profondo.txt'), findsOneWidget);
-      // 15 pt indent per level.
+      // 16 pt indent per level.
       final x2 = tester.getTopLeft(find.text('Livello 2')).dx;
       final x3 = tester.getTopLeft(find.text('Livello 3')).dx;
       expect(x3 - x2, listIndent);
@@ -104,13 +136,13 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       expect(
         tester.widget<Text>(find.text('appunti.txt')).style?.color,
-        ListColors.light.selectionName,
+        AmalfiColors.light.textOnAccent,
       );
       await tester.tap(find.byKey(const ValueKey('empty row 10')));
       await tester.pump(const Duration(milliseconds: 400));
       expect(
         tester.widget<Text>(find.text('appunti.txt')).style?.color,
-        ListColors.light.name,
+        AmalfiColors.light.textPrimary,
       );
     },
   );
@@ -147,10 +179,10 @@ void main() {
       kind: PointerDeviceKind.mouse,
     );
     await tester.pump();
-    expect(name(), ListColors.light.name);
+    expect(name(), AmalfiColors.light.textPrimary);
     await press.up();
     await tester.pump(const Duration(milliseconds: 400));
-    expect(name(), ListColors.light.selectionName);
+    expect(name(), AmalfiColors.light.textOnAccent);
     final triangle = find.byKey(ValueKey('triangle ${root.path}/Annidata'));
     final hold = await tester.startGesture(
       tester.getCenter(triangle),
@@ -176,12 +208,12 @@ void main() {
     final fill = tester.widget<ColoredBox>(
       find.descendant(of: cell, matching: find.byType(ColoredBox)).first,
     );
-    expect(fill.color, ListColors.light.headerPressed);
+    expect(fill.color, AmalfiColors.light.lineSeparator);
     await tester.pump(const Duration(seconds: 1));
     await hold.up();
     await tester.pump();
     expect(y('grande.bin') < y('appunti.txt'), before);
-    // The separator grip: 5 pt, 3 left of the line and 1 to the right.
+    // The edge grip: 5 pt, 3 left of the boundary and 2 to the right.
     final grip = tester.getRect(find.byKey(const ValueKey('edge name')));
     expect(grip.width, 5);
     await tester.pump(const Duration(seconds: 5));

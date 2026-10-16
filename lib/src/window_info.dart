@@ -64,7 +64,9 @@ extension _InfoWindows on _MustacheWindowState {
     builder: (context, _, _) {
       final entry = entryAt(info.path);
       // The item is gone (deleted, moved away): an empty window until it is closed.
-      if (entry == null) return ColoredBox(color: InfoColors.of(context).fill);
+      if (entry == null) {
+        return ColoredBox(color: AmalfiTheme.of(context).colors.surfaceWindow);
+      }
       return InfoPanel(
         key: ValueKey(info.path),
         framed: false,
@@ -76,6 +78,8 @@ extension _InfoWindows on _MustacheWindowState {
             ? null
             : _registry.defaultFor(_typeOf(entry))?.name,
         onToggle: _toggleInfoSection,
+        tags: _tagsOf(entry),
+        onAddTag: (tag) => _addTag(entry, tag),
         onClose: () => info.controller?.close(),
         onRename: (name) {
           final old = info.path;

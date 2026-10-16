@@ -33,7 +33,7 @@ extension _Operations on _MustacheWindowState {
 
   /// An error: alert with a single OK.
   void _showError(String title, [String? message]) => _showAlert(
-    SilicaAlert(
+    MustacheAlert(
       opaque: true,
       icon: _appIcon,
       title: title,
@@ -72,7 +72,7 @@ extension _Operations on _MustacheWindowState {
       final (_, oldExt) = splitExtension(entry.name);
       final (newBase, newExt) = splitExtension(name);
       _showAlert(
-        SilicaAlert(
+        MustacheAlert(
           opaque: true,
           icon: _appIcon,
           title: newExt.isEmpty
@@ -238,7 +238,7 @@ extension _Operations on _MustacheWindowState {
     final items = _selection;
     if (items.isEmpty) return;
     _showAlert(
-      SilicaAlert(
+      MustacheAlert(
         opaque: true,
         icon: _appIcon,
         title: items.length == 1

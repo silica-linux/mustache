@@ -15,6 +15,8 @@ import 'package:mustache/src/settings.dart';
 import 'package:mustache/src/window.dart';
 import 'package:silica_ui/silica_ui.dart';
 
+import 'kit.dart';
+
 void main() {
   late Directory home;
   late Directory config;
@@ -79,7 +81,7 @@ void main() {
     final cell = tester.getRect(
       find.byKey(ValueKey('cell ${home.path}/$file')),
     );
-    return Offset(cell.center.dx, cell.top + defaultIconSide / 2 + 4);
+    return Offset(cell.center.dx, cell.top + defaultIconSide / 2);
   }
 
   /// Presses at `from`, moves by `by` in steps and checks that a drag started.
@@ -206,15 +208,9 @@ void main() {
       await mouse.moveTo(iconOf(tester, 'Cartella'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));
-      expect(
-        tester.widget<Text>(find.byKey(const ValueKey('title'))).data,
-        displayName(home.path),
-      );
+      expect(tester.widget<Text>(titleText()).data, displayName(home.path));
       await tester.pump(const Duration(milliseconds: 200));
-      expect(
-        tester.widget<Text>(find.byKey(const ValueKey('title'))).data,
-        'Cartella',
-      );
+      expect(tester.widget<Text>(titleText()).data, 'Cartella');
       // Released there: the file goes into the folder now open.
       await mouse.moveBy(const Offset(0, 40));
       await tester.pump();
@@ -230,10 +226,10 @@ void main() {
             w is Container &&
             w.foregroundDecoration is BoxDecoration &&
             (w.foregroundDecoration! as BoxDecoration).color ==
-                const Color(0x400064E1),
+                AmalfiColors.light.accentAmalfiSoft,
       );
       String title(WidgetTester tester) =>
-          tester.widget<Text>(find.byKey(const ValueKey('title'))).data!;
+          tester.widget<Text>(titleText()).data!;
 
       testWidgets('lit, blinks at ~340 ms (off 80, on 107), opens at ~715', (
         tester,

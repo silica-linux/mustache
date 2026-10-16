@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +7,8 @@ import 'package:mustache/src/model.dart';
 import 'package:mustache/src/settings.dart';
 import 'package:mustache/src/sidebar.dart';
 import 'package:mustache/src/window.dart';
+
+import 'kit.dart';
 
 /// A text inside the sidebar (the icon view shows the same names).
 Finder inSidebar(String text) =>
@@ -48,61 +49,60 @@ void main() {
     return used;
   }
 
-  double centerY(WidgetTester tester, Finder finder) =>
-      tester.getCenter(finder).dy;
-
-  testWidgets('rows at a 32 pitch, headings at 24 and 40 from the rows', (
+  testWidgets('rows, headers and the selection follow the kit Sidebar master', (
     tester,
   ) async {
     await pump(tester);
-    final heading = centerY(tester, inSidebar('Pinned'));
-    final documents = centerY(tester, inSidebar('Documenti'));
-    final downloads = centerY(tester, inSidebar('Download'));
-    final places = centerY(tester, inSidebar('Places'));
-    expect(documents - heading, closeTo(sidebarHeadingToRow, 0.5));
-    expect(downloads - documents, sidebarRow);
-    expect(places - downloads, closeTo(sidebarRowToHeading, 0.5));
-    // The list starts below the sidebar's bar: the leading heading where the first row of a
-    // section without heading would be (mustache#13).
-    expect(heading, closeTo(sidebarFirstRowCenter, 0.5));
-    expect(heading, greaterThan(sidebarBarHeight));
-    // The row of the shown folder is selected, with the text in semibold.
-    final selection = tester.getRect(
-      find.byKey(const ValueKey('sidebar selection')),
+    final kit = loadKit('Sidebar');
+    final heading = tester.getRect(find.byKey(const ValueKey('header Pinned')));
+    final documents = tester.getRect(
+      find.byKey(ValueKey('place ${root.path}/Documenti')),
     );
-    expect(selection.left, sidebarSelectionInset);
-    expect(selection.height, sidebarRow);
-    final home = tester.widget<Text>(inSidebar('casa'));
-    expect(home.style?.fontWeight, FontWeight.w600);
-  });
-
-  testWidgets('the sidebar scrolls under its own bar, as tall as the toolbar', (
-    tester,
-  ) async {
-    await pump(tester);
+    final downloads = tester.getRect(
+      find.byKey(ValueKey('place ${root.path}/Download')),
+    );
+    final places = tester.getRect(find.byKey(const ValueKey('header Places')));
+    // The first header 8 below the 52 pt bar; the rows 28 tall at a 32 pitch, 12 from the edges,
+    // 216 wide; between the last row of a section and the next header 16 (28 + 4 + 8 + 4).
+    expect(heading.top, kit.rect('Pinned').top);
+    expect(documents.top, kit.rect('Desktop').top);
+    expect(documents.left, kit.rect('Desktop').left);
+    expect(documents.size, kit.rect('Desktop').size);
+    expect(downloads.top - documents.top, sidebarRow);
     expect(
-      tester.getRect(find.byKey(const ValueKey('sidebar bar'))),
-      const Rect.fromLTWH(0, 0, sidebarDefaultWidth, sidebarBarHeight),
+      places.top - downloads.bottom,
+      kit.rect('Places').top - kit.rect('Videos').bottom,
     );
-    // No glass since silica_ui 0.30: the rows fade out under the bar.
-    expect(find.byKey(const ValueKey('sidebar bar veil')), findsNothing);
-    final list = find.descendant(
-      of: find.byType(Sidebar),
-      matching: find.byType(Scrollable),
-    );
-    // The list fills the sidebar from the top: the rows pass under the bar.
-    expect(tester.getRect(list.first).top, 0);
+    // The row of the shown folder is selected: the soft accent capsule, the label in Body Emphasis.
+    final home = tester.widget<Text>(inSidebar('casa'));
+    expect(home.style?.fontWeight, FontWeight.w500);
   });
 
-  test('width: minimum, minimum content, snap to 200, hidden', () {
+  testWidgets(
+    'the sidebar section of the toolbar: window controls slot, toggle',
+    (tester) async {
+      await pump(tester);
+      final kit = loadKit('Toolbar Sidebar');
+      expect(
+        tester.getRect(find.byKey(const ValueKey('sidebar bar'))),
+        Rect.fromLTWH(0, 0, kit.size.width, kit.size.height),
+      );
+      final toggle = tester.getRect(
+        find.byKey(const ValueKey('sidebar toggle')),
+      );
+      expect(toggle, kit.rect('Sidebar Toggle'));
+    },
+  );
+
+  test('width: minimum 200, minimum content, snap to 240, hidden', () {
     expect(dragWidth(100, 1000), sidebarMinWidth);
     expect(dragWidth(900, 1000), 1000 - contentMinWidth);
     expect(dragWidth(300, 1000), 300);
     expect(dragWidth(60, 1000), 0);
-    expect(releaseWidth(195), sidebarSnapWidth);
-    expect(releaseWidth(209), sidebarSnapWidth);
-    expect(releaseWidth(190), 190);
-    expect(releaseWidth(212), 212);
+    expect(releaseWidth(235), sidebarSnapWidth);
+    expect(releaseWidth(249), sidebarSnapWidth);
+    expect(releaseWidth(230), 230);
+    expect(releaseWidth(252), 252);
   });
 
   testWidgets('dragging the edge changes the width and remembers it', (
@@ -124,10 +124,10 @@ void main() {
       closeTo(sidebarDefaultWidth + 100, 1),
     );
 
-    // Released near 200 it snaps to 200.
+    // Released near the default width it snaps back to it.
     final again = await tester.startGesture(tester.getCenter(divider));
     await again.moveBy(const Offset(-50, 0));
-    await again.moveBy(const Offset(-45, 0));
+    await again.moveBy(const Offset(-55, 0));
     await tester.pump();
     await again.up();
     await tester.pump();
@@ -163,35 +163,28 @@ void main() {
     expect(tester.getCenter(divider).dx, sidebarDefaultWidth);
   });
 
-  testWidgets('the heading chevron collapses and reopens the section', (
+  testWidgets('the header chevron collapses and reopens the section', (
     tester,
   ) async {
     await pump(tester);
-    expect(find.byKey(const ValueKey('collapse Pinned')), findsNothing);
-    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
-    await mouse.addPointer(location: Offset.zero);
-    await mouse.moveTo(tester.getCenter(inSidebar('Pinned')));
-    await tester.pump();
-    // It appears right away, without delay.
-    final chevron = find.byKey(const ValueKey('collapse Pinned'));
-    expect(chevron, findsOneWidget);
-    final placesBefore = centerY(tester, inSidebar('Places'));
-    await tester.tap(chevron);
+    final header = find.byKey(const ValueKey('header Pinned'));
+    final placesBefore = tester.getCenter(inSidebar('Places')).dy;
+    await tester.tap(header);
     await tester.pump();
     // The row text disappears right away; the movement starts after ~70 ms.
     expect(inSidebar('Documenti'), findsNothing);
     await tester.pump(const Duration(milliseconds: 60));
-    expect(centerY(tester, inSidebar('Places')), placesBefore);
-    await tester.pump(const Duration(milliseconds: 200));
+    expect(tester.getCenter(inSidebar('Places')).dy, placesBefore);
+    await tester.pump(const Duration(milliseconds: 260));
     expect(
-      centerY(tester, inSidebar('Places')),
+      tester.getCenter(inSidebar('Places')).dy,
       closeTo(placesBefore - 2 * sidebarRow, 0.5),
     );
     // Reopened: back as it was.
-    await tester.tap(find.byKey(const ValueKey('collapse Pinned')));
+    await tester.tap(header);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 320));
-    expect(centerY(tester, inSidebar('Places')), placesBefore);
+    expect(tester.getCenter(inSidebar('Places')).dy, placesBefore);
     expect(inSidebar('Documenti'), findsOneWidget);
   });
 
@@ -207,8 +200,7 @@ void main() {
   });
 
   test('the sidebar symbols are in symbols/regular', () {
-    expect(symbolFor(PlaceKind.downloads), 'arrow-down-circle');
-    expect(accentIcon(PlaceKind.documents), isTrue);
-    expect(accentIcon(PlaceKind.trash), isFalse);
+    expect(symbolFor(PlaceKind.downloads), 'arrow-down');
+    expect(symbolFor(PlaceKind.home), 'house');
   });
 }

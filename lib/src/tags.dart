@@ -5,6 +5,7 @@
 // the background color).
 
 import 'package:flutter/widgets.dart';
+import 'package:silica_ui/silica_ui.dart';
 
 import 'l10n.dart';
 
@@ -46,27 +47,30 @@ bool sameTag(String name, String wanted) =>
     name == wanted ||
     (tagColor(wanted) != null && tagColor(name) == tagColor(wanted));
 
-/// The sidebar palette (sRGB, red/orange/yellow measured; the others estimated).
-Color sidebarTagColor(TagColor c, {required bool dark}) => switch (c) {
-  TagColor.red => dark ? const Color(0xFFFF5E5F) : const Color(0xFFFB001A),
-  TagColor.orange => dark ? const Color(0xFFFFBF0C) : const Color(0xFFF87B00),
-  TagColor.yellow => dark ? const Color(0xFFFFF600) : const Color(0xFFF2B400),
-  TagColor.green => const Color(0xFF28C840),
-  TagColor.blue => const Color(0xFF0A84FF),
-  TagColor.purple => const Color(0xFFBF5AF2),
-  TagColor.gray => const Color(0xFF8E8E93),
-};
+/// The color of a tag in the Amalfi palette (kit `Apps/Mustache/Tag Row`: Red, Orange, Green, Blue
+/// and Purple are `Palette/Terracotta`, `Palette/Limone`, `Palette/Ulivo`, `Accent/Amalfi` and
+/// `Palette/Lavanda`).
+Color tagPaletteColor(TagColor c, {required bool dark}) {
+  final colors = AmalfiColors.of(dark ? Brightness.dark : Brightness.light);
+  return switch (c) {
+    TagColor.red => colors.paletteTerracotta,
+    TagColor.orange => colors.paletteLimone,
+    // Assumption: not measured (the kit has no Yellow or Gray tag): a lighter Limone and a neutral.
+    TagColor.yellow => dark ? const Color(0xFFFFE680) : const Color(0xFFFFE14D),
+    TagColor.green => colors.paletteUlivo,
+    TagColor.blue => colors.accentAmalfi,
+    TagColor.purple => colors.paletteLavanda,
+    TagColor.gray => colors.textTertiary,
+  };
+}
 
-/// The palette of the menu and the list (sRGB, docs/spec/menus-and-settings.md).
-Color menuTagColor(TagColor c) => switch (c) {
-  TagColor.red => const Color(0xFFFF6663),
-  TagColor.orange => const Color(0xFFFFA356),
-  TagColor.yellow => const Color(0xFFFFD54C),
-  TagColor.green => const Color(0xFF65D27B),
-  TagColor.blue => const Color(0xFF49A0FF),
-  TagColor.purple => const Color(0xFFD859E7),
-  TagColor.gray => const Color(0xFFA5A5A9),
-};
+/// The sidebar palette.
+Color sidebarTagColor(TagColor c, {required bool dark}) =>
+    tagPaletteColor(c, dark: dark);
+
+/// The palette of the menus and the list.
+Color menuTagColor(TagColor c, {bool dark = false}) =>
+    tagPaletteColor(c, dark: dark);
 
 /// The 1 pt ring: the same hue ~10% darker.
 Color tagRing(Color c) {
@@ -137,7 +141,8 @@ class TagDots extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = [
       for (final t in tags.reversed)
-        if (tagColor(t) case final c?) menuTagColor(c),
+        if (tagColor(t) case final c?)
+          menuTagColor(c, dark: AmalfiTheme.of(context).isDark),
     ];
     if (colors.isEmpty) return const SizedBox.shrink();
     return SizedBox(
@@ -222,7 +227,10 @@ class _TagCircleRowState extends State<TagCircleRow> {
     return Stack(
       alignment: Alignment.center,
       children: [
-        TagDot(color: menuTagColor(c), side: side),
+        TagDot(
+          color: menuTagColor(c, dark: AmalfiTheme.of(context).isDark),
+          side: side,
+        ),
         if (glyph != null)
           Text(
             glyph,

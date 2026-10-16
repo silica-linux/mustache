@@ -17,10 +17,13 @@ import 'package:silica_ui/silica_ui.dart';
 import 'icon_view.dart' show EntryIcon;
 import 'model.dart';
 
-const Color dragAccent = Color(0xFF0064E1);
-const Color dragCountBadge = Color(0xFFFB3936);
-const Color dragCopyBadge = Color(0xFF00C261);
-const Color dropLine = Color(0xFFB3D7FF);
+/// The colors of the drag image and the drop highlights, as Amalfi tokens (light): `Accent/Amalfi`,
+/// `Palette/Terracotta` (the count), `Palette/Ulivo` (the copy "+") and `Accent/Amalfi` for the drop
+/// line.
+const Color dragAccent = Color(0xFF0E77E6);
+const Color dragCountBadge = Color(0xFFF0562E);
+const Color dragCopyBadge = Color(0xFF34A853);
+const Color dropLine = Color(0xFF0E77E6);
 const double dragAlpha = 0.90;
 
 /// The dragged items left in place while the image travels: dimmed (provisional, as the desktop).

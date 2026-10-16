@@ -8,6 +8,8 @@ import 'package:mustache/src/settings.dart';
 import 'package:mustache/src/tabs.dart';
 import 'package:mustache/src/window.dart';
 
+import 'kit.dart';
+
 void main() {
   testWidgets('⌘T opens a tab; the bar appears with two; ⌃⇥ and ⌘W', (
     tester,
@@ -61,10 +63,21 @@ void main() {
 
     await keys(LogicalKeyboardKey.keyT, meta: true);
     expect(bar, findsOneWidget);
-    // Left of the first tab the bar moves the window (MU-08).
-    final grip = tester.getRect(find.byKey(const ValueKey('tab grip')));
-    expect(grip.width, 8);
-    expect(grip.right, tester.getRect(bar).left + 8);
+    // Kit `Apps/Mustache/Tab Bar`: 36 tall, the first tab 8 from the left and 4 from the top,
+    // 28 tall; the new-tab button 24 pt, 8 from the right and 6 from the top.
+    final kit = loadKit('Tab Bar');
+    final barRect = tester.getRect(bar);
+    final first = tester
+        .getRect(find.byKey(const ValueKey('tab 0')))
+        .shift(-barRect.topLeft);
+    expect(barRect.height, kit.size.height);
+    expect(first.left, kit.rect('Tab 1').left);
+    expect(first.top, kit.rect('Tab 1').top);
+    expect(first.height, kit.rect('Tab 1').height);
+    final plus = tester.getRect(find.byKey(const ValueKey('new tab')));
+    expect(plus.size, kit.rect('New tab').size);
+    expect(barRect.right - plus.right, 8);
+    expect(plus.top - barRect.top, kit.rect('New tab').top);
     // The window shortcuts reach the new tab (⌘3: columns, ⌘2: list).
     await keys(LogicalKeyboardKey.digit3, meta: true);
     expect(settings.view, 'columns');
@@ -90,10 +103,7 @@ void main() {
     expect(host.tabs.length, 1);
     expect(bar, findsNothing);
     // An empty folder shows no text (R3.10): the title says it.
-    expect(
-      tester.widget<Text>(find.byKey(const ValueKey('title'))).data,
-      'Alfa',
-    );
+    expect(tester.widget<Text>(titleText()).data, 'Alfa');
     await tester.pump(const Duration(milliseconds: 500));
   });
 }

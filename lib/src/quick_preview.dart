@@ -1,8 +1,8 @@
-// Quick preview (Space, MU-61, docs/spec/quick-look.md): a centered panel with a 38 pt top bar (×, name,
-// the open-with-app capsule) and a 5 pt frame around the content. The size follows the content: an image at
-// its natural size plus 10 × 43 (at least ~370 wide, at most 1256 tall), text 816 × 849, the rest
-// (folders, code, archives, files without a preview) 575 × 328 with the large icon, the name and
-// the details.
+// Quick preview (Space, MU-61, docs/spec/quick-look.md for the behaviour; kit `Apps/Mustache/Quick
+// Preview`): a centered window panel with a 40 pt top bar (close, name, the open-with button) and a
+// 1 pt separator below it. The size follows the content: an image at its natural size plus the bar
+// (at least ~370 wide, at most 1256 tall), text 816 × 849, the rest (folders, code, archives,
+// files without a preview) 576 × 328 with the large icon, the name and the details.
 //
 // In Silica the panel lives inside the window (the embedder has no child windows yet): it shrinks
 // to fit.
@@ -17,11 +17,12 @@ import 'l10n.dart';
 import 'icon_view.dart' show EntryIcon, hasThumbnail;
 import 'model.dart';
 
-const double quickPreviewBar = 38;
-const double quickPreviewFrame = 5;
+/// The top bar: 40 tall and its separator.
+const double quickPreviewBar = 41;
+const double quickPreviewFrame = 0;
 const double quickPreviewMaxHeight = 1256;
 const double quickPreviewMinWidth = 370;
-const Size quickPreviewGeneric = Size(575, 328);
+const Size quickPreviewGeneric = Size(576, 328);
 const Size quickPreviewText = Size(816, 849);
 
 /// The extensions shown as text.
@@ -97,7 +98,7 @@ class QuickPreviewPanel extends StatefulWidget {
   final Entry entry;
   final VoidCallback onClose;
 
-  /// The name of the default app, for the open-with capsule.
+  /// The name of the default app, for the open-with button.
   final String? openWith;
   final VoidCallback? onOpenWith;
 
@@ -155,6 +156,7 @@ class _QuickPreviewPanelState extends State<QuickPreviewPanel> {
   Widget build(BuildContext context) {
     _load();
     final entry = widget.entry;
+    final colors = AmalfiTheme.of(context).colors;
     final image = _imageSize;
     final kind = image != null
         ? 'image'
@@ -173,65 +175,33 @@ class _QuickPreviewPanelState extends State<QuickPreviewPanel> {
           Size(room.maxWidth - 40, room.maxHeight - 40),
         );
         return Center(
-          child: Container(
+          child: SizedBox(
             key: const ValueKey('quick preview'),
             width: size.width,
             height: size.height,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8F8F9),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0x33000000), width: 0.5),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x4D000000),
-                  blurRadius: 40,
-                  offset: Offset(0, 12),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _bar(entry),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      quickPreviewFrame,
-                      0,
-                      quickPreviewFrame,
-                      quickPreviewFrame,
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(11),
-                      child: switch (kind) {
-                        'image' => ColoredBox(
-                          color: const Color(0xFFFFFFFF),
-                          child: Image.file(
-                            File(entry.path),
-                            fit: BoxFit.contain,
-                          ),
+            child: AmalfiWindow(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _bar(entry, colors),
+                  Expanded(
+                    child: switch (kind) {
+                      'image' => Image.file(
+                        File(entry.path),
+                        fit: BoxFit.contain,
+                      ),
+                      'text' => SingleChildScrollView(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          _text!,
+                          style: AmalfiType.mono(color: colors.textPrimary),
                         ),
-                        'text' => ColoredBox(
-                          color: const Color(0xFFFFFFFF),
-                          child: SingleChildScrollView(
-                            padding: const EdgeInsets.all(16),
-                            child: Text(
-                              _text!,
-                              style: const TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 12,
-                                color: Color(0xFF1A1A1A),
-                                height: 1.35,
-                              ),
-                            ),
-                          ),
-                        ),
-                        _ => _generic(entry),
-                      },
-                    ),
+                      ),
+                      _ => _generic(entry, colors),
+                    },
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -239,83 +209,65 @@ class _QuickPreviewPanelState extends State<QuickPreviewPanel> {
     );
   }
 
-  Widget _bar(Entry entry) {
+  /// The top bar (kit `Quick Preview`): 40 tall on the sidebar surface with a 1 pt separator
+  /// below, the close control on the left and the name in Body Emphasis. The kit's minimise and
+  /// zoom controls do nothing for a preview and are left out.
+  Widget _bar(Entry entry, AmalfiColors colors) {
     final position = widget.position;
     return SizedBox(
       height: quickPreviewBar,
-      child: Row(
-        children: [
-          const SizedBox(width: 12),
-          GestureDetector(
-            key: const ValueKey('close quick preview'),
-            onTap: widget.onClose,
-            child: Container(
-              width: 14,
-              height: 14,
-              decoration: const BoxDecoration(
-                color: Color(0xFFB0B0B5),
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: const Text(
-                '×',
-                style: TextStyle(
-                  fontFamily: uiFontFamily,
-                  package: 'silica_ui',
-                  fontSize: 11,
-                  height: 1,
-                  color: Color(0xFFFFFFFF),
-                ),
-              ),
+      child: ColoredBox(
+        color: colors.surfaceSidebar,
+        child: Stack(
+          children: [
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 1,
+              child: ColoredBox(color: colors.lineSeparator),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              position == null
-                  ? entry.name
-                  : l10n.positionOf(entry.name, position.$1, position.$2),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontFamily: uiFontFamily,
-                package: 'silica_ui',
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF3C3C3C),
-              ),
-            ),
-          ),
-          if (widget.openWith != null)
-            GestureDetector(
-              key: const ValueKey('open with from quick preview'),
-              onTap: widget.onOpenWith,
-              child: Container(
-                height: 24,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: const Color(0x14000000),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  l10n.openWithApp(widget.openWith!),
-                  style: const TextStyle(
-                    fontFamily: uiFontFamily,
-                    package: 'silica_ui',
-                    fontSize: 12,
-                    color: Color(0xFF3C3C3C),
+            Row(
+              children: [
+                const SizedBox(width: 12),
+                GestureDetector(
+                  key: const ValueKey('close quick preview'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: widget.onClose,
+                  child: const AmalfiWindowDot(
+                    kind: AmalfiWindowControlKind.close,
                   ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    position == null
+                        ? entry.name
+                        : l10n.positionOf(entry.name, position.$1, position.$2),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AmalfiType.bodyEmphasis(color: colors.textPrimary),
+                  ),
+                ),
+                if (widget.openWith != null)
+                  KeyedSubtree(
+                    key: const ValueKey('open with from quick preview'),
+                    child: AmalfiPushButton(
+                      label: l10n.openWithApp(widget.openWith!),
+                      size: AmalfiControlSize.small,
+                      onPressed: widget.onOpenWith,
+                    ),
+                  ),
+                const SizedBox(width: 12),
+              ],
             ),
-          const SizedBox(width: 10),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _generic(Entry entry) {
+  Widget _generic(Entry entry, AmalfiColors colors) {
     var count = '';
     if (entry.isDirectory) {
       try {
@@ -326,59 +278,40 @@ class _QuickPreviewPanelState extends State<QuickPreviewPanel> {
       }
     }
     final when = longDate(entry.modified);
-    return ColoredBox(
-      color: const Color(0xFFFFFFFF),
-      child: Row(
-        children: [
-          const SizedBox(width: 36),
-          EntryIcon(entry: entry, side: 128, env: widget.env),
-          const SizedBox(width: 28),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  entry.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontFamily: uiFontFamily,
-                    package: 'silica_ui',
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1A1A1A),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  [
-                    if (!entry.isDirectory) formatSize(entry),
-                    if (count.isNotEmpty) count,
-                  ].join(', '),
-                  style: const TextStyle(
-                    fontFamily: uiFontFamily,
-                    package: 'silica_ui',
-                    fontSize: 13,
-                    color: Color(0xFF6E6E73),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  l10n.lastModified(when),
-                  style: const TextStyle(
-                    fontFamily: uiFontFamily,
-                    package: 'silica_ui',
-                    fontSize: 13,
-                    color: Color(0xFF6E6E73),
-                  ),
-                ),
-              ],
-            ),
+    return Row(
+      children: [
+        const SizedBox(width: 40),
+        EntryIcon(entry: entry, side: 160, env: widget.env),
+        const SizedBox(width: 32),
+        Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                entry.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AmalfiType.title2(color: colors.textPrimary),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                [
+                  if (!entry.isDirectory) formatSize(entry),
+                  if (count.isNotEmpty) count,
+                ].join(', '),
+                style: AmalfiType.callout(color: colors.textSecondary),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                l10n.lastModified(when),
+                style: AmalfiType.callout(color: colors.textSecondary),
+              ),
+            ],
           ),
-          const SizedBox(width: 24),
-        ],
-      ),
+        ),
+        const SizedBox(width: 24),
+      ],
     );
   }
 }

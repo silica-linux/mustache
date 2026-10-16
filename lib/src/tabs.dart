@@ -1,20 +1,19 @@
 // Tabs (MU-01, docs/spec/tabs.md): ⌘T opens a tab in the folder of the active tab, ⌘W closes it, ⌃⇥
 // and ⌃⇧⇥ move to the next and the previous. The bar appears with at least two tabs, below the
-// toolbar and only above the content: a capsule rail 28 tall (border 1, radius 14), the active tab
-// as a pill 24 tall inset by 2 pt, 1 × 16 separators between inactive tabs, "+" in a 30 pt circle;
-// the × appears on the left on hover. Equal widths (the measured differences follow no rule), at
-// least 120 pt.
+// toolbar and only above the content: Amalfi tabs (the selected one raised) and a round "+" button;
+// the × shows on the chosen tab and on hover. Equal widths (the measured differences follow no
+// rule).
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
 
+import 'l10n.dart';
 import 'model.dart';
 
-const double tabRailHeight = 28;
-const double tabPillHeight = 24;
-const double tabMinWidth = 120;
-const double tabPlusSide = 30;
+/// The tab bar (kit `Apps/Mustache/Tab Bar`): 36 tall, tabs 28 tall 4 apart from x 8, the new tab
+/// button 24.
+const double tabBarOuterHeight = 36;
 
 /// A tab: where it started and where it is now.
 class TabInfo {
@@ -150,232 +149,48 @@ class TabsHostState extends State<TabsHost> {
   }
 }
 
-/// Tab bar colors (MU-01), light and dark.
-@immutable
-class TabColors {
-  const TabColors({
-    required this.rail,
-    required this.railBorder,
-    required this.active,
-    required this.hovered,
-    required this.separator,
-    required this.plus,
-    required this.plusGlyph,
-    required this.title,
-    required this.titleInactive,
-    required this.close,
-  });
-
-  final Color rail;
-  final Color railBorder;
-  final Color active;
-  final Color hovered;
-  final Color separator;
-  final Color plus;
-  final Color plusGlyph;
-  final Color title;
-  final Color titleInactive;
-  final Color close;
-
-  static const TabColors light = TabColors(
-    rail: Color(0xFFE8E8E8),
-    railBorder: Color(0xFFDCDCDC),
-    active: Color(0xFFFEFDFE),
-    hovered: Color(0xFFDCDCDC),
-    separator: Color(0xFFCCCCCC),
-    plus: Color(0xFFF8F8F8),
-    plusGlyph: Color(0xFF282828),
-    title: Color(0xFF4C4B4C),
-    titleInactive: Color(0xFF828282),
-    close: Color(0xFF7B7B7B),
-  );
-
-  static const TabColors dark = TabColors(
-    rail: Color(0xFF404041),
-    railBorder: Color(0xFF4F4F50),
-    active: Color(0xFF464648),
-    hovered: Color(0xFF4B4B4B),
-    separator: Color(0xFF575758),
-    plus: Color(0xFF474748),
-    plusGlyph: Color(0xFFDADADA),
-    title: Color(0xFFECECEC),
-    titleInactive: Color(0xFF8B8B8C),
-    close: Color(0xFF909091),
-  );
-
-  static TabColors of(BuildContext context) =>
-      MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark
-      ? dark
-      : light;
-}
-
-class _TabBar extends StatefulWidget {
+class _TabBar extends StatelessWidget {
   const _TabBar({required this.host});
   final TabsHostState host;
 
   @override
-  State<_TabBar> createState() => _TabBarState();
-}
-
-class _TabBarState extends State<_TabBar> {
-  int? _hovered;
-
-  TextStyle _title(TabColors colors, bool active) => TextStyle(
-    fontFamily: uiFontFamily,
-    package: 'silica_ui',
-    fontSize: 11,
-    color: active ? colors.title : colors.titleInactive,
-  );
-
-  @override
   Widget build(BuildContext context) {
-    final host = widget.host;
     final tabs = host.tabs;
-    final colors = TabColors.of(context);
     return SizedBox(
       key: const ValueKey('tab bar'),
-      height: tabRailHeight + 8,
+      height: tabBarOuterHeight,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(0, 4, 7, 4),
+        padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
         child: Row(
+          spacing: 4,
           children: [
-            // Left of the first tab the bar moves the window (MU-08); between the last tab and "+"
-            // it does not.
-            const WindowDragArea(
-              key: ValueKey('tab grip'),
-              child: SizedBox(width: 8, height: tabRailHeight),
-            ),
-            Expanded(
-              child: Container(
-                height: tabRailHeight,
-                decoration: BoxDecoration(
-                  color: colors.rail,
-                  borderRadius: BorderRadius.circular(tabRailHeight / 2),
-                  border: Border.all(color: colors.railBorder),
-                ),
-                padding: const EdgeInsets.all(1),
-                child: LayoutBuilder(
-                  builder: (context, box) {
-                    // Equal widths; below 120 pt the rail scrolls.
-                    final width = box.maxWidth / tabs.length;
-                    final each = width < tabMinWidth ? tabMinWidth : width;
-                    return SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          for (var i = 0; i < tabs.length; i++)
-                            SizedBox(width: each, child: _tab(colors, i)),
-                        ],
-                      ),
-                    );
-                  },
+            // Equal widths (the measured differences follow no rule), at least 120 pt: below that
+            // the tabs stay at the minimum and the rest is cut.
+            for (var i = 0; i < tabs.length; i++)
+              Expanded(
+                child: KeyedSubtree(
+                  key: ValueKey('tab ${tabs[i].id}'),
+                  child: AmalfiTab(
+                    label: displayName(tabs[i].location),
+                    selected: i == host.active,
+                    width: null,
+                    closeLabel: l10n.menuCloseTab,
+                    onSelect: () => host.select(i),
+                    onClose: () => host.closeTab(i),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 3),
-            GestureDetector(
+            // Kit `Buttons/Icon/Round/Small`.
+            KeyedSubtree(
               key: const ValueKey('new tab'),
-              onTap: host.newTab,
-              child: Container(
-                width: tabPlusSide,
-                height: tabPlusSide,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: colors.plus,
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  '+',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: colors.plusGlyph,
-                    height: 1,
-                  ),
-                ),
+              child: AmalfiIconButton(
+                icon: const AmalfiGlyph(AmalfiGlyphs.plus),
+                onPressed: host.newTab,
+                semanticLabel: l10n.menuNewTab,
+                shape: AmalfiIconButtonShape.round,
+                size: AmalfiControlSize.small,
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _tab(TabColors colors, int i) {
-    final host = widget.host;
-    final active = i == host.active;
-    final hovered = _hovered == i;
-    final next = i + 1;
-    // The separator disappears next to the active tab and the one under the pointer.
-    final separator =
-        !active &&
-        next < host.tabs.length &&
-        next != host.active &&
-        !hovered &&
-        _hovered != next;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = i),
-      onExit: (_) => setState(() {
-        if (_hovered == i) _hovered = null;
-      }),
-      child: GestureDetector(
-        key: ValueKey('tab ${host.tabs[i].id}'),
-        behavior: HitTestBehavior.opaque,
-        onTap: () => host.select(i),
-        child: Stack(
-          children: [
-            if (active || hovered)
-              Positioned.fill(
-                child: Container(
-                  margin: const EdgeInsets.all(1),
-                  decoration: BoxDecoration(
-                    color: active ? colors.active : colors.hovered,
-                    borderRadius: BorderRadius.circular(tabPillHeight / 2),
-                  ),
-                ),
-              ),
-            Positioned.fill(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 26),
-                child: Center(
-                  child: Text(
-                    displayName(host.tabs[i].location),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: _title(colors, active),
-                  ),
-                ),
-              ),
-            ),
-            // The × on the left on hover.
-            if (hovered)
-              Positioned(
-                left: 4,
-                top: (tabRailHeight - 2 - 18) / 2,
-                width: 18,
-                height: 18,
-                child: GestureDetector(
-                  key: ValueKey('close tab ${host.tabs[i].id}'),
-                  onTap: () => host.closeTab(i),
-                  child: Center(
-                    child: Text(
-                      '×',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: colors.close,
-                        height: 1,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            if (separator)
-              Positioned(
-                right: 0,
-                top: (tabRailHeight - 2 - 16) / 2,
-                width: 1,
-                height: 16,
-                child: ColoredBox(color: colors.separator),
-              ),
           ],
         ),
       ),

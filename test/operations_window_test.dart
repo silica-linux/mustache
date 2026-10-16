@@ -10,6 +10,12 @@ import 'package:mustache/src/settings.dart';
 import 'package:mustache/src/window.dart';
 import 'package:silica_ui/silica_ui.dart';
 
+/// The text input of the rename field (the toolbar's search field has its own).
+final renameInput = find.descendant(
+  of: find.byKey(const ValueKey('rename field')),
+  matching: find.byType(EditableText),
+);
+
 void main() {
   late Directory home;
   late Directory dir;
@@ -79,12 +85,12 @@ void main() {
     await select(tester, 'appunti.txt');
     await keys(tester, LogicalKeyboardKey.enter);
     await tester.pump();
-    final field = tester.widget<EditableText>(find.byType(EditableText));
+    final field = tester.widget<EditableText>(renameInput);
     expect(
       field.controller.selection,
       const TextSelection(baseOffset: 0, extentOffset: 7),
     );
-    await tester.enterText(find.byType(EditableText), 'promemoria.txt');
+    await tester.enterText(renameInput, 'promemoria.txt');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump();
     expect(File(p('promemoria.txt')).existsSync(), isTrue);
@@ -106,7 +112,7 @@ void main() {
       await keys(tester, LogicalKeyboardKey.enter);
       await tester.pump();
       await tester.pump();
-      final field = tester.widget<EditableText>(find.byType(EditableText));
+      final field = tester.widget<EditableText>(renameInput);
       expect(
         field.controller.selection,
         const TextSelection(baseOffset: 0, extentOffset: 7),
@@ -122,20 +128,20 @@ void main() {
     await pump(tester);
     await select(tester, 'appunti.txt');
     await keys(tester, LogicalKeyboardKey.enter);
-    await tester.enterText(find.byType(EditableText), 'altro.txt');
+    await tester.enterText(renameInput, 'altro.txt');
     await keys(tester, LogicalKeyboardKey.escape);
     expect(find.byType(RenameField), findsNothing);
     expect(File(p('appunti.txt')).existsSync(), isTrue);
 
     await keys(tester, LogicalKeyboardKey.enter);
-    await tester.enterText(find.byType(EditableText), 'bozza.txt');
+    await tester.enterText(renameInput, 'bozza.txt');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump();
-    expect(find.byType(SilicaAlert), findsOneWidget);
+    expect(find.byType(AmalfiAlert), findsOneWidget);
     expect(find.textContaining('is already taken'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('alert OK')));
     await tester.pump();
-    expect(find.byType(SilicaAlert), findsNothing);
+    expect(find.byType(AmalfiAlert), findsNothing);
     expect(File(p('appunti.txt')).readAsStringSync(), 'a');
     expect(File(p('bozza.txt')).readAsStringSync(), 'b');
   });
@@ -146,7 +152,7 @@ void main() {
     await pump(tester);
     await select(tester, 'appunti.txt');
     await keys(tester, LogicalKeyboardKey.enter);
-    await tester.enterText(find.byType(EditableText), 'note.md');
+    await tester.enterText(renameInput, 'note.md');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump();
     expect(find.byKey(const ValueKey('alert Use .md')), findsOneWidget);
@@ -162,7 +168,7 @@ void main() {
     await keys(tester, LogicalKeyboardKey.keyN, meta: true, shift: true);
     await tester.pump();
     expect(Directory(p('new folder')).existsSync(), isTrue);
-    final field = tester.widget<EditableText>(find.byType(EditableText));
+    final field = tester.widget<EditableText>(renameInput);
     expect(field.controller.text, 'new folder');
     // Everything selected (a folder has no extension).
     expect(field.controller.selection.extentOffset, 'new folder'.length);

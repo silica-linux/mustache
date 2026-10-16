@@ -60,24 +60,32 @@ extension _Context on _MustacheWindowState {
         : ring
         ? [entry]
         : _selection;
-    _contextRing = ring ? entry.path : null;
-    _update(() {
-      _menuAt = position + contextMenuOffset;
-      _menuEntries = items.isEmpty ? _backgroundMenu() : _itemsMenu(items);
+    _update(() => _contextRing = ring ? entry.path : null);
+    _showMenu(
+      position + contextMenuOffset,
+      items.isEmpty ? _backgroundMenu() : _itemsMenu(items),
+    );
+  }
+
+  /// Shows a menu above the window with its top-left corner at the global `position`; when it
+  /// closes the ring goes and the keyboard goes back to the window.
+  void _showMenu(Offset position, List<AmalfiMenuEntry> entries) {
+    final host = _bodyKey.currentContext;
+    if (host == null) return;
+    showAmalfiMenu(
+      context: host,
+      position: position,
+      entries: entries,
+      opaque: true,
+    ).whenComplete(() {
+      if (!mounted) return;
+      _update(() => _contextRing = null);
+      // The popover that the menu item opened keeps the keyboard (Esc).
+      (_customizing == null ? _focus : _customizeFocus).requestFocus();
     });
   }
 
-  void _closeContextMenu() {
-    _update(() {
-      _menuAt = null;
-      _menuEntries = const [];
-      _contextRing = null;
-    });
-    // The popover that the menu item opened keeps the keyboard (Esc).
-    (_customizing == null ? _focus : _customizeFocus).requestFocus();
-  }
-
-  List<MenuEntry> _itemsMenu(List<Entry> items) {
+  List<AmalfiMenuEntry> _itemsMenu(List<Entry> items) {
     final inTrash = _trash.contains(_history.current);
     final files = [
       for (final e in items)
@@ -86,8 +94,11 @@ extension _Context on _MustacheWindowState {
     final single = items.length == 1 ? items.first : null;
     return [
       if (items.length > 1)
-        MenuAction(l10n.newFolderWithSelection(items.length), enabled: false),
-      MenuAction(
+        AmalfiMenuAction(
+          l10n.newFolderWithSelection(items.length),
+          enabled: false,
+        ),
+      AmalfiMenuAction(
         l10n.open,
         onSelected: () {
           if (single != null && single.isDirectory) {
@@ -98,32 +109,30 @@ extension _Context on _MustacheWindowState {
         },
       ),
       if (files.length == items.length) _openWithMenu(files),
-      const MenuDivider(),
-      MenuAction(
+      const AmalfiMenuDivider(),
+      AmalfiMenuAction(
         inTrash ? l10n.restore : l10n.moveToTrash,
         onSelected: () => _moveToTrash(items),
       ),
-      const MenuDivider(),
-      MenuAction(
+      const AmalfiMenuDivider(),
+      AmalfiMenuAction(
         l10n.showInfo,
         onSelected: () => _openInfo([for (final e in items) e.path]),
       ),
-      MenuAction(
+      AmalfiMenuAction(
         items.length > 1 ? l10n.renameMany : l10n.rename,
         enabled: single != null,
         onSelected: single == null ? null : () => _startRename(single.path),
       ),
-      MenuAction(l10n.duplicate, onSelected: () => _duplicate(items)),
-      MenuAction(l10n.copy, onSelected: () => _copySelection(items)),
-      const MenuDivider(),
-      _tagMenuRow(items),
+      AmalfiMenuAction(l10n.duplicate, onSelected: () => _duplicate(items)),
+      AmalfiMenuAction(l10n.copy, onSelected: () => _copySelection(items)),
+      const AmalfiMenuDivider(),
+      _tagMenu(items),
       if (single != null && single.isDirectory)
-        MenuAction(
+        AmalfiMenuAction(
           l10n.customizeFolder,
           onSelected: () => _customizeFolder(single.path),
-        )
-      else
-        MenuAction(l10n.tagsMenu, enabled: false),
+        ),
     ];
   }
 
@@ -150,84 +159,87 @@ extension _Context on _MustacheWindowState {
 
   /// "Open With ›": the default on top with "(default)", then the others by name, then "Other…"
   /// (R10.1).
-  MenuAction _openWithMenu(List<Entry> files) {
+  AmalfiMenuAction _openWithMenu(List<Entry> files) {
     final type = _typeOf(files.first);
     final preferred = _registry.defaultFor(type);
     final others = [
       for (final app in _registry.appsFor(type))
         if (app.id != preferred?.id) app,
     ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-    return MenuAction(
+    return AmalfiMenuAction(
       l10n.openWith,
       submenu: [
         if (preferred != null)
-          MenuAction(
+          AmalfiMenuAction(
             l10n.defaultApp(preferred.name),
             onSelected: () => _openWith(files, preferred),
           ),
-        if (preferred != null && others.isNotEmpty) const MenuDivider(),
+        if (preferred != null && others.isNotEmpty) const AmalfiMenuDivider(),
         for (final app in others)
-          MenuAction(app.name, onSelected: () => _openWith(files, app)),
-        const MenuDivider(),
-        MenuAction(l10n.otherApp, enabled: false),
+          AmalfiMenuAction(app.name, onSelected: () => _openWith(files, app)),
+        const AmalfiMenuDivider(),
+        AmalfiMenuAction(l10n.otherApp, enabled: false),
       ],
     );
   }
 
-  List<MenuEntry> _backgroundMenu() => [
-    MenuAction(l10n.newFolder, onSelected: _newFolder),
-    MenuAction(
+  List<AmalfiMenuEntry> _backgroundMenu() => [
+    AmalfiMenuAction(l10n.newFolder, onSelected: _newFolder),
+    AmalfiMenuAction(
       l10n.pasteItems(FileClipboard.paths.length),
       enabled: FileClipboard.paths.isNotEmpty,
       onSelected: () => _paste(move: false),
     ),
-    const MenuDivider(),
-    MenuAction(l10n.showInfo, onSelected: () => _openInfo([_history.current])),
-    const MenuDivider(),
-    MenuAction(
+    const AmalfiMenuDivider(),
+    AmalfiMenuAction(
+      l10n.showInfo,
+      onSelected: () => _openInfo([_history.current]),
+    ),
+    const AmalfiMenuDivider(),
+    AmalfiMenuAction(
       l10n.view,
       submenu: [
-        MenuAction(
+        AmalfiMenuAction(
           l10n.viewIcons,
           checked: _view == ViewMode.icons,
           onSelected: () => _setView(ViewMode.icons),
         ),
-        MenuAction(
+        AmalfiMenuAction(
           l10n.viewList,
           checked: _view == ViewMode.list,
           onSelected: () => _setView(ViewMode.list),
         ),
-        MenuAction(
+        AmalfiMenuAction(
           l10n.viewColumns,
           checked: _view == ViewMode.columns,
           onSelected: () => _setView(ViewMode.columns),
         ),
-        MenuAction(
+        AmalfiMenuAction(
           l10n.viewGallery,
           checked: _view == ViewMode.gallery,
           onSelected: () => _setView(ViewMode.gallery),
         ),
       ],
     ),
-    MenuAction(
+    AmalfiMenuAction(
       l10n.sortBy,
       submenu: [
         // In the icon view also "None" (free positions) and Snap to Grid.
         if (_view == ViewMode.icons) ...[
-          MenuAction(
+          AmalfiMenuAction(
             l10n.sortNone,
             checked: _arrangement.free,
             onSelected: _sortNone,
           ),
-          MenuAction(
+          AmalfiMenuAction(
             l10n.snapToGrid,
             checked: _arrangement.snap,
             onSelected: _toggleSnap,
           ),
-          const MenuDivider(),
+          const AmalfiMenuDivider(),
         ],
         for (final (key, label) in _sortChoices)
-          MenuAction(
+          AmalfiMenuAction(
             label,
             checked:
                 _sort == key && !(_view == ViewMode.icons && _arrangement.free),
@@ -237,22 +249,22 @@ extension _Context on _MustacheWindowState {
     ),
     // Clean Up works on free positions; Clean Up By also turns a sorted folder into a free one.
     if (_view == ViewMode.icons) ...[
-      const MenuDivider(),
-      MenuAction(
+      const AmalfiMenuDivider(),
+      AmalfiMenuAction(
         l10n.cleanUp,
         enabled: _arrangement.free,
         onSelected: _cleanUp,
       ),
-      MenuAction(
+      AmalfiMenuAction(
         l10n.cleanUpSelection,
         enabled: _arrangement.free && _selected.isNotEmpty,
         onSelected: () => _cleanUp(selection: true),
       ),
-      MenuAction(
+      AmalfiMenuAction(
         l10n.cleanUpBy,
         submenu: [
           for (final (key, label) in _sortChoices)
-            MenuAction(
+            AmalfiMenuAction(
               label,
               shortcut: '⌥⌘${arrangeByDigit[key]}',
               onSelected: () => _arrangeBy(key),

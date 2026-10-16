@@ -1,8 +1,9 @@
-// The path bar (⌥⌘P, MU-03, docs/spec/bars.md): below the content, 28 pt tall (2 px line and
-// background), one segment per folder from the disk to the open one (or to the chosen item, R1.17):
-// 16 pt icon, text 5 pt after it, 5 × 7 chevron. A click opens the folder (R1.18). When space runs
-// out, all the middle segments shrink equally down to 29 pt, then the first, then the second to
-// last; the last stays whole; cut text fades out (R1.20).
+// The path bar (⌥⌘P, MU-03; kit `Apps/Mustache/Path Bar`): below the content, 28 pt tall with a 1 pt
+// separator on top, one segment per folder from the disk to the open one (or to the chosen item,
+// R1.17): 16 pt icon at x 12, the name 4 pt after it (Caption), a 12 pt chevron 11 pt after the
+// name and 8 before the next icon. A click opens the folder (R1.18). When space runs out, all the
+// middle segments shrink equally down to their minimum, then the first, then the second to last; the
+// last stays whole; cut text fades out (R1.20, behaviour measured, sizes Amalfi).
 
 import 'dart:math' as math;
 
@@ -14,38 +15,20 @@ import 'icon_view.dart' show EntryIcon;
 import 'model.dart';
 
 const double pathBarHeight = 28;
-const double pathBarLeft = 13;
+const double pathBarLeft = 12;
 const double pathIcon = 16;
-const double pathTextGap = 5;
+const double pathTextGap = 4;
 
-/// The space of a segment besides its text: icon, gaps and chevron (pitch = text + ~36).
-const double pathSegmentExtra = 36;
+/// The space of a segment besides its text: icon and gap, 11 before the chevron, the 12 pt
+/// chevron and 8 before the next icon.
+const double pathChevronGap = 11;
+const double pathChevron = 12;
+const double pathSegmentEnd = 8;
+const double pathSegmentExtra =
+    pathIcon + pathTextGap + pathChevronGap + pathChevron + pathSegmentEnd;
 
-/// The narrowest a segment shrinks to: icon and chevron.
-const double pathSegmentMin = 29;
-
-@immutable
-class PathBarColors {
-  const PathBarColors(this.fill, this.lineDark, this.lineLight, this.text);
-  final Color fill;
-  final Color lineDark;
-  final Color lineLight;
-  final Color text;
-
-  static PathBarColors of({required bool dark}) => dark
-      ? const PathBarColors(
-          Color(0xFF2F2F2F),
-          Color(0xFF3F3F40),
-          Color(0xFF434343),
-          Color(0xFFA1A1A1),
-        )
-      : const PathBarColors(
-          Color(0xFFFFFFFF),
-          Color(0xFFDCDDDD),
-          Color(0xFFE6E6E6),
-          Color(0xFF7F7F7F),
-        );
-}
+/// The narrowest a segment shrinks to: icon, gap and chevron.
+const double pathSegmentMin = pathIcon + pathTextGap + pathChevron + 8;
 
 /// Segment widths in `available` pt (R1.20): all middle ones equal down to 29, then the first, then
 /// the second to last; the last whole.
@@ -125,15 +108,8 @@ class PathBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark =
-        MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark;
-    final colors = PathBarColors.of(dark: dark);
-    final style = TextStyle(
-      fontFamily: uiFontFamily,
-      package: 'silica_ui',
-      fontSize: 13,
-      color: colors.text,
-    );
+    final colors = AmalfiTheme.of(context).colors;
+    final style = AmalfiType.callout(color: colors.textPrimary);
     final segments = pathSegments(path);
     String label(String p) => p == '/' ? diskName ?? l10n.disk : displayName(p);
     final natural = [
@@ -146,37 +122,45 @@ class PathBar extends StatelessWidget {
     return SizedBox(
       key: const ValueKey('path bar'),
       height: pathBarHeight,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colors.fill,
-          border: Border(top: BorderSide(color: colors.lineDark)),
-        ),
-        child: LayoutBuilder(
-          builder: (context, box) {
-            final widths = pathBarWidths(
-              natural,
-              box.maxWidth - pathBarLeft - 8,
-            );
-            return Padding(
-              padding: const EdgeInsets.only(left: pathBarLeft, top: 1),
-              child: Row(
-                children: [
-                  for (var i = 0; i < segments.length; i++)
-                    SizedBox(
-                      width: widths[i],
-                      child: _segment(
-                        segments[i],
-                        label(segments[i]),
-                        last: i == segments.length - 1,
-                        truncated: widths[i] < natural[i] - 0.5,
-                        style: style,
-                        colors: colors,
-                      ),
-                    ),
-                ],
-              ),
-            );
-          },
+      child: ColoredBox(
+        color: colors.surfaceWindow,
+        child: Stack(
+          children: [
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              height: 1,
+              child: ColoredBox(color: colors.lineSeparator),
+            ),
+            LayoutBuilder(
+              builder: (context, box) {
+                final widths = pathBarWidths(
+                  natural,
+                  box.maxWidth - pathBarLeft - 8,
+                );
+                return Padding(
+                  padding: const EdgeInsets.only(left: pathBarLeft, top: 1),
+                  child: Row(
+                    children: [
+                      for (var i = 0; i < segments.length; i++)
+                        SizedBox(
+                          width: widths[i],
+                          child: _segment(
+                            segments[i],
+                            label(segments[i]),
+                            last: i == segments.length - 1,
+                            truncated: widths[i] < natural[i] - 0.5,
+                            style: style,
+                            colors: colors,
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -188,7 +172,7 @@ class PathBar extends StatelessWidget {
     required bool last,
     required bool truncated,
     required TextStyle style,
-    required PathBarColors colors,
+    required AmalfiColors colors,
   }) {
     final entry = entryAt(path);
     Widget text = Text(
@@ -225,13 +209,13 @@ class PathBar extends StatelessWidget {
           const SizedBox(width: pathTextGap),
           Expanded(child: text),
           if (!last) ...[
-            const SizedBox(width: 5),
-            SizedBox(
-              width: 5,
-              height: 7,
-              child: CustomPaint(painter: _Chevron(colors.text)),
+            const SizedBox(width: pathChevronGap),
+            AmalfiGlyph(
+              AmalfiGlyphs.chevronRight,
+              size: pathChevron,
+              color: colors.textTertiary,
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: pathSegmentEnd),
           ],
         ],
       ),
@@ -248,27 +232,4 @@ class PathBar extends StatelessWidget {
     painter.dispose();
     return w;
   }
-}
-
-class _Chevron extends CustomPainter {
-  const _Chevron(this.color);
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawPath(
-      Path()
-        ..moveTo(0.75, 0.5)
-        ..lineTo(size.width - 0.75, size.height / 2)
-        ..lineTo(0.75, size.height - 0.5),
-      Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2
-        ..strokeCap = StrokeCap.round,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_Chevron old) => old.color != color;
 }

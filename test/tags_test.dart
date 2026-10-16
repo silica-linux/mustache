@@ -16,7 +16,12 @@ void main() {
     expect(tagName(TagColor.red), 'Red');
     expect(tagColor('Green'), TagColor.green);
     expect(tagColor('Lavoro'), isNull);
-    expect(menuTagColor(TagColor.red), const Color(0xFFFF6663));
+    // The Amalfi palette (kit `Tag Row`): Red is Terracotta.
+    expect(menuTagColor(TagColor.red), AmalfiColors.light.paletteTerracotta);
+    expect(
+      menuTagColor(TagColor.red, dark: true),
+      AmalfiColors.dark.paletteTerracotta,
+    );
     final ring = tagRing(menuTagColor(TagColor.red));
     expect(
       ring.computeLuminance(),
@@ -59,7 +64,14 @@ void main() {
     );
     await tester.tapAt(tester.getCenter(row), buttons: kSecondaryMouseButton);
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('tag green')));
+    await tester.tap(find.text('Tags…'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AmalfiMenu),
+        matching: find.text('Green'),
+      ),
+    );
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 50));
     }
@@ -86,7 +98,14 @@ void main() {
     // The circle again: removes.
     await tester.tapAt(tester.getCenter(row), buttons: kSecondaryMouseButton);
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('tag green')));
+    await tester.tap(find.text('Tags…'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AmalfiMenu),
+        matching: find.text('Green'),
+      ),
+    );
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 50));
     }

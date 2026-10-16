@@ -9,44 +9,13 @@ import 'package:silica_ui/silica_ui.dart';
 
 import 'operations.dart';
 
-const double renameHeight = 21;
+/// The field is a small (24 pt) Amalfi field as wide as its text: `Surface/Raised` with a 1 pt accent
+/// border and the `Line/Focus` halo, Body text 4 pt from the edge.
+const double renameHeight = 24;
 const double renameRing = 3;
 const double renameTextInset = 4;
 const double renameTextSize = 13;
-
-@immutable
-class RenameColors {
-  const RenameColors({
-    required this.ring,
-    required this.border,
-    required this.fill,
-    required this.text,
-    required this.selection,
-  });
-
-  final Color ring;
-  final Color border;
-  final Color fill;
-  final Color text;
-  final Color selection;
-
-  static RenameColors of({required bool dark}) => dark
-      ? const RenameColors(
-          ring: Color(0xFF296692),
-          border: Color(0xFF3586C5),
-          // Estimated: the content background in dark.
-          fill: Color(0xFF272728),
-          text: Color(0xFFFFFFFF),
-          selection: Color(0xFF40638B),
-        )
-      : const RenameColors(
-          ring: Color(0xFF8FB4FB),
-          border: Color(0xFF649EFA),
-          fill: Color(0xFFFFFFFF),
-          text: Color(0xFF000000),
-          selection: Color(0xFFB3D7FF),
-        );
-}
+const double renameRadius = 6;
 
 /// The part selected on opening: the name without the extension (everything for folders and names
 /// without an extension).
@@ -119,15 +88,8 @@ class _RenameFieldState extends State<RenameField> {
 
   @override
   Widget build(BuildContext context) {
-    final dark =
-        MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark;
-    final colors = RenameColors.of(dark: dark);
-    final style = TextStyle(
-      fontFamily: uiFontFamily,
-      package: 'silica_ui',
-      fontSize: renameTextSize,
-      color: colors.text,
-    );
+    final colors = AmalfiTheme.of(context).colors;
+    final style = AmalfiType.body(color: colors.textPrimary);
     final painter = TextPainter(
       text: TextSpan(text: _controller.text, style: style),
       textDirection: TextDirection.ltr,
@@ -157,14 +119,23 @@ class _RenameFieldState extends State<RenameField> {
         key: const ValueKey('rename field'),
         width: width,
         height: renameHeight,
-        decoration: BoxDecoration(
-          color: colors.fill,
-          border: Border.all(color: colors.border),
-          borderRadius: BorderRadius.circular(3),
-          boxShadow: [
-            // The focus ring: 3 pt around the border.
-            BoxShadow(color: colors.ring, spreadRadius: renameRing - 1),
-          ],
+        decoration: AmalfiShapeDecoration(
+          color: colors.surfaceRaised,
+          shape: AmalfiSmoothBorder(
+            radius: renameRadius,
+            side: BorderSide(color: colors.accentAmalfi),
+          ),
+        ),
+        foregroundDecoration: ShapeDecoration(
+          // The focus halo: 3 pt around the border.
+          shape: AmalfiSmoothBorder(
+            radius: renameRadius + renameRing,
+            side: BorderSide(
+              color: colors.lineFocus,
+              width: renameRing,
+              strokeAlign: BorderSide.strokeAlignOutside,
+            ),
+          ),
         ),
         padding: const EdgeInsets.symmetric(horizontal: renameTextInset),
         alignment: Alignment.centerLeft,
@@ -175,9 +146,9 @@ class _RenameFieldState extends State<RenameField> {
             controller: _controller,
             focusNode: _focus,
             style: style,
-            cursorColor: colors.text,
-            backgroundCursorColor: colors.text,
-            selectionColor: colors.selection,
+            cursorColor: colors.accentAmalfi,
+            backgroundCursorColor: colors.textPrimary,
+            selectionColor: colors.accentAmalfiSoft,
             maxLines: 1,
             // On desktop the field would select everything on focus: here the name without the
             // extension stays selected (R8.1).

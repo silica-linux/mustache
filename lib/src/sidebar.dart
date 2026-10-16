@@ -1,19 +1,18 @@
-// The sidebar (MU-10, MU-11): attached to the window edges, from top to bottom, without a line
-// towards the content. Rows at a 32 pt pitch; 24 pt between the center of a heading and the first
-// row, 40 between the last row and the next heading. Selection: a radius 8 rectangle as tall as the
-// row, 10 pt from the edge; text in semibold, the icon keeps its color. No background on hover. On
-// hover the headings show a 10 × 6 chevron that collapses the section (~190 ms, ease out, from +70
-// ms; expansion from +120 ms): the rows drop their text right away and slide up under the heading,
-// which clips them.
+// The sidebar (MU-10, MU-11; kit `Apps/Mustache/Sidebar`, components.md): 240 wide (200 at least),
+// rows 28 tall on a 32 pt pitch, section headers 28 tall with a disclosure chevron, the selection
+// a soft accent capsule; the tag rows have a 12 pt dot. On the sidebar surface with a 1 pt edge
+// towards the content.
 //
-// Width (MU-11): minimum 135 pt, the content does not go below 316; released between 191 and 209 it
-// snaps back to 200; dragged closer than ~65 pt to the edge the sidebar hides.
+// Collapsing and expanding a section (MU-11): ~190 ms after a delay (measured, kept): the rows
+// drop their text right away and slide up under the heading, which clips them.
+//
+// Width (MU-11 behaviour, Amalfi measures): minimum 200 pt, the content does not go below 316;
+// released within 9 pt of the default width it snaps back to it; dragged closer than ~65 pt to
+// the edge the sidebar hides.
 
-import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:silica_ui/silica_ui.dart';
 
 import 'l10n.dart';
@@ -21,54 +20,24 @@ import 'drag.dart';
 import 'model.dart';
 import 'tags.dart';
 
-const double sidebarRow = 32;
-const double sidebarTextLeft = 47;
-const double sidebarIconLeft = 20;
-const double sidebarIconSize = 18;
-const double sidebarHeadingLeft = 17;
-const double sidebarSelectionInset = 10;
-const double sidebarSelectionRadius = 8;
+/// The row pitch: 28 tall plus 4 between rows.
+const double sidebarRow =
+    AmalfiSidebarMetrics.rowHeight + AmalfiSidebarMetrics.rowGap;
 
-/// The sidebar's own bar, under the window buttons, as tall as the toolbar: the list starts
-/// below it and scrolls under it (mustache#13, `SidebarScrollUnderBar`).
-const double sidebarBarHeight = toolbarHeight;
+/// The width of new windows (components.md: 240).
+const double sidebarDefaultWidth = AmalfiSidebarMetrics.width;
 
-/// The first row has its center 68 pt from the top of the window, 16 below the bar (windows.md:
-/// Recenti at y 68). A heading at the top of the list takes the same place: its center at 68,
-/// the first row 24 below it (PROVISIONAL: a leading heading is not measured, SIDEBAR-GLASS).
-const double sidebarFirstRowCenter = 68;
-
-/// The heading at the top of the list: from the bar to 8 pt above the first row.
-const double sidebarLeadingHeading =
-    sidebarFirstRowCenter +
-    sidebarHeadingToRow -
-    sidebarRow / 2 -
-    sidebarBarHeight;
-
-/// Between the center of a heading and that of the first row (MU-10, windows.md).
-const double sidebarHeadingToRow = 24;
-
-/// Between the center of the last row and that of the next heading.
-const double sidebarRowToHeading = 40;
-
-/// The width of new windows (spec/sidebar.md: 192; 200 is only where it snaps).
-const double sidebarDefaultWidth = 192;
-
-/// Where the sidebar snaps when released between 191 and 209 (MU-11).
-const double sidebarSnapWidth = 200;
-const double sidebarMinWidth = 135;
+/// Where the sidebar snaps when released near the default width (MU-11, around the default).
+const double sidebarSnapWidth = sidebarDefaultWidth;
+const double sidebarMinWidth = AmalfiSidebarMetrics.minWidth;
 const double contentMinWidth = 316;
 
 /// Released in this range the sidebar goes back to the default width.
-const double sidebarSnapFrom = 191;
-const double sidebarSnapTo = 209;
+const double sidebarSnapFrom = sidebarDefaultWidth - 9;
+const double sidebarSnapTo = sidebarDefaultWidth + 9;
 
 /// Dragged with the pointer closer than this to the left edge, the sidebar hides.
 const double sidebarHideBelow = 65;
-
-/// The heading chevron: 10 × 6, 31 pt from the right edge of the sidebar.
-const Size sidebarChevron = Size(10, 6);
-const double sidebarChevronRight = 31;
 
 /// Collapsing and expanding a section (MU-11): ~190 ms after a delay.
 const Duration sectionCollapse = Duration(milliseconds: 255);
@@ -81,77 +50,6 @@ const double sectionExpandDelay = 120 / 308;
 const Duration sidebarHide = Duration(milliseconds: 240);
 const Duration sidebarShow = Duration(milliseconds: 270);
 const double sidebarShowDelay = 40 / 270;
-
-/// Sidebar colors by theme and window state (docs/spec/sidebar.md; values chosen among the measurements, open-questions.md 2–3: the
-/// background is a material and depends on what is behind it).
-@immutable
-class SidebarColors {
-  const SidebarColors({
-    required this.fill,
-    required this.selection,
-    required this.text,
-    required this.selectedText,
-    required this.heading,
-    required this.accentIcon,
-    required this.plainIcon,
-    required this.plainIconSelected,
-  });
-
-  final Color fill;
-  final Color selection;
-  final Color text;
-  final Color selectedText;
-  final Color heading;
-  final Color accentIcon;
-
-  /// The gray icon at rest and under the selection (two different measurements, spec/sidebar.md).
-  final Color plainIcon;
-  final Color plainIconSelected;
-
-  static SidebarColors of({required bool dark, required bool active}) =>
-      switch ((dark, active)) {
-        (false, true) => const SidebarColors(
-          fill: Color(0xFFECECED),
-          selection: Color(0xFFD7D7D7),
-          text: Color(0xFF000000),
-          selectedText: Color(0xFF000000),
-          heading: Color(0xFF808182),
-          accentIcon: Color(0xFF0070EB),
-          plainIcon: Color(0xFF7C7C82),
-          plainIconSelected: Color(0xFF6E6E74),
-        ),
-        (false, false) => const SidebarColors(
-          fill: Color(0xFFF2F2F2),
-          selection: Color(0xFFE7E7E7),
-          text: Color(0xFF727272),
-          selectedText: Color(0xFF676767),
-          heading: Color(0xFFA6A6A6),
-          accentIcon: Color(0xFF7F7F7F),
-          plainIcon: Color(0xFF7F7F7F),
-          plainIconSelected: Color(0xFF7F7F7F),
-        ),
-        (true, true) => const SidebarColors(
-          fill: Color(0xFF2A2A2C),
-          selection: Color(0xFF464647),
-          text: Color(0xFFFFFFFF),
-          selectedText: Color(0xFFFFFFFF),
-          heading: Color(0xFF7C7D7E),
-          accentIcon: Color(0xFF00ABFF),
-          plainIcon: Color(0xFFB6B7BD),
-          plainIconSelected: Color(0xFFC7C7CD),
-        ),
-        (true, false) => const SidebarColors(
-          fill: Color(0xFF29292A),
-          selection: Color(0xFF373738),
-          text: Color(0xFF969696),
-          selectedText: Color(0xFF9B9B9C),
-          heading: Color(0xFF5C5C5D),
-          accentIcon: Color(0xFF929293),
-          plainIcon: Color(0xFF929293),
-          plainIconSelected: Color(0xFF929293),
-        ),
-      };
-}
 
 /// A sidebar section: a title (empty: no heading) and its places.
 @immutable
@@ -169,28 +67,27 @@ double dragWidth(double pointerX, double windowWidth) {
   return pointerX.clamp(sidebarMinWidth, max);
 }
 
-/// The width on release: close to 200 it snaps to 200.
+/// The width on release: close to the default it snaps to it.
 double releaseWidth(double width) =>
     width >= sidebarSnapFrom && width <= sidebarSnapTo
     ? sidebarSnapWidth
     : width;
 
-/// The silica-icons symbol for a place.
+/// The Icon Kit symbol (silica-icons `symbols/regular`) for a place.
 String symbolFor(PlaceKind kind) => switch (kind) {
-  PlaceKind.home => 'house-door',
+  PlaceKind.home => 'house',
   PlaceKind.desktop => 'desktop',
   PlaceKind.documents => 'doc',
-  PlaceKind.downloads => 'arrow-down-circle',
-  PlaceKind.pictures => 'photo-fill',
+  PlaceKind.downloads => 'arrow-down',
+  PlaceKind.pictures => 'photo',
   PlaceKind.music => 'music-note',
-  PlaceKind.videos => 'film',
+  PlaceKind.videos => 'video',
   PlaceKind.trash => 'trash',
   PlaceKind.tag => '',
 };
 
-/// The home folder and the Trash have the gray icon, the other places the accent one.
-bool accentIcon(PlaceKind kind) =>
-    kind != PlaceKind.home && kind != PlaceKind.trash && kind != PlaceKind.tag;
+/// The tag dot of a sidebar row: 12 pt, the Amalfi palette.
+const double sidebarTagDot = 12;
 
 class Sidebar extends StatefulWidget {
   const Sidebar({
@@ -198,8 +95,6 @@ class Sidebar extends StatefulWidget {
     required this.sections,
     required this.current,
     required this.onSelect,
-    required this.colors,
-    this.iconsDir,
     this.onDrop,
   });
 
@@ -211,8 +106,6 @@ class Sidebar extends StatefulWidget {
   /// The folder shown: its row is selected.
   final String current;
   final ValueChanged<Place> onSelect;
-  final SidebarColors colors;
-  final String? iconsDir;
 
   @override
   State<Sidebar> createState() => _SidebarState();
@@ -220,7 +113,6 @@ class Sidebar extends StatefulWidget {
 
 class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
   final Map<String, AnimationController> _sections = {};
-  String? _hovered;
 
   AnimationController _controller(String title) => _sections.putIfAbsent(
     title,
@@ -271,265 +163,202 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final colors = widget.colors;
     final children = <Widget>[];
-    var first = true;
     for (final section in widget.sections) {
       if (section.places.isEmpty) continue;
       final title = section.title;
-      if (title.isNotEmpty) {
-        // The heading takes 32 pt with the text centered 24 from the top: 40 from the center of the
-        // last row before, 24 from the center of the first row after. At the top of the list it
-        // starts at the bar and keeps the 24 to the first row.
-        children.add(_heading(title, colors, leading: first));
-      }
-      first = false;
       final openness = title.isEmpty ? 1.0 : _openness(title);
       final textVisible = title.isEmpty || !_collapsing(title);
+      // One child per section so that a collapsed section takes only its header: the 4 pt between
+      // the header and the first row is part of what slides away. Between sections the panel's 4
+      // plus 12 make the kit's 16 (the panel adds them itself only before its own headers).
       children.add(
-        ClipRect(
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            heightFactor: openness,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final place in section.places)
-                  _row(place, colors, showText: textVisible),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-    // The list scrolls under the sidebar's bar, where the window buttons sit (mustache#13).
-    return SidebarScrollUnderBar(
-      background: colors.fill,
-      barHeight: sidebarBarHeight,
-      body: (context, padding) =>
-          ListView(padding: padding, children: children),
-    );
-  }
-
-  Widget _heading(String title, SidebarColors colors, {bool leading = false}) {
-    // The text center from the top of the heading: 8 pt above the next row's top.
-    final height = leading ? sidebarLeadingHeading : sidebarRow;
-    final center = height - (sidebarHeadingToRow - sidebarRow / 2);
-    final hovered = _hovered == title;
-    final collapsed = _collapsing(title);
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = title),
-      onExit: (_) => setState(() {
-        if (_hovered == title) _hovered = null;
-      }),
-      child: SizedBox(
-        key: ValueKey('header $title'),
-        height: height,
-        child: Stack(
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Positioned(
-              left: sidebarHeadingLeft,
-              right: sidebarChevronRight + sidebarChevron.width,
-              top: center - 8,
-              height: 16,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: _text(11.5, colors.heading, weight: FontWeight.w600),
-                ),
+            if (children.isNotEmpty) const SizedBox(height: 12),
+            if (title.isNotEmpty)
+              AmalfiSidebarHeader(
+                key: ValueKey('header $title'),
+                title: title,
+                expanded: !_collapsing(title),
+                onToggle: () => _toggle(title),
               ),
-            ),
-            // The chevron appears on hover, without delay or fade (MU-11).
-            if (hovered)
-              Positioned(
-                right: sidebarChevronRight - 4,
-                top: center - 10,
-                width: sidebarChevron.width + 8,
-                height: 20,
-                child: GestureDetector(
-                  key: ValueKey('collapse $title'),
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => _toggle(title),
-                  child: Center(
-                    child: SizedBox(
-                      width: collapsed
-                          ? sidebarChevron.height
-                          : sidebarChevron.width,
-                      height: collapsed
-                          ? sidebarChevron.width
-                          : sidebarChevron.height,
-                      child: CustomPaint(
-                        painter: _ChevronPainter(
-                          colors.heading,
-                          down: !collapsed,
-                        ),
-                      ),
-                    ),
+            ClipRect(
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                heightFactor: openness,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    top: title.isEmpty ? 0 : AmalfiSidebarMetrics.rowGap,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    spacing: AmalfiSidebarMetrics.rowGap,
+                    children: [
+                      for (final place in section.places)
+                        _row(place, showText: textVisible),
+                    ],
                   ),
                 ),
               ),
+            ),
           ],
         ),
-      ),
+      );
+    }
+    return AmalfiSidebarPanel(
+      width: null,
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      children: children,
     );
   }
 
-  Widget _row(Place place, SidebarColors colors, {required bool showText}) {
+  Widget _row(Place place, {required bool showText}) {
     final onDrop = widget.onDrop;
     if (onDrop == null || place.kind == PlaceKind.tag) {
-      return _rowContent(place, colors, showText: showText, drop: false);
+      return _rowContent(place, showText: showText, drop: false);
     }
     return FolderDropTarget(
       path: place.path,
       onDrop: onDrop,
       builder: (context, active) =>
-          _rowContent(place, colors, showText: showText, drop: active),
+          _rowContent(place, showText: showText, drop: active),
     );
   }
 
   Widget _rowContent(
-    Place place,
-    SidebarColors colors, {
+    Place place, {
     required bool showText,
     required bool drop,
   }) {
     final selected = place.path == widget.current;
-    return GestureDetector(
-      key: ValueKey('place ${place.path}'),
-      onTap: () => widget.onSelect(place),
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        height: sidebarRow,
-        child: Stack(
-          children: [
-            if (selected || drop)
-              Positioned.fill(
-                left: sidebarSelectionInset,
-                right: sidebarSelectionInset,
-                child: DecoratedBox(
-                  key: ValueKey(drop ? 'sidebar drop' : 'sidebar selection'),
-                  decoration: BoxDecoration(
-                    color: drop ? dragAccent : colors.selection,
-                    borderRadius: BorderRadius.circular(sidebarSelectionRadius),
-                  ),
-                ),
-              ),
-            Positioned(
-              left: sidebarIconLeft,
-              top: (sidebarRow - sidebarIconSize) / 2,
-              width: sidebarIconSize,
-              height: sidebarIconSize,
-              child: place.kind == PlaceKind.tag
-                  // Tags: a 13 pt filled circle, without an outline.
-                  ? Center(
-                      child: TagDot(
-                        color: switch (tagColor(place.label)) {
-                          final c? => sidebarTagColor(
-                            c,
-                            dark: colors.fill.computeLuminance() < 0.3,
-                          ),
-                          null => null,
-                        },
-                        side: 13,
-                        ring: false,
-                      ),
-                    )
-                  : _symbol(
-                      place.kind,
-                      accentIcon(place.kind)
-                          ? colors.accentIcon
-                          : selected
-                          ? colors.plainIconSelected
-                          : colors.plainIcon,
+    // The Trash is named in the user's language; the other places by their folder or tag name.
+    final label = !showText
+        ? ''
+        : place.kind == PlaceKind.trash
+        ? l10n.trash
+        : place.label;
+    final key = ValueKey('place ${place.path}');
+    if (place.kind != PlaceKind.tag && !drop) {
+      return AmalfiSidebarRow(
+        key: key,
+        label: label,
+        icon: AmalfiSymbols.load(symbolFor(place.kind)),
+        selected: selected,
+        onTap: () => widget.onSelect(place),
+      );
+    }
+    final color = place.kind == PlaceKind.tag ? tagColor(place.label) : null;
+    return _SidebarRow(
+      key: key,
+      label: label,
+      selected: selected,
+      drop: drop,
+      leading: place.kind == PlaceKind.tag
+          ? TagDot(
+              color: color == null
+                  ? null
+                  : sidebarTagColor(
+                      color,
+                      dark: AmalfiTheme.of(context).isDark,
                     ),
+              side: sidebarTagDot,
+              ring: false,
+            )
+          : AmalfiSymbol(
+              symbolFor(place.kind),
+              size: 16,
+              color: AmalfiTheme.of(context).colors.textOnAccent,
             ),
-            if (showText)
-              Positioned(
-                left: sidebarTextLeft,
-                right: sidebarSelectionInset + 4,
-                top: 0,
-                bottom: 0,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    // The Trash is named in the user's language; the other places by their
-                    // folder or tag name.
-                    place.kind == PlaceKind.trash ? l10n.trash : place.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: _text(
-                      13.75,
-                      drop
-                          ? const Color(0xFFFFFFFF)
-                          : selected
-                          ? colors.selectedText
-                          : colors.text,
-                      weight: selected ? FontWeight.w600 : null,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// The silica-icons symbol (`symbols/regular`); nothing if the icons are not there.
-  Widget _symbol(PlaceKind kind, Color color) {
-    final dir = widget.iconsDir;
-    if (dir == null) return const SizedBox.shrink();
-    final file = File('$dir/symbols/regular/${symbolFor(kind)}.svg');
-    if (!file.existsSync()) return const SizedBox.shrink();
-    return SvgPicture.file(
-      file,
-      colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+      onTap: () => widget.onSelect(place),
     );
   }
 }
 
-TextStyle _text(double size, Color color, {FontWeight? weight}) => TextStyle(
-  fontFamily: uiFontFamily,
-  package: 'silica_ui',
-  fontSize: size,
-  fontWeight: weight,
-  color: color,
-);
+/// A row with its own leading widget (a tag dot, the symbol on the drop highlight): the same
+/// measures as `AmalfiSidebarRow` (28 tall, 12 padding, 16 icon slot, 8 gap, radius 8).
+class _SidebarRow extends StatefulWidget {
+  const _SidebarRow({
+    super.key,
+    required this.label,
+    required this.leading,
+    required this.selected,
+    required this.drop,
+    required this.onTap,
+  });
 
-/// ∨ (section open) or › (collapsed): changes right away, without rotation (MU-11).
-class _ChevronPainter extends CustomPainter {
-  const _ChevronPainter(this.color, {required this.down});
-  final Color color;
-  final bool down;
+  final String label;
+  final Widget leading;
+  final bool selected;
+  final bool drop;
+  final VoidCallback onTap;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final path = down
-        ? (Path()
-            ..moveTo(0.75, 0.75)
-            ..lineTo(size.width / 2, size.height - 0.75)
-            ..lineTo(size.width - 0.75, 0.75))
-        : (Path()
-            ..moveTo(0.75, 0.75)
-            ..lineTo(size.width - 0.75, size.height / 2)
-            ..lineTo(0.75, size.height - 0.75));
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
+  State<_SidebarRow> createState() => _SidebarRowState();
+}
+
+class _SidebarRowState extends State<_SidebarRow> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AmalfiTheme.of(context).colors;
+    final fill = widget.drop
+        ? colors.accentAmalfi
+        : widget.selected
+        ? colors.accentAmalfiSoft
+        : _hovered
+        ? colors.lineSeparator
+        : null;
+    final style = widget.selected && !widget.drop
+        ? AmalfiType.bodyEmphasis(color: colors.textPrimary)
+        : AmalfiType.body(
+            color: widget.drop ? colors.textOnAccent : colors.textPrimary,
+          );
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        child: DecoratedBox(
+          key: widget.drop ? const ValueKey('sidebar drop') : null,
+          decoration: ShapeDecoration(
+            color: fill,
+            shape: AmalfiSmoothBorder(radius: AmalfiSidebarMetrics.radius),
+          ),
+          child: SizedBox(
+            height: AmalfiSidebarMetrics.rowHeight,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AmalfiSidebarMetrics.rowPadding,
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: AmalfiSidebarMetrics.icon,
+                    child: Center(child: widget.leading),
+                  ),
+                  const SizedBox(width: AmalfiSidebarMetrics.iconGap),
+                  Expanded(
+                    child: Text(
+                      widget.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: style,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
-
-  @override
-  bool shouldRepaint(_ChevronPainter old) =>
-      old.color != color || old.down != down;
 }
 
 /// The right edge of the sidebar: dragging it changes the width (double arrow, also at the

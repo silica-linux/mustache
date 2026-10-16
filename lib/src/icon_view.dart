@@ -1,11 +1,10 @@
-// The icon view (MU-21, docs/spec/icon-view.md): a grid that fills the width, labels below the icons on at
-// most two lines, selection with the icon background and the name capsule.
+// The icon view (MU-21, docs/spec/icon-view.md for the behaviour; kit `Apps/Mustache/Tile`, `Tile
+// Selected`, components.md for the look): tiles 104 wide (the icon size plus 40) with the icon above its
+// name, 16 pt apart, left aligned from the content padding of 20; a selected tile has a sunken
+// background 12 pt wider than the icon on each side and an accent capsule behind the name.
 //
-// Grid (spec/icon-view.md, R4.1, R4.6): the x pitch is the available width divided by the columns that fit
-// at the minimum pitch; the y pitch and the top of the first icon follow the size (59 / 78 / 116 /
-// 154 / 192 for 16 / 32 / 64 / 96 / 128, first icon 21–28 pt from the top). Selection (spec/icon-view.md): a
-// 72 × 72 background with radius ~6 around the 64 icon (4 pt per side), name capsule 17 tall per
-// line, radius ~5, 4 pt margin, 2 pt below the background.
+// Grid: the x pitch is the tile plus the gap, the first tile at 20 from the left and the top; the
+// y pitch is the tile height (the icon size plus 40) plus the gap. Labels on at most two lines.
 
 import 'dart:async';
 import 'dart:io';
@@ -26,57 +25,51 @@ import 'tags.dart';
 const double defaultIconSide = 64;
 const double defaultLabelSize = 12;
 
-/// Margin between the icon and its selected background, and the background radius.
-const double iconSelectionPad = 4;
-const double iconSelectionRadius = 6;
+/// The content padding, the gap between tiles and the tile around an icon of `side`: 20 each side
+/// of the icon plus the label; at least 104 wide.
+const double iconGridPadding = 20;
+const double iconGridGap = 16;
+double iconTileWidth(double side) => math.max(104, side + 40);
+double iconTileHeight(double side) => side + 40;
 
-/// The name capsule: 17 tall per line, radius 5, 4 pt margin, 2 pt below the background.
-const double labelLine = 17;
-const double labelRadius = 5;
-const double labelPad = 4;
-const double labelGap = 2;
+/// The selected icon background: 12 wider than the icon on each side, 4 taller (kit `Tile
+/// Selected`: 88 × 68 around a 64 icon, radius 8).
+const double iconSelectionPadX = 12;
+const double iconSelectionPadBottom = 4;
+const double iconSelectionRadius = 8;
+
+/// The name capsule (kit: 88 × 20, radius 10, 8 below the icon): 4 pt above and below the lines of
+/// 16 pt, 8 pt either side of the text, at least 88 wide.
+const double labelLine = 16;
+const double labelCapsuleExtra = 4;
+const double labelRadius = 10;
+const double labelPad = 8;
+const double labelMinWidth = 88;
+const double labelGap = 8;
 
 /// Image thumbnails take ~89% of the icon size, ~3 pt corners (spec/icon-view.md).
 const double thumbnailRatio = 0.89;
 
 const double thumbnailRadius = 3;
 
-/// Selection colors (spec/icon-view.md), light and dark.
+/// Selection colors: Amalfi tokens.
 @immutable
 class IconViewColors {
-  const IconViewColors({
-    required this.iconSelection,
-    required this.label,
-    required this.labelSelected,
-    required this.capsule,
-    required this.capsuleInactive,
-    required this.labelSelectedInactive,
-  });
+  const IconViewColors(this.tokens);
 
-  final Color iconSelection;
-  final Color label;
-  final Color labelSelected;
-  final Color capsule;
-  final Color capsuleInactive;
-  final Color labelSelectedInactive;
+  final AmalfiColors tokens;
 
-  static IconViewColors of({required bool dark}) => dark
-      ? const IconViewColors(
-          iconSelection: Color(0xFF3C3C3D),
-          label: Color(0xFFFFFFFF),
-          labelSelected: Color(0xFFFFFFFF),
-          capsule: Color(0xFF0059D1),
-          capsuleInactive: Color(0xFF464646),
-          labelSelectedInactive: Color(0xFFFFFFFF),
-        )
-      : const IconViewColors(
-          iconSelection: Color(0xFFE6E6E6),
-          label: Color(0xFF000000),
-          labelSelected: Color(0xFFFFFFFF),
-          capsule: Color(0xFF0064E1),
-          capsuleInactive: Color(0xFFDCDCDC),
-          labelSelectedInactive: Color(0xFF000000),
-        );
+  Color get iconSelection => tokens.surfaceSunken;
+  Color get label => tokens.textPrimary;
+  Color get labelSelected => tokens.textOnAccent;
+  Color get capsule => tokens.accentAmalfi;
+
+  /// A window that is not active, or tiles being dragged (Assumption: not measured).
+  Color get capsuleInactive => tokens.lineBorder;
+  Color get labelSelectedInactive => tokens.textPrimary;
+
+  static IconViewColors of(BuildContext context) =>
+      IconViewColors(AmalfiTheme.of(context).colors);
 }
 
 /// The grid geometry for a content width.
@@ -97,9 +90,13 @@ class IconGrid {
   final double pitchX;
   final double pitchY;
 
-  /// Left edge of the first cell and top of the first icon.
+  /// The first cell's x pitch origin (half a gap left of the first tile) and the top of the first
+  /// icon.
   final double left;
   final double top;
+
+  /// The width of a tile.
+  double get tile => pitchX - iconGridGap;
 
   /// The x center of cell `column`.
   double centerX(int column) => left + pitchX * (column + 0.5);
@@ -109,42 +106,39 @@ class IconGrid {
 
   /// The cell under a point (null outside the cells taken by `count` items).
   int? indexAt(Offset p, int count) {
-    if (p.dx < left || p.dy < top - iconSelectionPad) return null;
+    if (p.dx < left || p.dy < top) return null;
     final column = ((p.dx - left) / pitchX).floor();
-    final row = ((p.dy - top + iconSelectionPad) / pitchY).floor();
+    final row = ((p.dy - top) / pitchY).floor();
     if (column < 0 || column >= columns) return null;
     final index = row * columns + column;
     return index < count ? index : null;
   }
 }
 
-/// The minimum x pitch: the label width or the icon with its margin.
+/// The x pitch: the tile plus the gap.
 double minIconPitch({
   double side = defaultIconSide,
   double text = defaultLabelSize,
-}) => math.max(side + 36, 50 + text * 5);
+}) => iconTileWidth(side) + iconGridGap;
 
-/// The grid for `width` pt of content (spec/icon-view.md, R4.1, R4.6).
+/// The grid for `width` pt of content: tiles left aligned from the padding, the gap between them.
 IconGrid iconGrid(
   double width, {
   double side = defaultIconSide,
   double text = defaultLabelSize,
 }) {
-  final minPitch = minIconPitch(side: side, text: text);
-  // ~11 pt margin per side (6 columns of 126.8 in 783 pt).
-  const margin = 11.0;
-  final available = math.max(0.0, width - 2 * margin);
-  final columns = math.max(1, (available / minPitch).floor());
-  // y pitch: 116 at 64/12, 38 pt for every 32 of size; smaller or larger text shortens or lengthens
-  // it (110 at 10, 120 at 14, 122 at 16).
-  final textDelta = text <= 12 ? (text - 12) * 3 : math.min(6, (text - 12) * 2);
+  final pitch = minIconPitch(side: side, text: text);
+  final columns = math.max(
+    1,
+    ((width - 2 * iconGridPadding + iconGridGap) / pitch).floor(),
+  );
   return IconGrid(
     side: side,
     columns: columns,
-    pitchX: available / columns,
-    pitchY: side * 1.1875 + 40 + textDelta,
-    left: margin,
-    top: 20 + side / 16,
+    pitchX: pitch,
+    pitchY: iconTileHeight(side) + iconGridGap,
+    left: iconGridPadding - iconGridGap / 2,
+    top: iconGridPadding,
   );
 }
 
@@ -198,9 +192,8 @@ List<String> labelLines(String name, double maxWidth, TextStyle style) {
   return [first, rest];
 }
 
-/// The rubber band (spec/selection-and-keyboard.md): black ~10% with a 1 pt outline at ~33%, square corners.
-const Color rubberFill = Color(0x1A000000);
-const Color rubberBorder = Color(0x55000000);
+/// The rubber band: the soft accent with a 1 pt accent outline, square corners (Assumption: not
+/// measured, the kit has no rubber band).
 
 /// The movement that turns a press on the background into a rubber band.
 const double bandThreshold = 1;
@@ -223,7 +216,6 @@ class IconView extends StatefulWidget {
     this.text = defaultLabelSize,
     this.env,
     this.controller,
-    this.topInset = 0,
     this.renaming,
     this.renameBuilder,
     this.onRubberBand,
@@ -271,10 +263,6 @@ class IconView extends StatefulWidget {
   /// The environment where silica-icons is found (tests).
   final Map<String, String>? env;
   final ScrollController? controller;
-
-  /// The band of the glass toolbar above the content (R1.9): the content starts below it and
-  /// scrolls under it.
-  final double topInset;
 
   /// The item being renamed: instead of the label, the field built by `renameBuilder` (at most as
   /// wide as the cell).
@@ -338,19 +326,16 @@ class _IconViewState extends State<IconView> {
     );
   }
 
-  /// The rectangle of a cell (icon background and label line), in the content.
+  /// The rectangle of a cell (icon background and label), in the content.
   Rect _cellRect(IconGrid grid, int index) {
     final at = _place(grid, index);
     final cx = at.dx;
-    final top = at.dy - iconSelectionPad;
-    final bg = side + 2 * iconSelectionPad;
-    return Rect.fromLTRB(
-      cx - grid.pitchX / 2 + 4,
-      top,
-      cx + grid.pitchX / 2 - 4,
-      top + bg + labelGap + labelLine,
-    ).intersect(
-      Rect.fromLTWH(cx - grid.pitchX / 2, top, grid.pitchX, grid.pitchY),
+    final tile = grid.tile;
+    return Rect.fromLTWH(
+      cx - tile / 2 + 8,
+      at.dy,
+      tile - 16,
+      side + labelGap + labelLine + labelCapsuleExtra,
     );
   }
 
@@ -427,9 +412,7 @@ class _IconViewState extends State<IconView> {
 
   @override
   Widget build(BuildContext context) {
-    final dark =
-        MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark;
-    final colors = IconViewColors.of(dark: dark);
+    final colors = IconViewColors.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         final free = widget.positions != null;
@@ -458,8 +441,8 @@ class _IconViewState extends State<IconView> {
           height = rows == 0 ? 0.0 : grid.iconTop(rows - 1) + grid.pitchY;
         }
         _grid = grid;
-        // Edge autoscroll counts from the bottom of the toolbar band.
-        _viewHeight = constraints.maxHeight - widget.topInset;
+        // Edge autoscroll counts from the top of the view.
+        _viewHeight = constraints.maxHeight;
         final band = _bandStart == null || _bandEnd == null
             ? null
             : Rect.fromPoints(_bandStart!, _bandEnd!);
@@ -469,7 +452,6 @@ class _IconViewState extends State<IconView> {
           onSecondaryTapDown: (d) => onContext?.call(null, d.globalPosition),
           child: SingleChildScrollView(
             controller: _scroll,
-            padding: EdgeInsets.only(top: widget.topInset),
             child: _horizontal(
               free: free,
               child: Listener(
@@ -482,10 +464,7 @@ class _IconViewState extends State<IconView> {
                 onPointerCancel: (e) => _bandRelease(e.pointer, done: true),
                 child: SizedBox(
                   width: width,
-                  height: math.max(
-                    height,
-                    constraints.maxHeight - widget.topInset,
-                  ),
+                  height: math.max(height, constraints.maxHeight),
                   child: Stack(
                     children: [
                       for (var i = 0; i < entries.length; i++)
@@ -497,8 +476,10 @@ class _IconViewState extends State<IconView> {
                             child: DecoratedBox(
                               key: const ValueKey('rubber band'),
                               decoration: BoxDecoration(
-                                color: rubberFill,
-                                border: Border.all(color: rubberBorder),
+                                color: colors.tokens.accentAmalfiSoft,
+                                border: Border.all(
+                                  color: colors.tokens.accentAmalfi,
+                                ),
                               ),
                             ),
                           ),
@@ -535,10 +516,8 @@ class _IconViewState extends State<IconView> {
     final at = _place(grid, index);
     final cx = at.dx;
     final iconTop = at.dy;
-    final style = TextStyle(
-      fontFamily: uiFontFamily,
-      package: 'silica_ui',
-      fontSize: text,
+    final tile = grid.tile;
+    final style = AmalfiType.callout(
       color: isSelected
           ? (active ? c.labelSelected : c.labelSelectedInactive)
           : c.label,
@@ -546,25 +525,26 @@ class _IconViewState extends State<IconView> {
     final tags = widget.tagsOf?.call(entry) ?? const <String>[];
     final builder = renameBuilder;
     final field = entry.path == renaming && builder != null
-        ? builder(entry, grid.pitchX - 4)
+        ? builder(entry, tile - 4)
         : null;
     final lines = field != null
         ? const ['']
         : labelLines(
             entry.name,
-            math.min(labelMaxWidth(widget.text), grid.pitchX - 6),
+            math.min(labelMaxWidth(widget.text), grid.pitchX - 2 * labelPad),
             style,
           );
-    final labelTop = iconTop + side + iconSelectionPad + labelGap;
-    final bg = side + 2 * iconSelectionPad;
+    final capsuleHeight = labelLine * lines.length + labelCapsuleExtra;
+    final labelTop = side + labelGap;
+    final bgWidth = side + 2 * iconSelectionPadX;
     return AnimatedPositioned(
       key: ValueKey('cell ${entry.path}'),
       duration: widget.moveDuration,
       curve: Curves.decelerate,
-      left: cx - grid.pitchX / 2,
-      top: iconTop - iconSelectionPad,
-      width: grid.pitchX,
-      height: bg + labelGap + labelLine * lines.length,
+      left: cx - tile / 2,
+      top: iconTop,
+      width: tile,
+      height: labelTop + capsuleHeight,
       // Selection on press, right away (not after the double-click wait).
       child: (wrapItem ?? (_, Widget child) => child)(
         entry,
@@ -575,94 +555,111 @@ class _IconViewState extends State<IconView> {
           },
           child: GestureDetector(
             key: ValueKey(entry.path),
-            behavior: HitTestBehavior.translucent,
-            // The empty space around does not count: a click on the cell is not a click on the
-            // background.
+            // The whole tile is the item (the kit's tile frame): a click anywhere in it is not a click
+            // on the background.
+            behavior: HitTestBehavior.opaque,
             onTap: () {},
             onDoubleTap: () => onOpen(entry),
             onSecondaryTapDown: (d) => onContext?.call(entry, d.globalPosition),
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                Positioned(
-                  left: (grid.pitchX - bg) / 2,
-                  top: 0,
-                  width: bg,
-                  height: bg,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: isSelected ? c.iconSelection : null,
-                      borderRadius: BorderRadius.circular(iconSelectionRadius),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(iconSelectionPad),
-                      child: EntryIcon(entry: entry, side: side, env: env),
+                if (isSelected)
+                  Positioned(
+                    left: (tile - bgWidth) / 2,
+                    top: 0,
+                    width: bgWidth,
+                    height: side + iconSelectionPadBottom,
+                    child: DecoratedBox(
+                      key: ValueKey('icon background ${entry.path}'),
+                      decoration: ShapeDecoration(
+                        color: c.iconSelection,
+                        shape: AmalfiSmoothBorder(radius: iconSelectionRadius),
+                      ),
                     ),
                   ),
+                Positioned(
+                  left: (tile - side) / 2,
+                  top: 0,
+                  width: side,
+                  height: side,
+                  child: EntryIcon(entry: entry, side: side, env: env),
                 ),
                 if (field != null)
                   Positioned(
                     left: 0,
                     right: 0,
-                    top: labelTop - (iconTop - iconSelectionPad) - 2,
+                    top: labelTop - 2,
                     child: Center(child: field),
                   )
                 else
-                  // The capsule may extend a few pt beyond the cell: the line is already broken by
-                  // `labelLines`, it does not wrap again here.
-                  for (var i = 0; i < lines.length; i++)
-                    Positioned(
-                      left: -labelPad,
-                      right: -labelPad,
-                      top:
-                          labelTop -
-                          (iconTop - iconSelectionPad) +
-                          i * labelLine,
-                      height: labelLine,
-                      child: Center(
-                        child: Listener(
-                          // A press on the name (not the icon) may become a slow click (R8).
-                          onPointerDown: (_) => widget.onNamePress?.call(entry),
+                  // The capsule may extend a few pt beyond the cell: the lines are already broken
+                  // by `labelLines`, they do not wrap again here.
+                  Positioned(
+                    left: -labelPad,
+                    right: -labelPad,
+                    top: labelTop,
+                    height: capsuleHeight,
+                    child: Center(
+                      child: Listener(
+                        // A press on the name (not the icon) may become a slow click (R8).
+                        onPointerDown: (_) => widget.onNamePress?.call(entry),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            minWidth: labelMinWidth,
+                          ),
                           child: DecoratedBox(
-                            key: ValueKey('name ${entry.path} $i'),
-                            decoration: BoxDecoration(
+                            key: ValueKey('name ${entry.path} 0'),
+                            decoration: ShapeDecoration(
                               color: isSelected
                                   ? (active ? c.capsule : c.capsuleInactive)
                                   : null,
-                              borderRadius: BorderRadius.circular(labelRadius),
+                              shape: AmalfiSmoothBorder(radius: labelRadius),
                             ),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: labelPad,
+                                vertical: labelCapsuleExtra / 2,
                               ),
-                              child: i == 0 && tags.isNotEmpty
-                                  ? Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        TagDots(
-                                          tags: tags,
-                                          pitch: iconTagPitch,
-                                        ),
-                                        const SizedBox(width: 5),
-                                        Text(
-                                          lines[i],
-                                          maxLines: 1,
-                                          softWrap: false,
-                                          style: style,
-                                        ),
-                                      ],
-                                    )
-                                  : Text(
-                                      lines[i],
-                                      maxLines: 1,
-                                      softWrap: false,
-                                      style: style,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  for (var i = 0; i < lines.length; i++)
+                                    SizedBox(
+                                      height: labelLine,
+                                      child: i == 0 && tags.isNotEmpty
+                                          ? Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                TagDots(
+                                                  tags: tags,
+                                                  pitch: iconTagPitch,
+                                                ),
+                                                const SizedBox(width: 5),
+                                                Text(
+                                                  lines[i],
+                                                  maxLines: 1,
+                                                  softWrap: false,
+                                                  style: style,
+                                                ),
+                                              ],
+                                            )
+                                          : Text(
+                                              lines[i],
+                                              maxLines: 1,
+                                              softWrap: false,
+                                              textAlign: TextAlign.center,
+                                              style: style,
+                                            ),
                                     ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
+                  ),
               ],
             ),
           ),

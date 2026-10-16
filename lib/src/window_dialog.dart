@@ -5,64 +5,10 @@
 part of 'window.dart';
 
 /// The name row of the Save panel, below the toolbar.
-const double saveBarHeight = 44;
+const double saveBarHeight = 52;
 
-/// Dialog colors; in dark from MU-95 (open and compact save, button `#373737` with
-/// text `#e0e0e0`, disabled primary `#2f2f30` / `#626263`, field `#191919` with border `#313131`,
-/// line `#3c3c3d`).
-@immutable
-class DialogColors {
-  const DialogColors({
-    required this.label,
-    required this.field,
-    required this.fieldBorder,
-    required this.button,
-    required this.buttonText,
-    required this.primary,
-    required this.primaryDisabled,
-    required this.primaryDisabledText,
-    required this.line,
-  });
-
-  final Color label;
-  final Color? field;
-  final Color fieldBorder;
-  final Color button;
-  final Color buttonText;
-  final Color primary;
-  final Color primaryDisabled;
-  final Color primaryDisabledText;
-  final Color line;
-
-  static const DialogColors light = DialogColors(
-    label: textColor,
-    field: null,
-    fieldBorder: Color(0xFFC8C8C8),
-    button: Color(0xFFE8E8E8),
-    buttonText: Color(0xFF242424),
-    primary: Color(0xFF0064E1),
-    primaryDisabled: Color(0x660064E1),
-    primaryDisabledText: Color(0xFFFFFFFF),
-    line: Color(0xFFE6E6E6),
-  );
-
-  static const DialogColors dark = DialogColors(
-    label: Color(0xFF9E9E9E),
-    field: Color(0xFF191919),
-    fieldBorder: Color(0xFF313131),
-    button: Color(0xFF373737),
-    buttonText: Color(0xFFE0E0E0),
-    primary: Color(0xFF007AFF),
-    primaryDisabled: Color(0xFF2F2F30),
-    primaryDisabledText: Color(0xFF626263),
-    line: Color(0xFF3C3C3D),
-  );
-
-  static DialogColors of(BuildContext context) =>
-      MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark
-      ? dark
-      : light;
-}
+/// The Cancel and accept row at the bottom.
+const double dialogButtonsHeight = 56;
 
 extension _Dialog on _MustacheWindowState {
   DialogOptions get _dialogOptions => widget.dialog!;
@@ -93,7 +39,7 @@ extension _Dialog on _MustacheWindowState {
     if (_dialogOptions.save && entryAt(paths.single) != null) {
       // A file with the same name: ask before replacing it.
       _update(
-        () => _alert = SilicaAlert(
+        () => _alert = MustacheAlert(
           opaque: true,
           icon: _appIcon,
           title: l10n.replaceQuestion(displayName(paths.single)),
@@ -121,102 +67,80 @@ extension _Dialog on _MustacheWindowState {
     _finish(paths);
   }
 
-  /// The name row for Save.
-  Widget _saveBar() => _saveBarWith(DialogColors.of(context));
-
-  Widget _saveBarWith(DialogColors colors) => SizedBox(
-    key: const ValueKey('name row'),
-    height: saveBarHeight,
-    child: Row(
-      children: [
-        const SizedBox(width: 16),
-        SizedBox(
-          width: 110,
-          child: Text(
-            l10n.saveAs,
-            textAlign: TextAlign.right,
-            style: text(13, color: colors.label),
+  /// The name row for Save: the label and the name field, 20 from the edges.
+  Widget _saveBar() {
+    final colors = AmalfiTheme.of(context).colors;
+    return SizedBox(
+      key: const ValueKey('name row'),
+      height: saveBarHeight,
+      child: Row(
+        children: [
+          const SizedBox(width: 20),
+          SizedBox(
+            width: 96,
+            child: Text(
+              l10n.saveAs,
+              textAlign: TextAlign.right,
+              style: AmalfiType.body(color: colors.textSecondary),
+            ),
           ),
-        ),
-        const SizedBox(width: 8),
-        Container(
-          width: 232,
-          height: 26,
-          padding: const EdgeInsets.symmetric(horizontal: 6),
-          alignment: Alignment.centerLeft,
-          decoration: BoxDecoration(
-            color: colors.field,
-            border: Border.all(color: colors.fieldBorder),
-            borderRadius: BorderRadius.circular(5),
-          ),
-          child: DefaultTextEditingShortcuts(
-            child: EditableText(
-              key: const ValueKey('dialog name field'),
+          const SizedBox(width: 8),
+          KeyedSubtree(
+            key: const ValueKey('dialog name field'),
+            child: AmalfiTextField(
               controller: _saveName,
               focusNode: _saveFocus,
-              style: text(13, color: WindowColors.of(context).text),
-              cursorColor: WindowColors.of(context).text,
-              backgroundCursorColor: WindowColors.of(context).text,
-              selectionColor: const Color(0xFFB3D7FF),
-              selectAllOnFocus: false,
-              maxLines: 1,
+              width: 232,
+              semanticLabel: l10n.saveAs,
               onChanged: (_) => _update(() {}),
               onSubmitted: (_) => _acceptDialog(),
             ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 
-  /// At the bottom: Cancel and the accept button (81 × 26).
+  /// At the bottom: Cancel and the accept button, 20 from the edge and 8 apart, over a separator.
   Widget _dialogButtons() {
     final enabled = _dialogChoice.isNotEmpty;
-    final colors = DialogColors.of(context);
-    Widget button(String label, {required bool primary, VoidCallback? onTap}) =>
-        GestureDetector(
-          key: ValueKey('dialog $label'),
-          onTap: onTap,
-          child: Container(
-            width: 81,
-            height: 26,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: primary
-                  ? (onTap == null ? colors.primaryDisabled : colors.primary)
-                  : colors.button,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              label,
-              style: text(
-                13,
-                color: !primary
-                    ? colors.buttonText
-                    : onTap == null
-                    ? colors.primaryDisabledText
-                    : const Color(0xFFFFFFFF),
-              ),
-            ),
-          ),
-        );
-    return Container(
+    final colors = AmalfiTheme.of(context).colors;
+    return SizedBox(
       key: const ValueKey('dialog buttons'),
-      height: 52,
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: colors.line)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+      height: dialogButtonsHeight,
+      child: Stack(
         children: [
-          button(l10n.cancel, primary: false, onTap: () => _finish(const [])),
-          const SizedBox(width: 12),
-          button(
-            _dialogOptions.acceptLabel,
-            primary: true,
-            onTap: enabled ? _acceptDialog : null,
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            height: 1,
+            child: ColoredBox(color: colors.lineSeparator),
           ),
-          const SizedBox(width: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              spacing: 8,
+              children: [
+                KeyedSubtree(
+                  key: ValueKey('dialog ${l10n.cancel}'),
+                  child: AmalfiPushButton(
+                    label: l10n.cancel,
+                    onPressed: () => _finish(const []),
+                  ),
+                ),
+                KeyedSubtree(
+                  key: ValueKey('dialog ${_dialogOptions.acceptLabel}'),
+                  child: AmalfiPushButton(
+                    label: _dialogOptions.acceptLabel,
+                    variant: AmalfiPushButtonVariant.primary,
+                    onPressed: enabled ? _acceptDialog : null,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

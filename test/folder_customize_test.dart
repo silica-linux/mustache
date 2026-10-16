@@ -70,30 +70,37 @@ void main() {
             size: const Size(1000, 800),
             platformBrightness: brightness,
           ),
-          child: Stack(
-            children: [
-              Positioned(
-                left: 100,
-                top: 100,
-                width: 64,
-                height: 64,
-                child: FolderIconAnchor(
-                  path: _path,
-                  child: const SizedBox.expand(),
-                ),
-              ),
-              Positioned.fill(
-                child: FolderCustomizeOverlay(
-                  path: _path,
-                  env: env,
-                  styles: styles,
-                  writeTags: (path, tags) {
-                    writes.add(tags);
-                    disk.tags[path] = tags;
-                    return true;
-                  },
-                  onEditTags: () => editTags++,
-                  onClose: () => closed++,
+          // The window has an Overlay (the "+" menu is shown in it).
+          child: Overlay(
+            initialEntries: [
+              OverlayEntry(
+                builder: (_) => Stack(
+                  children: [
+                    Positioned(
+                      left: 100,
+                      top: 100,
+                      width: 64,
+                      height: 64,
+                      child: FolderIconAnchor(
+                        path: _path,
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
+                    Positioned.fill(
+                      child: FolderCustomizeOverlay(
+                        path: _path,
+                        env: env,
+                        styles: styles,
+                        writeTags: (path, tags) {
+                          writes.add(tags);
+                          disk.tags[path] = tags;
+                          return true;
+                        },
+                        onEditTags: () => editTags++,
+                        onClose: () => closed++,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -163,12 +170,13 @@ void main() {
   });
 
   testWidgets('the disc colours: dark and light', (tester) async {
-    expect(folderDiscColor(TagColor.red, dark: true), const Color(0xFFFF4747));
-    expect(folderDiscColor(TagColor.red, dark: false), const Color(0xFFFF383C));
-    expect(folderDiscColor(TagColor.blue, dark: true), const Color(0xFF0C99FF));
+    // The Amalfi palette: Terracotta, Accent/Amalfi (blue) and the neutral for gray.
+    expect(folderDiscColor(TagColor.red, dark: true), const Color(0xFFFF6A43));
+    expect(folderDiscColor(TagColor.red, dark: false), const Color(0xFFF0562E));
+    expect(folderDiscColor(TagColor.blue, dark: true), const Color(0xFF3D95FF));
     expect(
       folderDiscColor(TagColor.gray, dark: false),
-      const Color(0xFF8E8E93),
+      AmalfiColors.light.textTertiary,
     );
     await pumpPopover(tester);
     Color? colour(String n) =>
@@ -184,9 +192,9 @@ void main() {
                     .decoration!
                 as BoxDecoration)
             .color;
-    expect(colour('purple'), const Color(0xFFE647FC));
+    expect(colour('purple'), AmalfiColors.dark.paletteLavanda);
     await pumpPopover(tester, brightness: Brightness.light);
-    expect(colour('purple'), const Color(0xFFB72BC8));
+    expect(colour('purple'), AmalfiColors.light.paletteLavanda);
   });
 
   testWidgets('a colour assigns its tag, tints the folder, joins the group', (
@@ -346,7 +354,7 @@ void main() {
     );
     final border = (ring.decoration! as BoxDecoration).border! as Border;
     expect(border.top.width, 2);
-    expect(border.top.color, folderAccent);
+    expect(border.top.color, AmalfiColors.dark.accentAmalfi);
 
     await tester.tap(find.byKey(const ValueKey('folder clear')));
     await tester.pump();
@@ -471,7 +479,7 @@ void main() {
     expect(find.text('Edit Tags…'), findsOneWidget);
     await tester.tap(find.text('Progetti'));
     await slide(tester, 1000);
-    expect(find.byType(MenuHost), findsNothing, reason: 'the menu closed');
+    expect(find.byType(AmalfiMenu), findsNothing, reason: 'the menu closed');
     expect(disk.tags[_path], ['Red']);
     await tester.tap(find.byKey(const ValueKey('folder add tag')));
     await tester.pump(const Duration(milliseconds: 300));
@@ -641,18 +649,29 @@ void main() {
       }
       expect(drawnFolder(tester)?.tint, isNull);
       await rightClickFolder(tester);
+      // The Tags submenu: one item per color.
+      await tester.tap(find.text('Tags…'));
+      await tester.pump(const Duration(milliseconds: 400));
       for (final c in [
-        'red',
-        'orange',
-        'yellow',
-        'green',
-        'blue',
-        'purple',
-        'gray',
+        'Red',
+        'Orange',
+        'Yellow',
+        'Green',
+        'Blue',
+        'Purple',
+        'Gray',
       ]) {
-        expect(find.byKey(ValueKey('tag $c')), findsOneWidget);
+        expect(
+          find.descendant(of: find.byType(AmalfiMenu), matching: find.text(c)),
+          findsOneWidget,
+        );
       }
-      await tester.tap(find.byKey(const ValueKey('tag orange')));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AmalfiMenu),
+          matching: find.text('Orange'),
+        ),
+      );
       for (var i = 0; i < 10; i++) {
         await tester.pump(const Duration(milliseconds: 50));
       }
@@ -675,7 +694,7 @@ void main() {
       for (var i = 0; i < 10; i++) {
         await tester.pump(const Duration(milliseconds: 60));
       }
-      expect(find.byType(MenuHost), findsNothing, reason: 'the menu closed');
+      expect(find.byType(AmalfiMenu), findsNothing, reason: 'the menu closed');
       // A popover, not a Get Info window.
       expect(find.byKey(ValueKey('info ${folder.path}')), findsNothing);
       expect(find.byKey(const ValueKey('folder popover')), findsOneWidget);
@@ -733,7 +752,9 @@ void main() {
       expect(find.byKey(const ValueKey('folder popover')), findsOneWidget);
     });
 
-    testWidgets('a file has Tags…, not Customize Folder…', (tester) async {
+    testWidgets('a file has Tags…, a folder also Customize Folder…', (
+      tester,
+    ) async {
       if (!await pumpWindow(tester)) {
         markTestSkipped('no extended attributes on this file system');
         return;
@@ -754,7 +775,7 @@ void main() {
       await tester.pump();
       await rightClickFolder(tester);
       expect(find.text('Customize Folder…'), findsOneWidget);
-      expect(find.text('Tags…'), findsNothing);
+      expect(find.text('Tags…'), findsOneWidget);
     });
   });
 }

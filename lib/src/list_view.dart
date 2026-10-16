@@ -1,9 +1,9 @@
-// The list view (⌘2, MU-20, docs/spec/list-view.md), measured on MU-20: header from y 52 to 79 with
-// the 2 pt line below (79–81), first row at y 85, 20 pt rows at a 20 pitch; columns from x 10: Name
-// 364, Date Modified 181, Size 97, Kind 121, 1 × 16 separators (y 58–73 of the window). Alternating
-// rows: rectangles with radius 8 on odd rows, from x 10 to the end of the table, also after the
-// last row. Triangle at x 17–21, 16 pt icon at x 26, name from x 47 with the baseline at 15 in the
-// row; 15 pt indent per level.
+// The list view (⌘2, MU-20, docs/spec/list-view.md for the behaviour; kit `Apps/Mustache/List`,
+// `List Header`, `List Row/*` for the look): a 28 pt header with a 1 pt separator below it, rows 28
+// tall, odd rows striped on `Surface/Sidebar` across the whole width, the selection an accent
+// capsule inset 8 from each side (radius 8). Columns from x 20 (the content padding): Name (icon
+// at +0, name at +24), Date Modified, Size, Kind; the gaps between the texts are 12–16. Folders
+// expand in place (16 pt indent per level) with a 12 pt chevron before the icon.
 
 import 'dart:math' as math;
 
@@ -13,41 +13,40 @@ import 'package:silica_ui/silica_ui.dart';
 import 'l10n.dart';
 import 'model.dart';
 
-const double listRowHeight = 20;
+const double listRowHeight = 28;
 
-/// The header: 27 pt of text and 2 pt of line.
+/// The header: 27 pt of labels and a 1 pt separator (kit `List Header`: 760 × 28, line at y 27).
 const double listHeaderHeight = 27;
-const double listHeaderLine = 2;
+const double listHeaderLine = 1;
 
-/// From the line to the first row (the first row at y 85 of the window).
-const double listFirstRowGap = 4;
-const double listInset = 10;
-const double listIndent = 15;
-const double listTriangleLeft = 17;
-const double listIconLeft = 26;
+/// The first row follows the header directly.
+const double listFirstRowGap = 0;
+
+/// The content padding: the table starts here, the selection and stripes reach 8 from the edge.
+const double listInset = 20;
+const double listSelectionInset = 8;
+const double listIndent = 16;
+
+/// The expand chevron (12 pt) sits in the padding before the icon.
+const double listChevronLeft = 4;
+const double listChevronSide = 12;
+const double listIconLeft = 20;
 const double listIconSide = 16;
-const double listNameLeft = 47;
+const double listNameLeft = 44;
 
-/// Baselines: of the text in a row and of the labels in the header.
-const double listRowBaseline = 15;
-const double listHeaderBaseline = 18;
+/// Where the label of the Name column starts in the header, and of the others.
+const double listNameLabelLeft = 24;
+const double listLabelLeft = 0;
 
-/// Where a column label starts: Name at +45, the others at +5 (ink at +7).
-const double listNameLabelLeft = 45;
-const double listLabelLeft = 5;
+/// The room kept free right of the text of a column (the first one 16, the others 12).
+const double listNameRight = 16;
+const double listCellRight = 12;
 
-/// Cell text: Date and Kind at +7, Size right-aligned 7 pt from the edge.
-const double listCellLeft = 7;
-const double listCellRight = 7;
-
-/// The minimum width of a column (Date, observed).
+/// The minimum width of a column.
 const double listColumnMin = 75;
 
-/// Radii measured in MU-20 (rows plain and selected) by comparing the corner profile with
-/// simulated pixel coverage: alternating rows 8; selection (single row and outer corners of a
-/// block) 7.5. The specification says 10 for the capsules, but the rounding spans 4 rows.
-const double listStripeRadius = 8;
-const double listBlockRadius = 7.5;
+/// The radius of the selection capsule and of the block of selected rows (kit: 8).
+const double listBlockRadius = 8;
 
 /// A list column.
 @immutable
@@ -68,157 +67,57 @@ class ListColumn {
     SortKey.kind => l10n.columnKind,
   };
   final double width;
+
+  /// Unused by the kit (every cell is left aligned); kept for the sort order of a column.
   final bool alignRight;
 
   /// The first click sorts from the largest (Date and Size, R3.5).
   final bool descendingFirst;
 }
 
+/// The kit's columns: texts at 44 (Name, 280 wide), 340 (168), 520 (88) and 620 (128) of a 760
+/// table that starts 20 in; each column runs to the start of the next.
 const List<ListColumn> listColumns = [
-  ListColumn(SortKey.name, 364),
-  ListColumn(SortKey.modified, 181, descendingFirst: true),
-  ListColumn(SortKey.size, 97, alignRight: true, descendingFirst: true),
-  ListColumn(SortKey.kind, 121),
+  ListColumn(SortKey.name, 320),
+  ListColumn(SortKey.modified, 180, descendingFirst: true),
+  ListColumn(SortKey.size, 100, descendingFirst: true),
+  ListColumn(SortKey.kind, 140),
 ];
 
 /// The table width: the margin and the columns.
 double listTableWidth(List<double> widths) =>
     listInset + widths.fold(0.0, (a, b) => a + b);
 
-/// List colors (light and dark base, docs/spec/list-view.md; in light measured on MU-20).
+/// The colors of the list: Amalfi tokens (`Text/*`, `Surface/*`, `Line/Separator`,
+/// `Accent/Amalfi`).
 @immutable
 class ListColors {
-  const ListColors({
-    required this.background,
-    required this.header,
-    required this.headerPressed,
-    required this.stripe,
-    required this.line,
-    required this.lineDark,
-    required this.separator,
-    required this.labelSorted,
-    required this.label,
-    required this.chevron,
-    required this.name,
-    required this.secondary,
-    required this.triangle,
-    required this.selection,
-    required this.selectionLine,
-    required this.selectionName,
-    required this.selectionSecondary,
-    required this.inactiveSelection,
-    required this.inactiveLine,
-    required this.inactiveName,
-    required this.inactiveSecondary,
-  });
+  const ListColors(this.tokens);
 
-  final Color background;
-  final Color header;
+  final AmalfiColors tokens;
 
-  /// The pressed header cell, from separator to separator (MU-25).
-  final Color headerPressed;
-  final Color stripe;
+  Color get background => tokens.surfaceWindow;
+  Color get stripe => tokens.surfaceSidebar;
+  Color get line => tokens.lineSeparator;
+  Color get label => tokens.textTertiary;
+  Color get labelSorted => tokens.textPrimary;
+  Color get name => tokens.textPrimary;
+  Color get secondary => tokens.textSecondary;
+  Color get triangle => tokens.textTertiary;
+  Color get selection => tokens.accentAmalfi;
+  Color get selectionName => tokens.textOnAccent;
+  Color get selectionSecondary => tokens.textOnAccent;
 
-  /// The line below the header: in dark two different 1 pt rows.
-  final Color line;
-  final Color lineDark;
-  final Color separator;
-  final Color labelSorted;
-  final Color label;
-  final Color chevron;
-  final Color name;
-  final Color secondary;
-  final Color triangle;
-  final Color selection;
-  final Color selectionLine;
-  final Color selectionName;
-  final Color selectionSecondary;
-  final Color inactiveSelection;
-  final Color inactiveLine;
-  final Color inactiveName;
-  final Color inactiveSecondary;
+  /// The selection of a window that is not active or of rows being dragged (Assumption: not
+  /// measured, the kit shows only the active selection).
+  Color get inactiveSelection => tokens.lineBorder;
+  Color get inactiveName => tokens.textPrimary;
+  Color get inactiveSecondary => tokens.textSecondary;
+  Color get headerPressed => tokens.lineSeparator;
 
-  static const ListColors light = ListColors(
-    background: Color(0xFFFFFFFF),
-    header: Color(0xFFFFFFFF),
-    headerPressed: Color(0xFFF2F2F2),
-    stripe: Color(0xFFF4F5F5),
-    line: Color(0xFFE5E5E5),
-    lineDark: Color(0xFFE5E5E5),
-    separator: Color(0xFFE5E5E5),
-    labelSorted: Color(0xFF4D4D4D),
-    label: Color(0xFF808080),
-    chevron: Color(0xFF6A6A6A),
-    name: Color(0xFF252525),
-    secondary: Color(0xFF808080),
-    triangle: Color(0xFF808080),
-    selection: Color(0xFF0064E1),
-    selectionLine: Color(0xFF2673E4),
-    selectionName: Color(0xFFFFFFFF),
-    selectionSecondary: Color(0xFFBDCEF5),
-    inactiveSelection: Color(0xFFDCDCDC),
-    inactiveLine: Color(0xFFD1D1D1),
-    inactiveName: Color(0xFF222222),
-    inactiveSecondary: Color(0xFF6E6E6E),
-  );
-
-  static const ListColors dark = ListColors(
-    background: Color(0xFF272728),
-    header: Color(0xFF2F2F2F),
-    headerPressed: Color(0xFF414141),
-    stripe: Color(0xFF313132),
-    line: Color(0xFF494949),
-    lineDark: Color(0xFF363637),
-    separator: Color(0xFF535353),
-    labelSorted: Color(0xFFFFFFFF),
-    label: Color(0xFFABABAB),
-    chevron: Color(0xFFABABAB),
-    name: Color(0xFFDFDFE0),
-    secondary: Color(0xFFA2A2A2),
-    triangle: Color(0xFFA2A2A2),
-    selection: Color(0xFF0059D1),
-    selectionLine: Color(0xFF2469D5),
-    selectionName: Color(0xFFFFFFFF),
-    selectionSecondary: Color(0xFFBBCBF0),
-    inactiveSelection: Color(0xFF464646),
-    inactiveLine: Color(0xFF424242),
-    inactiveName: Color(0xFFE3E3E3),
-    inactiveSecondary: Color(0xFFACACAC),
-  );
-
-  static ListColors of({required bool dark}) => dark ? ListColors.dark : light;
+  static ListColors of(BuildContext context) =>
+      ListColors(AmalfiTheme.of(context).colors);
 }
-
-TextStyle listText(double size, Color color, {FontWeight? weight}) => TextStyle(
-  fontFamily: uiFontFamily,
-  package: 'silica_ui',
-  fontSize: size,
-  fontWeight: weight,
-  color: color,
-  height: 1,
-);
-
-/// A text with its baseline at `baseline` from the top of the box.
-Widget baselineText(
-  String text,
-  TextStyle style, {
-  required double baseline,
-  TextAlign align = TextAlign.left,
-}) => Baseline(
-  baseline: baseline,
-  baselineType: TextBaseline.alphabetic,
-  child: SizedBox(
-    width: double.infinity,
-    child: Text(
-      text,
-      maxLines: 1,
-      softWrap: false,
-      overflow: TextOverflow.clip,
-      textAlign: align,
-      style: style,
-    ),
-  ),
-);
 
 /// Truncates in the middle with "…" so the text fits in `width` (R3.4).
 String middleEllipsis(String text, TextStyle style, double width) {
@@ -252,9 +151,9 @@ String middleEllipsis(String text, TextStyle style, double width) {
   return best;
 }
 
-/// The header: the labels, the 1 × 16 separators, the 7 × 4 arrow of the sorted column (8 pt from
-/// its right edge), the line below. Click to sort; dragging a separator changes the column on its
-/// left.
+/// The header: the labels (Label, `Text/Tertiary`; the sorted column in `Text/Primary` with a 12 pt
+/// chevron), the 1 pt separator below. Click to sort; dragging the edge between two columns changes
+/// the column on its left.
 class ListHeader extends StatelessWidget {
   const ListHeader({
     super.key,
@@ -267,7 +166,7 @@ class ListHeader extends StatelessWidget {
     this.background,
   });
 
-  /// Null: the header color; transparent in the veiled band of the glass toolbar (R1.9).
+  /// Null: the window surface.
   final Color? background;
   final List<double> widths;
   final SortKey sort;
@@ -275,13 +174,13 @@ class ListHeader extends StatelessWidget {
   final ListColors colors;
   final ValueChanged<SortKey> onSort;
 
-  /// Dragging the separator to the right of column `index`.
+  /// Dragging the edge to the right of column `index`.
   final void Function(int index, double dx) onResize;
 
   @override
   Widget build(BuildContext context) {
     final children = <Widget>[];
-    // The separator grips sit above the labels: half a grip falls on the next column.
+    // The edge grips sit above the labels: half a grip falls on the next column.
     final handles = <Widget>[];
     var x = listInset;
     for (var i = 0; i < listColumns.length; i++) {
@@ -300,50 +199,46 @@ class ListHeader extends StatelessWidget {
             pressedColor: colors.headerPressed,
             onTap: () => onSort(column.key),
             child: Padding(
-              padding: EdgeInsets.only(left: left, right: sorted ? 20 : 4),
-              child: baselineText(
-                column.label,
-                listText(
-                  11,
-                  sorted ? colors.labelSorted : colors.label,
-                  weight: sorted ? FontWeight.w600 : null,
-                ),
-                baseline: listHeaderBaseline,
+              padding: EdgeInsets.only(left: left, top: 6, right: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Flexible(
+                    child: Text(
+                      column.label,
+                      maxLines: 1,
+                      softWrap: false,
+                      overflow: TextOverflow.clip,
+                      style: AmalfiType.label(
+                        color: sorted ? colors.labelSorted : colors.label,
+                      ),
+                    ),
+                  ),
+                  if (sorted)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 2),
+                      child: IgnorePointer(
+                        child: AmalfiGlyph(
+                          descending
+                              ? AmalfiGlyphs.chevronDown
+                              : AmalfiGlyphs.chevronUp,
+                          key: const ValueKey('sort arrow'),
+                          size: 12,
+                          color: colors.labelSorted,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
         ),
       );
-      if (sorted) {
-        children.add(
-          Positioned(
-            left: x + width - 14,
-            top: 12,
-            width: 7,
-            height: 4,
-            child: IgnorePointer(
-              child: CustomPaint(
-                key: const ValueKey('sort arrow'),
-                painter: _ChevronPainter(colors.chevron, up: !descending),
-              ),
-            ),
-          ),
-        );
-      }
       x += width;
-      children.add(
-        Positioned(
-          left: x - 1,
-          top: 6,
-          width: 1,
-          height: 16,
-          child: ColoredBox(color: colors.separator),
-        ),
-      );
-      // The separator grip: 5 pt, 3 left of the line and 1 to the right (MU-25).
+      // The edge grip: 5 pt, 3 left of the boundary and 2 to the right.
       handles.add(
         Positioned(
-          left: x - 4,
+          left: x - 3,
           top: 0,
           width: 5,
           height: listHeaderHeight,
@@ -358,23 +253,27 @@ class ListHeader extends StatelessWidget {
         ),
       );
     }
-    return Container(
+    return SizedBox(
       key: const ValueKey('column header'),
       height: listHeaderHeight + listHeaderLine,
-      color: background ?? colors.header,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            height: listHeaderHeight,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [...children, ...handles],
+      child: ColoredBox(
+        color: background ?? colors.background,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              height: listHeaderHeight,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [...children, ...handles],
+              ),
             ),
-          ),
-          SizedBox(height: 1, child: ColoredBox(color: colors.line)),
-          SizedBox(height: 1, child: ColoredBox(color: colors.lineDark)),
-        ],
+            SizedBox(
+              height: listHeaderLine,
+              child: ColoredBox(color: colors.line),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -423,81 +322,23 @@ class _HeaderCellState extends State<_HeaderCell> {
   );
 }
 
-/// ∧ ascending, ∨ descending.
-class _ChevronPainter extends CustomPainter {
-  const _ChevronPainter(this.color, {required this.up});
-  final Color color;
-  final bool up;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    final top = up ? 0.5 : size.height - 0.5;
-    final bottom = up ? size.height - 0.5 : 0.5;
-    canvas.drawPath(
-      Path()
-        ..moveTo(0.5, bottom)
-        ..lineTo(size.width / 2, top)
-        ..lineTo(size.width - 0.5, bottom),
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_ChevronPainter old) => old.color != color || old.up != up;
-}
-
-/// A folder's disclosure triangle: › closed, ⌄ open (5 × 8, changes in one frame).
+/// A folder's disclosure chevron: › closed, ⌄ open (changes in one frame).
 class ListTriangle extends StatelessWidget {
   const ListTriangle({super.key, required this.open, required this.color});
   final bool open;
   final Color color;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: open ? 8 : 5,
-    height: open ? 5 : 8,
-    child: CustomPaint(painter: _TrianglePainter(color, open: open)),
+  Widget build(BuildContext context) => AmalfiGlyph(
+    open ? AmalfiGlyphs.chevronDown : AmalfiGlyphs.chevronRight,
+    size: listChevronSide,
+    color: color,
   );
 }
 
-class _TrianglePainter extends CustomPainter {
-  const _TrianglePainter(this.color, {required this.open});
-  final Color color;
-  final bool open;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    final path = open
-        ? (Path()
-            ..moveTo(0.75, 0.75)
-            ..lineTo(size.width / 2, size.height - 0.75)
-            ..lineTo(size.width - 0.75, 0.75))
-        : (Path()
-            ..moveTo(0.75, 0.75)
-            ..lineTo(size.width - 0.75, size.height / 2)
-            ..lineTo(0.75, size.height - 0.75));
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(_TrianglePainter old) =>
-      old.color != color || old.open != open;
-}
-
-/// The background of a row: the alternating capsule on odd rows, or the selection. Contiguous
-/// selected rows form a block with rounded outer corners and a 1 pt line between rows (R3.8).
+/// The background of a row: the stripe on odd rows (across the whole width), or the selection (an
+/// accent capsule inset 8 from each side). Contiguous selected rows form a block with rounded
+/// outer corners and a 1 pt line between rows (R3.8).
 class ListRowBackground extends StatelessWidget {
   const ListRowBackground({
     super.key,
@@ -533,66 +374,56 @@ class ListRowBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final right = math.max(listInset, width);
-    Widget shape(BoxDecoration decoration) => Positioned(
-      left: listInset,
-      width: right - listInset,
+    Widget shape(Decoration decoration) => Positioned(
+      left: listSelectionInset,
+      width: right - 2 * listSelectionInset,
       top: 0,
       bottom: 0,
       child: DecoratedBox(decoration: decoration),
     );
     final children = <Widget>[];
+    if (index.isOdd && !selected) {
+      children.add(Positioned.fill(child: ColoredBox(color: colors.stripe)));
+    }
     if (selected || dropTarget) {
       final fill = active || dropTarget
           ? colors.selection
           : colors.inactiveSelection;
       final above = selected && selectedAbove;
       final below = selected && selectedBelow;
-      final alone = !above && !below;
-      const r = Radius.circular(listBlockRadius);
       children.add(
         shape(
-          BoxDecoration(
+          ShapeDecoration(
             color: fill,
-            borderRadius: alone
-                ? BorderRadius.circular(listBlockRadius)
-                : BorderRadius.only(
-                    topLeft: above ? Radius.zero : r,
-                    topRight: above ? Radius.zero : r,
-                    bottomLeft: below ? Radius.zero : r,
-                    bottomRight: below ? Radius.zero : r,
-                  ),
+            shape: AmalfiSmoothBorder.only(
+              topLeft: above ? 0 : listBlockRadius,
+              topRight: above ? 0 : listBlockRadius,
+              bottomLeft: below ? 0 : listBlockRadius,
+              bottomRight: below ? 0 : listBlockRadius,
+            ),
           ),
         ),
       );
       if (below) {
         children.add(
           Positioned(
-            left: listInset,
-            width: right - listInset,
+            left: listSelectionInset,
+            width: right - 2 * listSelectionInset,
             bottom: 0,
             height: 1,
-            child: ColoredBox(
-              color: active ? colors.selectionLine : colors.inactiveLine,
-            ),
+            child: ColoredBox(color: colors.tokens.accentAmalfiPressed),
           ),
         );
       }
-    } else if (index.isOdd) {
-      children.add(
-        shape(
-          BoxDecoration(
-            color: colors.stripe,
-            borderRadius: BorderRadius.circular(listStripeRadius),
-          ),
-        ),
-      );
     }
     if (ring && !selected) {
       children.add(
         shape(
-          BoxDecoration(
-            border: Border.all(color: colors.selection, width: 2),
-            borderRadius: BorderRadius.circular(listBlockRadius),
+          ShapeDecoration(
+            shape: AmalfiSmoothBorder(
+              radius: listBlockRadius,
+              side: BorderSide(color: colors.selection, width: 2),
+            ),
           ),
         ),
       );

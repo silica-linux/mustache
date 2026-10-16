@@ -3,8 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mustache/src/model.dart';
 import 'package:mustache/src/preview_pane.dart';
 import 'package:mustache/src/status_bar.dart';
+import 'package:silica_ui/silica_ui.dart';
 
-/// The window parts follow the system appearance (MU-04, MU-05).
+/// The window parts follow the system appearance, with the Amalfi tokens.
 Widget dark(Widget child) => MediaQuery(
   data: const MediaQueryData(platformBrightness: Brightness.dark),
   child: Directionality(
@@ -14,7 +15,9 @@ Widget dark(Widget child) => MediaQuery(
 );
 
 void main() {
-  testWidgets('dark status bar: background, line, active and inactive text', (
+  final tokens = AmalfiColors.dark;
+
+  testWidgets('dark status bar: surface, separator, active and inactive text', (
     tester,
   ) async {
     for (final active in [true, false]) {
@@ -26,22 +29,35 @@ void main() {
           ),
         ),
       );
-      final box = tester.widget<Container>(
-        find.byKey(const ValueKey('status bar')),
+      final bar = find.byKey(const ValueKey('status bar'));
+      expect(
+        tester
+            .widget<ColoredBox>(
+              find.descendant(of: bar, matching: find.byType(ColoredBox)).first,
+            )
+            .color,
+        tokens.surfaceWindow,
       );
-      final decoration = box.decoration! as BoxDecoration;
-      expect(decoration.color, const Color(0xFF2F2F2F));
-      expect((decoration.border! as Border).top.color, const Color(0xFF000000));
+      expect(
+        find
+            .descendant(
+              of: bar,
+              matching: find.byWidgetPredicate(
+                (w) => w is ColoredBox && w.color == tokens.lineSeparator,
+              ),
+            )
+            .evaluate()
+            .length,
+        1,
+      );
       expect(
         tester.widget<Text>(find.text('3 elementi')).style?.color,
-        active ? const Color(0xFFA1A1A1) : const Color(0xFF636363),
+        active ? tokens.textSecondary : tokens.textTertiary,
       );
     }
   });
 
-  testWidgets('dark preview pane: background, name and actions', (
-    tester,
-  ) async {
+  testWidgets('dark preview pane: surface, name and action', (tester) async {
     final entry = Entry(
       name: 'Alfa',
       path: '/prova/Alfa',
@@ -54,7 +70,6 @@ void main() {
         SizedBox(
           height: 600,
           child: PreviewPane(
-            width: 264,
             items: [entry],
             kindOf: (_) => 'Folder',
             now: DateTime(2026, 10, 14, 18),
@@ -63,17 +78,19 @@ void main() {
         ),
       ),
     );
-    final pane = tester.widget<Container>(
-      find.byKey(const ValueKey('preview pane')),
+    final pane = find.byKey(const ValueKey('preview pane'));
+    expect(
+      tester
+          .widget<ColoredBox>(
+            find.descendant(of: pane, matching: find.byType(ColoredBox)).first,
+          )
+          .color,
+      tokens.surfaceSidebar,
     );
-    expect(pane.color, PaneColors.dark.fill);
     expect(
       tester.widget<Text>(find.text('Alfa')).style?.color,
-      PaneColors.dark.name,
+      tokens.textPrimary,
     );
-    final bar = tester.widget<Container>(
-      find.byKey(const ValueKey('pane actions')),
-    );
-    expect(bar.color, const Color(0xFF272728));
+    expect(find.byKey(const ValueKey('action More')), findsOneWidget);
   });
 }

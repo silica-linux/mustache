@@ -523,9 +523,9 @@ void main() {
                         find.byKey(ValueKey('name ${root.path}/$name 0')),
                       )
                       .decoration
-                  as BoxDecoration)
+                  as ShapeDecoration)
               .color;
-      await tester.tap(find.byKey(ValueKey('${root.path}/alfa.txt')));
+      await tester.tap(find.text('alfa.txt'));
       await tester.pump(const Duration(milliseconds: 400));
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
       await tester.pump();

@@ -82,18 +82,28 @@ extension _Tags on _MustacheWindowState {
     ];
   }
 
-  /// The row of circles of the context menu.
-  MenuEntry _tagMenuRow(List<Entry> items) => MenuCustom(
-    height: 25,
-    width: 18 + 24.0 * TagColor.values.length + 12,
-    builder: (context, close) => TagCircleRow(
-      assigned: _sharedColors(items),
-      onToggle: (c) {
-        _toggleTag(c, items);
-        close();
-      },
-    ),
-  );
+  /// The Tags submenu of the context menu: one item per color with its dot, checked when every
+  /// item has the tag.
+  AmalfiMenuAction _tagMenu(List<Entry> items) {
+    final assigned = _sharedColors(items);
+    final dark = AmalfiTheme.of(context).isDark;
+    return AmalfiMenuAction(
+      l10n.tagsMenu,
+      submenu: [
+        for (final color in TagColor.values)
+          AmalfiMenuAction(
+            tagName(color),
+            icon: TagDot(
+              color: menuTagColor(color, dark: dark),
+              side: 12,
+              ring: false,
+            ),
+            checked: assigned.contains(color),
+            onSelected: () => _toggleTag(color, items),
+          ),
+      ],
+    );
+  }
 
   /// The places of the Tags section.
   List<Place> get _tagPlaces => [

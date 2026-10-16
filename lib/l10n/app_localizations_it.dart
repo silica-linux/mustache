@@ -953,4 +953,16 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get menuShowProgress => 'Mostra finestra avanzamento';
+
+  @override
+  String get searchPlaceholder => 'Cerca';
+
+  @override
+  String get toggleSidebar => 'Barra laterale';
+
+  @override
+  String get iconSize => 'Dimensione icone';
+
+  @override
+  String get menuCloseTab => 'Chiudi tab';
 }

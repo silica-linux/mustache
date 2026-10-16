@@ -82,58 +82,12 @@ String statusText({
   return l10n.available(head, formatFree(free));
 }
 
-/// Status bar colors (MU-04), light and dark.
-@immutable
-class StatusBarColors {
-  const StatusBarColors({
-    required this.fill,
-    required this.line,
-    required this.text,
-    required this.textInactive,
-    required this.track,
-    required this.filled,
-    required this.knob,
-    required this.knobShadow,
-  });
+/// The width of the icon size slider and its distance from the right edge.
+const double statusSliderWidth = 96;
+const double statusSliderRight = 16;
 
-  final Color fill;
-  final Color line;
-  final Color text;
-  final Color textInactive;
-  final Color track;
-  final Color filled;
-  final Color knob;
-  final Color? knobShadow;
-
-  static const StatusBarColors light = StatusBarColors(
-    fill: Color(0xFFFFFFFF),
-    line: Color(0xFFD9D9D9),
-    text: Color(0xFF858585),
-    textInactive: Color(0xFFBDBDBD),
-    track: Color(0xFFE5E5E5),
-    filled: Color(0xFF0176F7),
-    knob: Color(0xFFFFFFFF),
-    knobShadow: Color(0x40000000),
-  );
-
-  /// Dark: a solid `#dfdfdf` knob, without shadow.
-  static const StatusBarColors dark = StatusBarColors(
-    fill: Color(0xFF2F2F2F),
-    line: Color(0xFF000000),
-    text: Color(0xFFA1A1A1),
-    textInactive: Color(0xFF636363),
-    track: Color(0xFF434343),
-    filled: Color(0xFF0D7BFB),
-    knob: Color(0xFFDFDFDF),
-    knobShadow: null,
-  );
-
-  static StatusBarColors of(BuildContext context) =>
-      MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark
-      ? dark
-      : light;
-}
-
+/// The status bar (kit `Apps/Mustache/Status Bar`): 28 tall, a 1 pt separator along the top, the
+/// text centered in Label `Text/Secondary` (`Text/Tertiary` in an inactive window).
 class StatusBar extends StatelessWidget {
   const StatusBar({
     super.key,
@@ -155,107 +109,57 @@ class StatusBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final value = slider;
-    final colors = StatusBarColors.of(context);
-    return Container(
+    final colors = AmalfiTheme.of(context).colors;
+    return SizedBox(
       key: const ValueKey('status bar'),
       height: statusBarHeight,
-      decoration: BoxDecoration(
-        color: colors.fill,
-        border: Border(top: BorderSide(color: colors.line)),
-      ),
-      child: Stack(
-        children: [
-          Center(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontFamily: uiFontFamily,
-                package: 'silica_ui',
-                fontSize: 11,
-                color: active ? colors.text : colors.textInactive,
-              ),
-            ),
-          ),
-          if (value != null)
-            Positioned(
-              right: 17,
-              top: 0,
-              bottom: 0,
-              width: 82,
-              child: _Slider(value: value, onChanged: onSlider, colors: colors),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Slider extends StatelessWidget {
-  const _Slider({required this.value, required this.colors, this.onChanged});
-  final double value;
-  final StatusBarColors colors;
-  final ValueChanged<double>? onChanged;
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, box) {
-      // 62 pt of travel on the 80 track (the knob is 18 wide).
-      const travel = 62.0;
-      final x = 1 + travel * value / 112;
-      void set(double local) =>
-          onChanged?.call(((local - 1 - 9) / travel * 112).clamp(0, 112));
-      return GestureDetector(
-        key: const ValueKey('icon slider'),
-        behavior: HitTestBehavior.opaque,
-        onTapDown: (d) => set(d.localPosition.dx),
-        onHorizontalDragUpdate: (d) => set(d.localPosition.dx),
+      child: ColoredBox(
+        color: colors.surfaceWindow,
         child: Stack(
-          alignment: Alignment.centerLeft,
           children: [
             Positioned(
-              left: 1,
-              width: 80,
-              child: Container(
-                height: 4,
-                decoration: BoxDecoration(
-                  color: colors.track,
-                  borderRadius: BorderRadius.circular(2),
+              left: 0,
+              right: 0,
+              top: 6,
+              height: 16,
+              child: Center(
+                child: Text(
+                  text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AmalfiType.callout(
+                    color: active ? colors.textSecondary : colors.textTertiary,
+                  ),
                 ),
               ),
             ),
-            Positioned(
-              left: 1,
-              width: x + 9,
-              child: Container(
-                height: 4,
-                decoration: BoxDecoration(
-                  color: colors.filled,
-                  borderRadius: BorderRadius.circular(2),
+            if (value != null)
+              Positioned(
+                right: statusSliderRight,
+                top: 0,
+                bottom: 0,
+                width: statusSliderWidth,
+                child: Center(
+                  key: const ValueKey('icon slider'),
+                  child: AmalfiSlider(
+                    value: value,
+                    min: 0,
+                    max: 112,
+                    onChanged: onSlider,
+                    semanticLabel: l10n.iconSize,
+                  ),
                 ),
               ),
-            ),
             Positioned(
-              left: x,
-              child: Container(
-                width: 18,
-                height: 14,
-                decoration: BoxDecoration(
-                  color: colors.knob,
-                  borderRadius: BorderRadius.circular(7),
-                  boxShadow: [
-                    if (colors.knobShadow case final shadow?)
-                      BoxShadow(
-                        color: shadow,
-                        blurRadius: 2,
-                        offset: const Offset(0, 0.5),
-                      ),
-                  ],
-                ),
-              ),
+              left: 0,
+              right: 0,
+              top: 0,
+              height: 1,
+              child: ColoredBox(color: colors.lineSeparator),
             ),
           ],
         ),
-      );
-    },
-  );
+      ),
+    );
+  }
 }

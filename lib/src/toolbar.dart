@@ -1,27 +1,72 @@
-// The toolbar unified with the window (MU-02, docs/spec/toolbar.md): 52 tall from the top, right of
-// the sidebar, without a background; Ossido puts the window buttons on top (silica-window-v1).
-// Back/Forward capsule (75), title 12 pt after it, view group (162) and Search (38 pt circle) on
-// the right, 7–8 pt between capsules. The empty space moves the window.
-
-import 'dart:io';
+// The window's toolbar, split into sections as the regions below it (kit `Apps/Mustache/Toolbar *`,
+// components.md): the sidebar section (window controls, sidebar toggle), the content section
+// (back and forward, title, view switcher, search) and, with the preview pane open, the preview
+// section (search). Flat bars on the window surface, 52 tall; only the controls in them are glass.
+// Ossido draws the window buttons on top of the 96 pt controls slot (silica-window-v1).
 
 import 'package:flutter/widgets.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:silica_ui/silica_ui.dart';
 
+import 'l10n.dart';
 import 'model.dart';
 
-/// Minimum width of the title (spec/toolbar.md).
-const double toolbarTitleMin = 160;
+/// The width of the slot the window buttons sit in (`AmalfiToolbarPieceMetrics.controlsWidth`).
+const double windowControlsSlot = AmalfiToolbarPieceMetrics.controlsWidth;
 
-/// The window buttons end at x 79 (centers 26/49/72, diameter 14): with the sidebar hidden the
-/// toolbar starts here.
-const double windowButtonsEnd = 80;
+/// The narrowest room (after the window controls) in which the view switcher still fits next to
+/// back/forward and a title: the switcher goes first when the window narrows.
+const double toolbarViewsMinRoom = 12 + 72 + 160 + 144 + 8;
 
-class MustacheToolbar extends StatefulWidget {
+/// The width of the search field in the content section (a large field, kit `Piece/Search`) and
+/// in the preview section (the 260 pt column less its padding, no Share button beside it).
+const double toolbarSearchWidth = 200;
+const double previewSearchWidth = 232;
+
+/// The glyph of an Icon Kit symbol installed with silica-icons (`symbols/regular`); empty when
+/// it is not installed.
+Widget symbolGlyph(String name, {double? size, Color? color}) =>
+    AmalfiSymbol(name, size: size, color: color);
+
+/// The sidebar section of the toolbar: the slot of the window buttons, then the sidebar toggle.
+class MustacheSidebarBar extends StatelessWidget {
+  const MustacheSidebarBar({
+    super.key,
+    required this.active,
+    required this.onToggle,
+  });
+
+  final bool active;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) => WindowDragArea(
+    child: AmalfiToolbar.sidebarSection(
+      key: const ValueKey('sidebar bar'),
+      active: active,
+      children: [
+        const SizedBox(width: windowControlsSlot),
+        const AmalfiSpacerPiece(),
+        sidebarToggle(onToggle),
+      ],
+    ),
+  );
+}
+
+/// The sidebar toggle piece (kit `Piece/Sidebar Toggle`).
+Widget sidebarToggle(VoidCallback onToggle) => AmalfiToolbarPiece(
+  key: const ValueKey('sidebar toggle'),
+  child: AmalfiToolbarButton(
+    icon: AmalfiGlyph(AmalfiGlyphs.sidebar),
+    onPressed: onToggle,
+    semanticLabel: l10n.toggleSidebar,
+  ),
+);
+
+/// The content section: back and forward, the title, the view switcher and (without the preview
+/// section) the search field.
+class MustacheToolbar extends StatelessWidget {
   const MustacheToolbar({
     super.key,
-    required this.leading,
     required this.title,
     required this.active,
     required this.canGoBack,
@@ -30,24 +75,12 @@ class MustacheToolbar extends StatefulWidget {
     required this.onForward,
     required this.view,
     required this.onView,
-    required this.onSearch,
-    this.searchField,
-    this.iconsDir,
-    this.background,
+    this.search,
+    this.sidebarToggleWhenHidden,
     this.onBackHistory,
     this.onForwardHistory,
   });
 
-  /// The bar background; in dark, with the pointer in the bar, `#2e3030` (MU-07).
-  final Color? background;
-
-  /// Long press on Back / Forward: the history menu, with its top-left corner on the left edge of
-  /// the segment, 2 pt above the bottom of the capsule (MU-07).
-  final ValueChanged<Offset>? onBackHistory;
-  final ValueChanged<Offset>? onForwardHistory;
-
-  /// The space on the left before the first capsule.
-  final double leading;
   final String title;
 
   /// Active window: dark title.
@@ -57,199 +90,142 @@ class MustacheToolbar extends StatefulWidget {
   final VoidCallback onBack;
   final VoidCallback onForward;
 
-  /// The chosen view (null: no view group, as in search).
+  /// The chosen view (null: no view switcher, as in search).
   final ViewMode? view;
   final ValueChanged<ViewMode> onView;
-  final VoidCallback onSearch;
 
-  /// The search field in place of the Search circle.
-  final Widget? searchField;
-  final String? iconsDir;
+  /// The search field (a piece); null: it is in the preview section.
+  final Widget? search;
 
-  @override
-  State<MustacheToolbar> createState() => _MustacheToolbarState();
-}
+  /// With the sidebar hidden: the toggle (after the slot of the window buttons) that shows it.
+  final VoidCallback? sidebarToggleWhenHidden;
 
-class _MustacheToolbarState extends State<MustacheToolbar> {
-  bool _hovered = false;
+  /// Long press on Back / Forward: the history menu, from the bottom left corner of the segment.
+  final ValueChanged<Offset>? onBackHistory;
+  final ValueChanged<Offset>? onForwardHistory;
 
-  /// Opens the history menu below segment `index` (0 Back, 1 Forward), at the segment's corner.
-  void _history(int index, Rect rect) {
-    final callback = index == 0
-        ? widget.onBackHistory
-        : widget.onForwardHistory;
-    callback?.call(rect.bottomLeft);
+  Widget _nav(BuildContext context) => Builder(
+    builder: (context) => GestureDetector(
+      key: const ValueKey('back and forward'),
+      behavior: HitTestBehavior.translucent,
+      onLongPressStart: (d) {
+        // The two 32 pt segments: the press is in the left or the right one.
+        final box = context.findRenderObject()! as RenderBox;
+        final index = d.localPosition.dx < box.size.width / 2 ? 0 : 1;
+        final callback = index == 0 ? onBackHistory : onForwardHistory;
+        callback?.call(
+          box.localToGlobal(Offset(index * 32.0, box.size.height)),
+        );
+      },
+      child: AmalfiActionSegments(
+        segments: [
+          AmalfiSegment.icon(
+            AmalfiGlyph(AmalfiGlyphs.chevronLeft),
+            semanticLabel: l10n.menuBack,
+            enabled: canGoBack,
+          ),
+          AmalfiSegment.icon(
+            AmalfiGlyph(AmalfiGlyphs.chevronRight),
+            semanticLabel: l10n.menuForward,
+            enabled: canGoForward,
+          ),
+        ],
+        onPressed: (i) => i == 0 ? onBack() : onForward(),
+      ),
+    ),
+  );
+
+  Widget _views() {
+    const modes = [
+      (ViewMode.icons, 'square-grid-2x2'),
+      (ViewMode.list, 'list-bullet'),
+      (ViewMode.columns, 'window-split-3'),
+      (ViewMode.gallery, 'gallery'),
+    ];
+    String label(ViewMode mode) => switch (mode) {
+      ViewMode.icons => l10n.viewIcons,
+      ViewMode.list => l10n.viewList,
+      ViewMode.columns => l10n.viewColumns,
+      ViewMode.gallery => l10n.viewGallery,
+    };
+    return AmalfiSegmentedControl(
+      key: const ValueKey('view group'),
+      size: AmalfiControlSize.large,
+      selected: {
+        for (var i = 0; i < modes.length; i++)
+          if (modes[i].$1 == view) i,
+      },
+      onChanged: (s) {
+        if (s.isNotEmpty) onView(modes[s.first].$1);
+      },
+      segments: [
+        for (final (mode, symbol) in modes)
+          AmalfiSegment.icon(
+            symbolGlyph(symbol, size: 16),
+            semanticLabel: label(mode),
+          ),
+      ],
+    );
   }
 
-  /// The silica-icons symbol in a `side` box (symbols draw the 16–20 glyph within 24: the box is
-  /// chosen so the glyph has the toolbar measurements).
-  Widget _symbol(String name, double side, String fallback) => SizedBox(
-    width: side,
-    height: side,
-    child: Builder(
-      builder: (context) {
-        final color = DefaultTextStyle.of(context).style.color;
-        final dir = widget.iconsDir;
-        final file = dir == null
-            ? null
-            : File('$dir/symbols/regular/$name.svg');
-        if (file != null && file.existsSync()) {
-          return SvgPicture.file(
-            file,
-            fit: BoxFit.contain,
-            colorFilter: color == null
-                ? null
-                : ColorFilter.mode(color, BlendMode.srcIn),
-          );
-        }
-        return Center(
-          child: Text(
-            fallback,
-            style: TextStyle(
-              fontFamily: uiFontFamily,
-              package: 'silica_ui',
-              fontSize: side * 0.6,
-              height: 1,
-              color: color,
+  @override
+  Widget build(BuildContext context) => WindowDragArea(
+    child: LayoutBuilder(
+      builder: (context, box) {
+        final room = box.maxWidth - 12 - 8;
+        final views = view != null && room >= toolbarViewsMinRoom;
+        return AmalfiToolbar.section(
+          key: const ValueKey('toolbar'),
+          active: active,
+          children: [
+            if (sidebarToggleWhenHidden case final toggle?) ...[
+              const SizedBox(width: windowControlsSlot - 12),
+              sidebarToggle(toggle),
+            ],
+            AmalfiToolbarPiece(child: _nav(context)),
+            // The title does not move the window; the empty space beside it does (MU-08).
+            Expanded(
+              child: Row(
+                children: [
+                  Flexible(
+                    child: GestureDetector(
+                      key: const ValueKey('title'),
+                      behavior: HitTestBehavior.opaque,
+                      onPanStart: (_) {},
+                      child: AmalfiTitlePiece(title: title),
+                    ),
+                  ),
+                  const Spacer(),
+                ],
+              ),
             ),
-          ),
+            if (views) AmalfiToolbarPiece(child: _views()),
+            ?search,
+          ],
         );
       },
     ),
   );
+}
 
-  /// The icon in the segment color.
-  Widget Function(Color) _icon(String name, double side, String fallback) =>
-      (color) => DefaultTextStyle(
-        style: TextStyle(color: color),
-        child: _symbol(name, side, fallback),
-      );
+/// The preview section (kit `Toolbar Preview`): the search field over the preview pane.
+class MustachePreviewBar extends StatelessWidget {
+  const MustachePreviewBar({
+    super.key,
+    required this.active,
+    required this.search,
+  });
+
+  final bool active;
+  final Widget search;
 
   @override
-  Widget build(BuildContext context) {
-    final dark =
-        MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: ToolbarScope(
-        active: widget.active,
-        hovered: _hovered,
-        child: ColoredBox(
-          color: dark && _hovered && widget.active
-              ? const Color(0xFF2E3030)
-              : widget.background ?? const Color(0x00000000),
-          child: _bar(),
-        ),
-      ),
-    );
-  }
-
-  Widget _bar() => WindowDragArea(
-    child: SizedBox(
-      key: const ValueKey('toolbar'),
-      height: toolbarHeight,
-      child: LayoutBuilder(
-        builder: (context, box) {
-          // When shrinking the views go first, then Back/Forward (spec/toolbar.md, R1.7).
-          final room = box.maxWidth - widget.leading;
-          final views =
-              widget.view != null && room >= 75 + 12 + 160 + 162 + 8 + 38;
-          final navigation = room >= 75 + 12 + toolbarTitleMin + 38 + 14;
-          return Row(
-            children: [
-              SizedBox(width: widget.leading),
-              if (navigation) ...[
-                ToolbarCapsule(
-                  key: const ValueKey('back and forward'),
-                  separators: true,
-                  children: [
-                    ToolbarSegment(
-                      key: const ValueKey('back'),
-                      width: 36,
-                      enabled: widget.canGoBack,
-                      onTap: widget.onBack,
-                      onLongPressMenu: widget.onBackHistory == null
-                          ? null
-                          : (rect) => _history(0, rect),
-                      icon: _icon('chevron-left', 24, '‹'),
-                    ),
-                    ToolbarSegment(
-                      key: const ValueKey('forward'),
-                      width: 36,
-                      enabled: widget.canGoForward,
-                      onTap: widget.onForward,
-                      onLongPressMenu: widget.onForwardHistory == null
-                          ? null
-                          : (rect) => _history(1, rect),
-                      icon: _icon('chevron-right', 24, '›'),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 12),
-              ],
-              // The title does not move the window; the empty space beside it does (MU-08).
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onPanStart: (_) {},
-                    child: Text(
-                      widget.title,
-                      key: const ValueKey('title'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: uiFontFamily,
-                        package: 'silica_ui',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: widget.active
-                            ? ToolbarColors.of(context).title
-                            : ToolbarColors.of(context).titleInactive,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              if (views)
-                ToolbarCapsule(
-                  key: const ValueKey('view group'),
-                  children: [
-                    for (final (mode, symbol, side, fallback) in const [
-                      // Grid 15, list 17 × 12, columns 20 × 15, gallery 19 × 15.
-                      (ViewMode.icons, 'square-grid-2x2', 20.0, '▦'),
-                      (ViewMode.list, 'list-bullet', 24.0, '≡'),
-                      (ViewMode.columns, 'window-split-3', 24.0, '▥'),
-                      (ViewMode.gallery, 'gallery', 24.0, '▭'),
-                    ])
-                      ToolbarSegment(
-                        key: ValueKey('view ${mode.name}'),
-                        width: 40,
-                        chosen: mode == widget.view,
-                        onTap: () => widget.onView(mode),
-                        icon: _icon(symbol, side, fallback),
-                      ),
-                  ],
-                ),
-              const SizedBox(width: 8),
-              widget.searchField ??
-                  ToolbarCapsule(
-                    key: const ValueKey('search'),
-                    children: [
-                      ToolbarSegment(
-                        width: toolbarCapsuleHeight - 2,
-                        onTap: widget.onSearch,
-                        icon: _icon('search', 24, '⌕'),
-                      ),
-                    ],
-                  ),
-              const SizedBox(width: 7),
-            ],
-          );
-        },
-      ),
+  Widget build(BuildContext context) => WindowDragArea(
+    child: AmalfiToolbar.section(
+      key: const ValueKey('preview bar'),
+      active: active,
+      surface: AmalfiToolbarSurface.sidebar,
+      children: [search],
     ),
   );
 }

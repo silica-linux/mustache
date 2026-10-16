@@ -11,6 +11,8 @@ import 'package:mustache/src/settings.dart';
 import 'package:mustache/src/window.dart';
 import 'package:silica_ui/silica_ui.dart';
 
+import 'kit.dart';
+
 void main() {
   test('valid destinations and different disks', () {
     const payload = DragPayload(['/c/a.txt', '/c/Cartella'], '/c');
@@ -281,10 +283,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 800));
       // Now the window shows Dentro (empty).
       // An empty folder shows no text (R3.10): the title says it.
-      expect(
-        tester.widget<Text>(find.byKey(const ValueKey('title'))).data,
-        'Dentro',
-      );
+      expect(tester.widget<Text>(titleText()).data, 'Dentro');
       await mouse.cancel();
       await tester.pump(const Duration(seconds: 1));
     });

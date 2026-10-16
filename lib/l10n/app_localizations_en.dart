@@ -130,13 +130,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get columnName => 'Name';
 
   @override
-  String get columnModified => 'Modified';
+  String get columnModified => 'Date Modified';
 
   @override
   String get columnSize => 'Size';
 
   @override
-  String get columnKind => 'Type';
+  String get columnKind => 'Kind';
 
   @override
   String get sidebarPinned => 'Pinned';
@@ -953,4 +953,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get menuShowProgress => 'Show Progress Window';
+
+  @override
+  String get searchPlaceholder => 'Search';
+
+  @override
+  String get toggleSidebar => 'Sidebar';
+
+  @override
+  String get iconSize => 'Icon size';
+
+  @override
+  String get menuCloseTab => 'Close Tab';
 }
