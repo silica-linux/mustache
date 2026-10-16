@@ -17,3 +17,13 @@ files live in `silica-icons`, not in this repository.
 | `docs/spec/diagrams/column-view.svg` | Silica project | MIT OR Apache-2.0 | original, drawn from the numbers in `docs/spec/column-view.md` |
 | `docs/spec/diagrams/gallery.svg` | Silica project | MIT OR Apache-2.0 | original, drawn from the numbers in `docs/spec/gallery.md` |
 | `docs/spec/diagrams/desktop.svg` | Silica project | MIT OR Apache-2.0 | original, drawn from the numbers in `docs/spec/desktop.md` |
+| `icon/background-dark.svg` | Silica project | CC BY-SA 4.0 | `silica-icons` `apps/mustache` (branch `amalfi-icons`, 2713df9) |
+| `icon/background.svg` | Silica project | CC BY-SA 4.0 | `silica-icons` `apps/mustache` (branch `amalfi-icons`, 2713df9) |
+| `icon/foreground-dark.svg` | Silica project | CC BY-SA 4.0 | `silica-icons` `apps/mustache` (branch `amalfi-icons`, 2713df9) |
+| `icon/foreground.svg` | Silica project | CC BY-SA 4.0 | `silica-icons` `apps/mustache` (branch `amalfi-icons`, 2713df9) |
+| `icon/icon-clear-dark.png` | Silica project | CC BY-SA 4.0 | `silica-icons` `apps/mustache` (branch `amalfi-icons`, 2713df9) |
+| `icon/icon-clear.png` | Silica project | CC BY-SA 4.0 | `silica-icons` `apps/mustache` (branch `amalfi-icons`, 2713df9) |
+| `icon/icon-dark.png` | Silica project | CC BY-SA 4.0 | `silica-icons` `apps/mustache` (branch `amalfi-icons`, 2713df9) |
+| `icon/icon-tinted-dark.png` | Silica project | CC BY-SA 4.0 | `silica-icons` `apps/mustache` (branch `amalfi-icons`, 2713df9) |
+| `icon/icon-tinted.png` | Silica project | CC BY-SA 4.0 | `silica-icons` `apps/mustache` (branch `amalfi-icons`, 2713df9) |
+| `icon/icon.png` | Silica project | CC BY-SA 4.0 | `silica-icons` `apps/mustache` (branch `amalfi-icons`, 2713df9) |
