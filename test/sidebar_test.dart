@@ -80,6 +80,21 @@ void main() {
   });
 
   testWidgets(
+    'the sidebar runs full height under the blur strip (silica-ui#91)',
+    (tester) async {
+      await pump(tester);
+      final header = tester.getRect(
+        find.byKey(const ValueKey('header Pinned')),
+      );
+      expect(header.top, 60);
+      final sidebar = tester.getRect(find.byType(Sidebar));
+      expect(sidebar.top, 0);
+      expect(sidebar.height, 700);
+      expect(sidebar.width, 240);
+    },
+  );
+
+  testWidgets(
     'the sidebar section of the toolbar: window controls slot, toggle',
     (tester) async {
       await pump(tester);

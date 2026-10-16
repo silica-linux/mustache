@@ -126,7 +126,8 @@ void main() {
           find.byKey(const ValueKey('sidebar bar')),
         );
         expect(sidebarBar, const Rect.fromLTWH(0, 0, 240, 52));
-        // The surfaces: window on the content, sidebar under the sidebar section.
+        // The surfaces: window on the content, the sidebar surface at 80 % (blur strip) in the
+        // sidebar section.
         expect(
           tester
               .widget<ColoredBox>(
@@ -138,7 +139,7 @@ void main() {
                     .first,
               )
               .color,
-          colors.surfaceSidebar,
+          colors.surfaceSidebar.withValues(alpha: 0.8),
         );
       }
     });

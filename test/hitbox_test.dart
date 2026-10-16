@@ -103,7 +103,7 @@ void main() {
       );
       await gesture.moveBy(const Offset(30, 0));
       await gesture.up();
-      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
     }
 
     // MU-08: not from the title; from the empty space beside it, from the top of the sidebar and

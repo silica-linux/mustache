@@ -96,7 +96,12 @@ class Sidebar extends StatefulWidget {
     required this.current,
     required this.onSelect,
     this.onDrop,
+    this.topInset = 0,
   });
+
+  /// The height of the blur strip over the top of the sidebar (the sidebar section of the
+  /// toolbar): the rows start below it and scroll under it.
+  final double topInset;
 
   /// Dropping dragged items on a place (R2.8): the row turns accent colored.
   final void Function(DragPayload payload, String destination)? onDrop;
@@ -223,6 +228,7 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
     }
     return AmalfiSidebarPanel(
       width: null,
+      topInset: widget.topInset,
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       children: children,
     );

@@ -1100,15 +1100,11 @@ class _MustacheWindowState extends State<MustacheWindow>
                     width: _sidebarWidth,
                     child: ColoredBox(
                       color: colors.surfaceSidebar,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                      child: Stack(
                         children: [
-                          MustacheSidebarBar(
-                            active: _active,
-                            onToggle: _toggleSidebar,
-                          ),
-                          Expanded(
+                          Positioned.fill(
                             child: Sidebar(
+                              topInset: AmalfiToolbarMetrics.toolbarHeight,
                               sections: [
                                 SidebarSection(l10n.sidebarPinned, [
                                   for (final place in widget.places)
@@ -1128,6 +1124,15 @@ class _MustacheWindowState extends State<MustacheWindow>
                                   ? _showTag(place.label)
                                   : _navigate(place.path),
                               onDrop: _drop,
+                            ),
+                          ),
+                          Positioned(
+                            left: 0,
+                            top: 0,
+                            right: 0,
+                            child: MustacheSidebarBar(
+                              active: _active,
+                              onToggle: _toggleSidebar,
                             ),
                           ),
                         ],
