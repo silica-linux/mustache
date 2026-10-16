@@ -65,8 +65,9 @@ part 'window_transfers.dart';
 /// by 36, MU-01).
 const double tabBarHeight = 36;
 
-/// The narrowest window that keeps the window buttons clear (516 pt, titlebar.md).
-const double minimumWindowWidth = 516;
+/// The narrowest window: the sidebar at its default width and the content at its minimum
+/// (240 + 316 pt; the toolbar's back and forward, title and search field fit in the content).
+const double minimumWindowWidth = 556;
 
 /// The shortest window (252 pt, mustache.md).
 const double minimumWindowHeight = 252;

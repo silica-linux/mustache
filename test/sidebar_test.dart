@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -169,6 +170,11 @@ void main() {
     await pump(tester);
     final header = find.byKey(const ValueKey('header Pinned'));
     final placesBefore = tester.getCenter(inSidebar('Places')).dy;
+    // The chevron shows while the pointer is over the header (kit: the plain header).
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: Offset.zero);
+    await mouse.moveTo(tester.getCenter(header));
+    await tester.pump();
     await tester.tap(header);
     await tester.pump();
     // The row text disappears right away; the movement starts after ~70 ms.
@@ -180,7 +186,7 @@ void main() {
       tester.getCenter(inSidebar('Places')).dy,
       closeTo(placesBefore - 2 * sidebarRow, 0.5),
     );
-    // Reopened: back as it was.
+    // Reopened (its chevron stays while it is closed): back as it was.
     await tester.tap(header);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 320));

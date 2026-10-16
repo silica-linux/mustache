@@ -163,7 +163,7 @@ extension _Search on _MustacheWindowState {
             child: SizedBox(
               height: 24,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
                 child: Center(
                   widthFactor: 1,
                   child: Text(
@@ -190,9 +190,12 @@ extension _Search on _MustacheWindowState {
             child: Row(
               spacing: 8,
               children: [
-                Text(
-                  l10n.searchIn,
-                  style: AmalfiType.callout(color: colors.textSecondary),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Text(
+                    l10n.searchIn,
+                    style: AmalfiType.callout(color: colors.textSecondary),
+                  ),
                 ),
                 capsule(l10n.thisComputer, SearchScope.computer),
                 capsule(

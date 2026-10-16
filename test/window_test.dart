@@ -14,7 +14,7 @@ import 'kit.dart';
 
 void main() {
   test('the minimum window keeps the window buttons clear', () {
-    expect(minimumWindowSize, const Size(516, 252));
+    expect(minimumWindowSize, const Size(556, 252));
   });
 
   late Directory root;

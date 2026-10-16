@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+Amalfi (silica_ui 1.0.0 "Amalfi", milestone M6): the whole window is rebuilt on the Amalfi design
+system from the kit page `App · Mustache` (silica_ui v1.0.0-alpha.5). Look and measures are the
+kit's (sidebar 240, flat 52 pt toolbar split in sidebar, content and preview sections, 104 pt icon
+tiles, 28 pt list and column rows, tab bar, path and status bars, scope bar, gallery, preview pane,
+Get Info 264 wide, quick preview 576 × 328, alerts, menus, the progress and conflict windows, the
+tag palette); behaviour and the measured animations are unchanged. The search field is always in
+the toolbar (it starts the search when it takes the focus) and, with the preview pane open (always
+in the columns and gallery views), moves over the pane. Column headings read "Date Modified" and
+"Kind". Tests compare the window's parts with the frames of the kit's masters (`test/kit`). The
+kit's Share button and More Info section, the scope bar's Save button and the quick preview's
+minimise and zoom controls are not drawn: the app cannot do them yet.
+
 Menus in Silica's menu bar (silica-desktop#175): the app menu, File, Edit, View, Go, Window and
 Help, published with silica_ui 0.34's `SilicaMenuBar` as measured (docs/spec/menus-and-settings.md):
 shortcuts, separators, checkmarks (view, sort, bars), labels that follow the selection and

@@ -278,36 +278,45 @@ class _QuickPreviewPanelState extends State<QuickPreviewPanel> {
       }
     }
     final when = longDate(entry.modified);
+    // Kit `Quick Preview`: the icon 160 pt at (40, 84) of the 576 × 328 panel (43 under the bar),
+    // the title at x 232, y 120 (79 under the bar).
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(width: 40),
-        EntryIcon(entry: entry, side: 160, env: widget.env),
+        Padding(
+          padding: const EdgeInsets.only(top: 43),
+          child: EntryIcon(entry: entry, side: 160, env: widget.env),
+        ),
         const SizedBox(width: 32),
         Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                entry.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: AmalfiType.title2(color: colors.textPrimary),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                [
-                  if (!entry.isDirectory) formatSize(entry),
-                  if (count.isNotEmpty) count,
-                ].join(', '),
-                style: AmalfiType.callout(color: colors.textSecondary),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                l10n.lastModified(when),
-                style: AmalfiType.callout(color: colors.textSecondary),
-              ),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.only(top: 79),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  entry.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AmalfiType.title2(color: colors.textPrimary),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  [
+                    if (!entry.isDirectory) formatSize(entry),
+                    if (count.isNotEmpty) count,
+                  ].join(', '),
+                  style: AmalfiType.callout(color: colors.textSecondary),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  l10n.lastModified(when),
+                  style: AmalfiType.callout(color: colors.textSecondary),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(width: 24),

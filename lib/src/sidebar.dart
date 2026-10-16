@@ -113,6 +113,7 @@ class Sidebar extends StatefulWidget {
 
 class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
   final Map<String, AnimationController> _sections = {};
+  String? _hovered;
 
   AnimationController _controller(String title) => _sections.putIfAbsent(
     title,
@@ -179,11 +180,22 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
           children: [
             if (children.isNotEmpty) const SizedBox(height: 12),
             if (title.isNotEmpty)
-              AmalfiSidebarHeader(
-                key: ValueKey('header $title'),
-                title: title,
-                expanded: !_collapsing(title),
-                onToggle: () => _toggle(title),
+              // The header is plain (kit `Sidebar`: `Header/Plain`) and shows its chevron while the
+              // pointer is over it, or while the section is closed, so that it can be opened
+              // (MU-11).
+              MouseRegion(
+                onEnter: (_) => setState(() => _hovered = title),
+                onExit: (_) => setState(() {
+                  if (_hovered == title) _hovered = null;
+                }),
+                child: AmalfiSidebarHeader(
+                  key: ValueKey('header $title'),
+                  title: title,
+                  expanded: _hovered == title || _collapsing(title)
+                      ? !_collapsing(title)
+                      : null,
+                  onToggle: () => _toggle(title),
+                ),
               ),
             ClipRect(
               child: Align(

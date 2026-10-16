@@ -18,15 +18,13 @@ const double galleryThumb = 48;
 const double galleryPitch = 64;
 const double galleryStrip = 56;
 
-/// Between the preview box and the strip, and below the strip.
+/// Between the preview box and the strip, and below the strip (kit `Gallery`: the strip ends 100 above
+/// the bottom of the 640 pt window).
 const double galleryStripGap = 40;
-const double galleryBottom = 32;
+const double galleryBottom = 100;
 
 /// The large icon relative to the short side of the preview box (kit: 196 in a 360 box).
 const double galleryIconRatio = 0.55;
-
-/// The strip starts 8 pt inside the margin (kit: first thumbnail 40 from the edge).
-const double galleryStripPad = galleryMargin + 8;
 
 class GalleryView extends StatefulWidget {
   const GalleryView({
@@ -71,7 +69,7 @@ class _GalleryViewState extends State<GalleryView> {
   /// The strip scrolls just enough to keep the choice visible (R6.1).
   void _reveal(double width) {
     if (!_strip.hasClients) return;
-    final left = galleryStripPad - 8 + galleryPitch * _index;
+    final left = galleryMargin + galleryPitch * _index;
     final right = left + galleryPitch;
     final offset = _strip.offset;
     if (left < offset) {
@@ -128,7 +126,7 @@ class _GalleryViewState extends State<GalleryView> {
                 controller: _strip,
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.fromLTRB(
-                  galleryStripPad - (galleryPitch - galleryStrip) / 2,
+                  galleryMargin,
                   0,
                   galleryMargin,
                   galleryBottom,

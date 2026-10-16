@@ -27,8 +27,8 @@ const double pathSegmentEnd = 8;
 const double pathSegmentExtra =
     pathIcon + pathTextGap + pathChevronGap + pathChevron + pathSegmentEnd;
 
-/// The narrowest a segment shrinks to: icon, gap and chevron.
-const double pathSegmentMin = pathIcon + pathTextGap + pathChevron + 8;
+/// The narrowest a segment shrinks to: its icon and chevron without the name.
+const double pathSegmentMin = pathSegmentExtra;
 
 /// Segment widths in `available` pt (R1.20): all middle ones equal down to 29, then the first, then
 /// the second to last; the last whole.
@@ -141,21 +141,28 @@ class PathBar extends StatelessWidget {
                 );
                 return Padding(
                   padding: const EdgeInsets.only(left: pathBarLeft, top: 1),
-                  child: Row(
-                    children: [
-                      for (var i = 0; i < segments.length; i++)
-                        SizedBox(
-                          width: widths[i],
-                          child: _segment(
-                            segments[i],
-                            label(segments[i]),
-                            last: i == segments.length - 1,
-                            truncated: widths[i] < natural[i] - 0.5,
-                            style: style,
-                            colors: colors,
-                          ),
-                        ),
-                    ],
+                  // Too many segments for the width are cut at the right edge, not an overflow.
+                  child: ClipRect(
+                    child: OverflowBox(
+                      alignment: Alignment.topLeft,
+                      maxWidth: double.infinity,
+                      child: Row(
+                        children: [
+                          for (var i = 0; i < segments.length; i++)
+                            SizedBox(
+                              width: widths[i],
+                              child: _segment(
+                                segments[i],
+                                label(segments[i]),
+                                last: i == segments.length - 1,
+                                truncated: widths[i] < natural[i] - 0.5,
+                                style: style,
+                                colors: colors,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                 );
               },
@@ -197,23 +204,34 @@ class PathBar extends StatelessWidget {
       key: ValueKey('segment $path'),
       behavior: HitTestBehavior.opaque,
       onTap: () => onOpen(path),
+      // Everything hangs from the top of the segment (kit: icon and name at y 6, chevron at y 8 of the
+      // 28 pt bar, 1 under its separator).
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: pathIcon,
-            height: pathIcon,
-            child: entry == null
-                ? null
-                : EntryIcon(entry: entry, side: pathIcon, env: env),
+          Padding(
+            padding: const EdgeInsets.only(top: 5),
+            child: SizedBox(
+              width: pathIcon,
+              height: pathIcon,
+              child: entry == null
+                  ? null
+                  : EntryIcon(entry: entry, side: pathIcon, env: env),
+            ),
           ),
           const SizedBox(width: pathTextGap),
-          Expanded(child: text),
+          Expanded(
+            child: Padding(padding: const EdgeInsets.only(top: 5), child: text),
+          ),
           if (!last) ...[
             const SizedBox(width: pathChevronGap),
-            AmalfiGlyph(
-              AmalfiGlyphs.chevronRight,
-              size: pathChevron,
-              color: colors.textTertiary,
+            Padding(
+              padding: const EdgeInsets.only(top: 7),
+              child: AmalfiGlyph(
+                AmalfiGlyphs.chevronRight,
+                size: pathChevron,
+                color: colors.textTertiary,
+              ),
             ),
             const SizedBox(width: pathSegmentEnd),
           ],

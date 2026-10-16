@@ -396,30 +396,41 @@ class _InfoPanelState extends State<InfoPanel> {
           onTap: () => widget.onToggle(section),
           child: SizedBox(
             height: infoSectionHeight - 1,
-            child: Row(
-              children: [
-                const SizedBox(width: infoPadding),
-                AmalfiGlyph(
-                  open ? AmalfiGlyphs.chevronDown : AmalfiGlyphs.chevronRight,
-                  size: 12,
-                  color: _c.textSecondary,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    infoSectionTitle(section),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AmalfiType.bodyEmphasis(color: _c.textPrimary),
+            // The title 4 below the separator and the chevron 8 (kit `Info`: y 184 and 188 under
+            // the line at 180).
+            child: Padding(
+              padding: const EdgeInsets.only(top: 3),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(width: infoPadding),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: AmalfiGlyph(
+                      open
+                          ? AmalfiGlyphs.chevronDown
+                          : AmalfiGlyphs.chevronRight,
+                      size: 12,
+                      color: _c.textSecondary,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      infoSectionTitle(section),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AmalfiType.bodyEmphasis(color: _c.textPrimary),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
         if (open)
           Padding(
-            padding: const EdgeInsets.only(top: 4, bottom: 12),
+            padding: const EdgeInsets.only(bottom: 4),
             child: _content(section),
           ),
       ],
@@ -462,7 +473,9 @@ class _InfoPanelState extends State<InfoPanel> {
         return Column(
           children: [
             _row(l10n.kind, widget.kind),
-            if (!entry.isDirectory)
+            if (entry.isDirectory)
+              _row(l10n.size, _sizeLine(entry))
+            else
               _row(
                 l10n.size,
                 l10n.sizeOnDisk(
