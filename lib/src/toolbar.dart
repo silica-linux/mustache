@@ -419,16 +419,14 @@ class _MustacheToolbarState extends State<MustacheToolbar> {
               sidebarToggle(toggle),
             ],
             AmalfiToolbarPiece(child: _nav(context)),
-            // The title does not move the window; the empty space beside it does (MU-08).
+            // The title and the empty space beside it move the window (silica-ui#96).
             Expanded(
               child: Row(
                 children: [
                   Flexible(
-                    child: GestureDetector(
+                    child: AmalfiTitlePiece(
                       key: const ValueKey('title'),
-                      behavior: HitTestBehavior.opaque,
-                      onPanStart: (_) {},
-                      child: AmalfiTitlePiece(title: widget.title),
+                      title: widget.title,
                     ),
                   ),
                   const Spacer(),

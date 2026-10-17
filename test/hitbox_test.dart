@@ -106,18 +106,18 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
     }
 
-    // MU-08: not from the title; from the empty space beside it, from the top of the sidebar and
-    // from the status bar, yes.
+    // The title, the empty space beside it, the top of the sidebar and the status bar all move
+    // the window (silica-ui#96).
     final title = tester.getRect(find.byKey(const ValueKey('title')));
     await drag(Offset(title.right - 4, title.center.dy));
-    expect(calls, isNot(contains('startMove')));
-    await drag(Offset(title.right + 20, title.center.dy));
     expect(calls.where((c) => c == 'startMove'), hasLength(1));
-    await drag(const Offset(100, 30));
+    await drag(Offset(title.right + 20, title.center.dy));
     expect(calls.where((c) => c == 'startMove'), hasLength(2));
+    await drag(const Offset(100, 30));
+    expect(calls.where((c) => c == 'startMove'), hasLength(3));
     final status = tester.getRect(find.byKey(const ValueKey('status bar')));
     await drag(status.center + const Offset(-200, 0));
-    expect(calls.where((c) => c == 'startMove'), hasLength(3));
+    expect(calls.where((c) => c == 'startMove'), hasLength(4));
   });
 
   testWidgets('the status bar does not pass clicks to the list behind', (
