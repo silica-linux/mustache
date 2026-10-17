@@ -74,9 +74,9 @@ void main() {
       places.top - downloads.bottom,
       kit.rect('Places').top - kit.rect('Videos').bottom,
     );
-    // The row of the shown folder is selected: the soft accent capsule, the label in Body Emphasis.
+    // The row of the shown folder is selected: the soft accent capsule, the label in 600.
     final home = tester.widget<Text>(inSidebar('casa'));
-    expect(home.style?.fontWeight, FontWeight.w500);
+    expect(home.style?.fontWeight, FontWeight.w600);
   });
 
   testWidgets(

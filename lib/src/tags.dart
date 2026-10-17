@@ -250,7 +250,7 @@ class _TagCircleRowState extends State<TagCircleRow> {
           Text(
             glyph,
             style: TextStyle(
-              fontSize: hovered ? 14 : 10,
+              fontSize: hovered ? 14 : 11,
               height: 1,
               color: const Color(0xFFFFFFFF),
               fontWeight: FontWeight.w600,

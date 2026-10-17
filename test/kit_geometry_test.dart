@@ -322,8 +322,8 @@ void main() {
       );
       final pathBar = tester.getRect(find.byKey(const ValueKey('path bar')));
       expect(pathBar.size, path.size);
-      // The first segment: the icon at (12, 6), the name 4 after it, the chevron 11 after the name
-      // and 8 before the next icon.
+      // The first segment: the 20 pt icon at (12, 4), the name 4 after it, the chevron 9 after the name
+      // and 6 before the next icon.
       Rect inBar(Finder f) => tester.getRect(f).shift(-pathBar.topLeft);
       final first = find.byKey(const ValueKey('segment /'));
       final name = inBar(
@@ -334,7 +334,7 @@ void main() {
       final chevron = inBar(
         find.descendant(of: first, matching: find.byType(AmalfiGlyph)),
       );
-      expect(chevron.left - name.right, closeTo(11, 0.01));
+      expect(chevron.left - name.right, closeTo(9, 0.01));
       expect(chevron.top, path.rect('Chevron').top);
       expect(chevron.size, path.rect('Chevron').size);
       final second = inBar(
@@ -344,7 +344,7 @@ void main() {
           ),
         ),
       );
-      expect(second.left - chevron.right, closeTo(8, 0.01));
+      expect(second.left - chevron.right, closeTo(6, 0.01));
     });
   });
 

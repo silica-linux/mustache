@@ -117,12 +117,14 @@ class MustacheToolbar extends StatelessWidget {
       key: const ValueKey('back and forward'),
       behavior: HitTestBehavior.translucent,
       onLongPressStart: (d) {
-        // The two 32 pt segments: the press is in the left or the right one.
+        // The two segments: the press is in the left or the right one.
         final box = context.findRenderObject()! as RenderBox;
         final index = d.localPosition.dx < box.size.width / 2 ? 0 : 1;
         final callback = index == 0 ? onBackHistory : onForwardHistory;
         callback?.call(
-          box.localToGlobal(Offset(index * 32.0, box.size.height)),
+          box.localToGlobal(
+            Offset(index * box.size.width / 2, box.size.height),
+          ),
         );
       },
       onLongPressEnd: (d) {
@@ -166,6 +168,7 @@ class MustacheToolbar extends StatelessWidget {
     return AmalfiSegmentedControl(
       key: const ValueKey('view group'),
       size: AmalfiControlSize.large,
+      toolbar: true,
       selected: {
         for (var i = 0; i < modes.length; i++)
           if (modes[i].$1 == view) i,
@@ -176,7 +179,7 @@ class MustacheToolbar extends StatelessWidget {
       segments: [
         for (final (mode, symbol) in modes)
           AmalfiSegment.icon(
-            symbolGlyph(symbol, size: 16),
+            symbolGlyph(symbol, size: 20),
             semanticLabel: label(mode),
           ),
       ],

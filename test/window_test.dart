@@ -65,8 +65,8 @@ void main() {
     expect(find.text('nota.txt'), findsOneWidget);
     expect(find.text('.nascosto'), findsNothing);
 
-    // The sidebar: 240 wide, the row label 36 pt from the row (12 from the edge).
-    expect(tester.getTopLeft(find.text('Prova').first).dx, 12 + 36);
+    // The sidebar: 240 wide, the row label 40 pt from the row (12 from the edge).
+    expect(tester.getTopLeft(find.text('Prova').first).dx, 12 + 40);
 
     await tester.tap(find.text('Alfa'));
     await tester.pump(const Duration(milliseconds: 50));
@@ -232,13 +232,13 @@ void main() {
     final nav = inBar(find.byKey(const ValueKey('back and forward')));
     final navPiece = kit.rect('Nav');
     expect(nav.left, navPiece.left + 4);
-    expect(nav.size, const Size(64, 32));
-    expect(nav.top, 10);
+    expect(nav.size, const Size(73, 36));
+    expect(nav.top, 8);
     final views = inBar(find.byKey(const ValueKey('view group')));
     final viewsPiece = kit.rect('Segmented 4');
     expect(views.left, viewsPiece.left + 4);
     expect(views.width, viewsPiece.width - 8);
-    expect(views.height, 32);
+    expect(views.height, 36);
     final search = inBar(find.byKey(const ValueKey('search field')));
     final searchPiece = kit.rect('Search');
     expect(search.left, searchPiece.left + 4);
@@ -277,10 +277,10 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     await tester.pumpAndSettle();
     // The content section starts with the slot of the window buttons (96, 12 of it the section's
-    // padding) and the toggle (40), then the 4 pt of the nav piece.
+    // padding) and the toggle (44), then the 4 pt of the nav piece.
     expect(
       tester.getTopLeft(find.byKey(const ValueKey('back and forward'))).dx,
-      12 + (windowControlsSlot - 12) + 40 + 4,
+      12 + (windowControlsSlot - 12) + 44 + 4,
     );
   });
 }

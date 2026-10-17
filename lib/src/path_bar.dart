@@ -1,7 +1,7 @@
 // The path bar (⌥⌘P, MU-03; kit `Apps/Mustache/Path Bar`): below the content, 28 pt tall with a 1 pt
 // separator on top, one segment per folder from the disk to the open one (or to the chosen item,
-// R1.17): 16 pt icon at x 12, the name 4 pt after it (Caption), a 12 pt chevron 11 pt after the
-// name and 8 before the next icon. A click opens the folder (R1.18). When space runs out, all the
+// R1.17): 20 pt icon at x 12, the name 4 pt after it (Callout), a 16 pt chevron 9 pt after the
+// name and 6 before the next icon. A click opens the folder (R1.18). When space runs out, all the
 // middle segments shrink equally down to their minimum, then the first, then the second to last; the
 // last stays whole; cut text fades out (R1.20, behaviour measured, sizes Amalfi).
 
@@ -16,14 +16,14 @@ import 'model.dart';
 
 const double pathBarHeight = 28;
 const double pathBarLeft = 12;
-const double pathIcon = 16;
+const double pathIcon = 20;
 const double pathTextGap = 4;
 
-/// The space of a segment besides its text: icon and gap, 11 before the chevron, the 12 pt
-/// chevron and 8 before the next icon.
-const double pathChevronGap = 11;
-const double pathChevron = 12;
-const double pathSegmentEnd = 8;
+/// The space of a segment besides its text: icon and gap, 9 before the chevron, the 16 pt
+/// chevron and 6 before the next icon.
+const double pathChevronGap = 9;
+const double pathChevron = 16;
+const double pathSegmentEnd = 6;
 const double pathSegmentExtra =
     pathIcon + pathTextGap + pathChevronGap + pathChevron + pathSegmentEnd;
 
@@ -204,13 +204,13 @@ class PathBar extends StatelessWidget {
       key: ValueKey('segment $path'),
       behavior: HitTestBehavior.opaque,
       onTap: () => onOpen(path),
-      // Everything hangs from the top of the segment (kit: icon and name at y 6, chevron at y 8 of the
+      // Everything hangs from the top of the segment (kit: icon at y 4, name and chevron at y 6 of the
       // 28 pt bar, 1 under its separator).
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(top: 5),
+            padding: const EdgeInsets.only(top: 3),
             child: SizedBox(
               width: pathIcon,
               height: pathIcon,
@@ -226,7 +226,7 @@ class PathBar extends StatelessWidget {
           if (!last) ...[
             const SizedBox(width: pathChevronGap),
             Padding(
-              padding: const EdgeInsets.only(top: 7),
+              padding: const EdgeInsets.only(top: 5),
               child: AmalfiGlyph(
                 AmalfiGlyphs.chevronRight,
                 size: pathChevron,

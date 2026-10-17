@@ -20,7 +20,7 @@ import 'drag.dart';
 import 'model.dart';
 import 'tags.dart';
 
-/// The row pitch: 28 tall plus 4 between rows.
+/// The row pitch: 32 tall, no gap between rows.
 const double sidebarRow =
     AmalfiSidebarMetrics.rowHeight + AmalfiSidebarMetrics.rowGap;
 
@@ -176,15 +176,16 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
       final title = section.title;
       final openness = title.isEmpty ? 1.0 : _openness(title);
       final textVisible = title.isEmpty || !_collapsing(title);
-      // One child per section so that a collapsed section takes only its header: the 4 pt between
-      // the header and the first row is part of what slides away. Between sections the panel's 4
-      // plus 12 make the kit's 16 (the panel adds them itself only before its own headers).
+      // One child per section so that a collapsed section takes only its header: the gap between
+      // the header and the first row is part of what slides away. Between sections the kit's 8 is
+      // added here (the panel adds it itself only before its own headers).
       children.add(
         Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (children.isNotEmpty) const SizedBox(height: 12),
+            if (children.isNotEmpty)
+              const SizedBox(height: AmalfiSidebarMetrics.sectionGap),
             if (title.isNotEmpty)
               // The header is plain (kit `Sidebar`: `Header/Plain`) and shows its chevron while the
               // pointer is over it, or while the section is closed, so that it can be opened
@@ -291,7 +292,7 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
             )
           : AmalfiSymbol(
               symbolFor(place.kind),
-              size: 16,
+              size: AmalfiSidebarMetrics.icon,
               color: AmalfiTheme.of(context).colors.textOnAccent,
             ),
       onTap: () => widget.onSelect(place),
@@ -300,7 +301,7 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
 }
 
 /// A row with its own leading widget (a tag dot, the symbol on the drop highlight): the same
-/// measures as `AmalfiSidebarRow` (28 tall, 12 padding, 16 icon slot, 8 gap, radius 8).
+/// measures as `AmalfiSidebarRow` (32 tall, 12 padding, 20 icon slot, 8 gap, radius 8).
 class _SidebarRow extends StatefulWidget {
   const _SidebarRow({
     super.key,

@@ -117,7 +117,7 @@ extension _Search on _MustacheWindowState {
     });
   }
 
-  /// The search field in the toolbar (kit `Piece/Search`, a large field); Esc clears it but stays in
+  /// The search field in the toolbar (kit `Piece/Search`, a 36 pt toolbar field); Esc clears it but stays in
   /// search (R13.4).
   Widget _searchField(double width) => Focus(
     key: const ValueKey('search field'),
@@ -129,7 +129,7 @@ extension _Search on _MustacheWindowState {
     child: AmalfiSearchField(
       controller: _searchQuery,
       focusNode: _searchFocus,
-      size: AmalfiFieldSize.large,
+      size: AmalfiFieldSize.toolbar,
       width: width,
       placeholder: l10n.searchPlaceholder,
       onChanged: (_) {
