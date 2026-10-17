@@ -1105,6 +1105,18 @@
   "@menuHelp": {
     "description": "The Help menu title."
   },
+  "menuEmptyTrashAction": "Empty Trash",
+  "@menuEmptyTrashAction": {
+    "description": "Button of the Empty Trash alert."
+  },
+  "confirmEmptyTrash": "Are you sure you want to permanently erase the items in the Trash?",
+  "@confirmEmptyTrash": {
+    "description": "Title of the Empty Trash alert."
+  },
+  "emptyTrashWarning": "You can’t undo this action.",
+  "@emptyTrashWarning": {
+    "description": "Message of the Empty Trash alert."
+  },
   "menuEmptyTrash": "Empty Trash…",
   "@menuEmptyTrash": {
     "description": "App menu (disabled until the Trash can be emptied)."

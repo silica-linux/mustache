@@ -168,8 +168,8 @@ void main() {
       'hide_others',
       'show_all',
     ]);
-    // Nothing to run yet behind About, Settings and Empty Trash: disabled.
-    expect(item('Mustache', 'Empty Trash…')['enabled'], isFalse);
+    // Nothing to run yet behind About and Settings: disabled; Empty Trash works.
+    expect(item('Mustache', 'Empty Trash…')['enabled'], isTrue);
     expect(items('Mustache').first['enabled'], isFalse);
     expect(item('Mustache', 'Empty Trash…')['shortcut'], {
       'key': 'Backspace',
@@ -257,6 +257,36 @@ void main() {
     expect(enabled('File', 'Open'), isTrue);
     expect(enabled('File', 'Manage Shared Folder…'), isFalse);
     expect(enabled('Edit', 'Copy “Alfa”'), isTrue);
+    await tester.pump(const Duration(seconds: 1));
+  });
+
+  testWidgets('App › Empty Trash… asks, then deletes what the Trash holds', (
+    tester,
+  ) async {
+    Directory('${root.path}/files').createSync();
+    Directory('${root.path}/info').createSync();
+    File('${root.path}/files/old.txt').writeAsStringSync('x');
+    File(
+      '${root.path}/info/old.txt.trashinfo',
+    ).writeAsStringSync('[Trash Info]');
+    await start(tester, window());
+    await choose(tester, item('Mustache', 'Empty Trash…'));
+    expect(
+      find.text(
+        'Are you sure you want to permanently erase the items in the Trash?',
+      ),
+      findsOneWidget,
+    );
+    // Cancel keeps it.
+    await tester.tap(find.byKey(const ValueKey('alert Cancel')));
+    await tester.pump();
+    await tester.pump();
+    expect(File('${root.path}/files/old.txt').existsSync(), isTrue);
+    await choose(tester, item('Mustache', 'Empty Trash…'));
+    await tester.tap(find.byKey(const ValueKey('alert Empty Trash')));
+    await tester.pump();
+    expect(File('${root.path}/files/old.txt').existsSync(), isFalse);
+    expect(File('${root.path}/info/old.txt.trashinfo').existsSync(), isFalse);
     await tester.pump(const Duration(seconds: 1));
   });
 

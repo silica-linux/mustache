@@ -747,6 +747,16 @@ class AppLocalizationsIt extends AppLocalizations {
   String get menuHelp => 'Aiuto';
 
   @override
+  String get menuEmptyTrashAction => 'Svuota il Cestino';
+
+  @override
+  String get confirmEmptyTrash =>
+      'Vuoi davvero eliminare definitivamente gli elementi nel Cestino?';
+
+  @override
+  String get emptyTrashWarning => 'Questa azione non può essere annullata.';
+
+  @override
   String get menuEmptyTrash => 'Svuota il Cestino…';
 
   @override

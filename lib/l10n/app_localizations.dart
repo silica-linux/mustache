@@ -1310,6 +1310,24 @@ abstract class AppLocalizations {
   /// **'Help'**
   String get menuHelp;
 
+  /// Button of the Empty Trash alert.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty Trash'**
+  String get menuEmptyTrashAction;
+
+  /// Title of the Empty Trash alert.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to permanently erase the items in the Trash?'**
+  String get confirmEmptyTrash;
+
+  /// Message of the Empty Trash alert.
+  ///
+  /// In en, this message translates to:
+  /// **'You can’t undo this action.'**
+  String get emptyTrashWarning;
+
   /// App menu (disabled until the Trash can be emptied).
   ///
   /// In en, this message translates to:

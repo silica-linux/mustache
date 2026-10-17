@@ -194,6 +194,22 @@ class Trash {
   /// Is the path inside the Trash?
   bool contains(String path) => path == files || path.startsWith('$files/');
 
+  /// Deletes everything in the Trash for good (R9.12); the error of the first item that could
+  /// not go, if any (the others are still deleted).
+  String? empty() {
+    String? error;
+    for (final dir in [files, info]) {
+      try {
+        for (final item in Directory(dir).listSync(followLinks: false)) {
+          error ??= deletePermanently(item.path).error;
+        }
+      } on FileSystemException {
+        // No such folder: nothing to delete.
+      }
+    }
+    return error;
+  }
+
   /// Moves to the Trash; the result is the path inside `files/`.
   OpResult put(String path, {DateTime? now}) {
     final type = FileSystemEntity.typeSync(path, followLinks: false);

@@ -159,7 +159,7 @@ same items; the state decides which are enabled and a few labels, as measured:
   Delete Immediately…, Open in New Tab, …) are not menu items: the bar has no alternates; the
   keyboard shortcuts that exist keep working.
 - No Quit: Mustache keeps running without a window (DOCK-02).
-- Shown disabled, not done yet: About, Settings…, Empty Trash…, New Folder with Selection, New
+- Shown disabled, not done yet: About, Settings…, New Folder with Selection, New
   Smart Folder, Compress, Make Link, Share…, Manage Shared Folder…, Show Original, Add to Sidebar,
   Eject, Print, Cut, Show Clipboard, Use Groups, Sort By › Last Opened, Date Added, Created and
   Tags, Show Tab Bar, Show All Tabs, Hide Toolbar, Customize Toolbar…, Show View Options, Show

@@ -41,6 +41,7 @@ class MenuSpec {
     this.duplicate,
     this.quickLook,
     this.moveToTrash,
+    this.emptyTrash,
     this.undo,
     this.undoLabel,
     this.redo,
@@ -104,6 +105,7 @@ class MenuSpec {
   final VoidCallback? duplicate;
   final VoidCallback? quickLook;
   final VoidCallback? moveToTrash;
+  final VoidCallback? emptyTrash;
 
   // Edit.
   final VoidCallback? undo;
@@ -189,7 +191,7 @@ PlatformMenuItemGroup _group(List<PlatformMenuItem> members) =>
 /// Window, Help. Mustache keeps running without a window and has no Quit (DOCK-02): the app menu
 /// has no Quit item.
 List<PlatformMenuItem> buildMenus(MenuSpec s) => [
-  _appMenu(),
+  _appMenu(s),
   _fileMenu(s),
   _editMenu(s),
   _viewMenu(s),
@@ -201,7 +203,7 @@ List<PlatformMenuItem> buildMenus(MenuSpec s) => [
 /// The name of the app in the bar (not translated).
 const String appName = 'Mustache';
 
-SilicaMenu _appMenu() => SilicaMenu(
+SilicaMenu _appMenu(MenuSpec s) => SilicaMenu(
   label: appName,
   role: SilicaMenuRole.app,
   menus: [
@@ -216,7 +218,7 @@ SilicaMenu _appMenu() => SilicaMenu(
     _group([
       _item(
         l10n.menuEmptyTrash,
-        null,
+        s.emptyTrash,
         key: _cmd(LogicalKeyboardKey.backspace, shift: true),
       ),
     ]),

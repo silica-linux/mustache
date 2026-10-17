@@ -79,6 +79,7 @@ extension _WindowMenus on _MustacheWindowState {
       duplicate: run(_duplicate, when: items.isNotEmpty && !dialog),
       quickLook: run(_toggleQuickPreview, when: items.isNotEmpty),
       moveToTrash: run(_moveToTrash, when: items.isNotEmpty && !dialog),
+      emptyTrash: run(_confirmEmptyTrash, when: !dialog),
       undo: run(_undoLast, when: _undo.undoLabel != null && !dialog),
       undoLabel: _undo.undoLabel,
       redo: run(_redoLast, when: _undo.redoLabel != null && !dialog),

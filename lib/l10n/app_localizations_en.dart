@@ -747,6 +747,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get menuHelp => 'Help';
 
   @override
+  String get menuEmptyTrashAction => 'Empty Trash';
+
+  @override
+  String get confirmEmptyTrash =>
+      'Are you sure you want to permanently erase the items in the Trash?';
+
+  @override
+  String get emptyTrashWarning => 'You can’t undo this action.';
+
+  @override
   String get menuEmptyTrash => 'Empty Trash…';
 
   @override
