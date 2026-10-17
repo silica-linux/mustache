@@ -4,13 +4,17 @@
 // `user.xdg.tags`, symbol and emoji in `user.silica.folder`, see folder_style.dart) and every
 // folder icon redraws; there is no OK. Esc, or a click outside, closes it and keeps the changes.
 //
-// Measured: the body 320 × 670 (radius 18), the 96 pt preview, the 13 pt name, the colour row (a
-// 20 pt "remove all tags" button, 26 pt discs at a 34 pitch, a 28 pt "+"), the selected group
-// (10 pt offset, newest in front, 2 pt divider, slide ~280 ms, ~470 ms back), the symbol grid
-// (426 tall, 44 pt cells, 6 per row, 18 pt glyphs, 2 pt accent ring), the 147 × 24 buttons.
-// Provisional: the open and close animation (silica_ui's fade), the light mode of the emoji
-// picker, the emoji picker's own contents (folder_emoji data, emoji_data.dart) and the symbol
-// categories (silica-icons has no category data yet).
+// The surface is `AmalfiPopover` (kit `Apps/Mustache/Customize Folder` and `Emoji Picker`): the
+// Customize Folder body is 320 × 460 with the arrow on its left edge at the folder icon (328
+// wide with the arrow), the emoji picker 320 × 296 below the Emoji button (arrow on top). Kit
+// measures: the 96 pt preview at y 20, the name at y 124, the colour row centred at y 165 (a 20
+// pt "remove all tags" button, 26 pt discs at a 34 pitch from x 46, a 28 pt "+"), a separator at
+// 194, the symbol grid (44 pt cells, 6 per row, 20 pt glyphs, 2 pt accent ring) to 406, the
+// 144 × 28 Clear and Emoji buttons. Measured behaviour: the selected group (10 pt offset,
+// newest in front, 2 pt divider, slide ~280 ms, ~470 ms back).
+// Provisional: the open and close animation (silica_ui's), the emoji picker's own contents
+// (folder_emoji data, emoji_data.dart) and the symbol categories (silica-icons has no category
+// data yet).
 
 import 'dart:async';
 import 'dart:io';
@@ -30,19 +34,19 @@ import 'tags.dart';
 import 'xattr.dart' as xattr show writeTags;
 
 /// The popover body, the emoji picker body and the colour row (measured).
-const Size folderPopoverSize = Size(320, 670);
-const Size emojiPopoverSize = Size(320, 444);
+const Size folderPopoverSize = Size(320, 460);
+const Size emojiPopoverSize = Size(320, 296);
 const double folderPreviewSide = 96;
 const double folderDiscSide = 26;
 const double folderDiscPitch = 34;
-const double folderDiscFirst = 42;
-const double folderRowCentre = 157;
+const double folderDiscFirst = 46;
+const double folderRowCentre = 165;
 const double folderPlusSide = 28;
 const double folderGroupOffset = 10;
 const double folderSymbolCell = 44;
 const int folderSymbolColumns = 6;
-const double folderButtonWidth = 147;
-const double folderButtonHeight = 24;
+const double folderButtonWidth = 144;
+const double folderButtonHeight = 28;
 
 /// The slide of the discs: when a tag is assigned or removed, and when all are removed.
 const Duration folderSlide = Duration(milliseconds: 280);
@@ -58,12 +62,13 @@ const Color folderAccent = Color(0xFF0E77E6);
 
 /// The seven categories of the symbol grid, in order.
 enum SymbolCategoryId {
+  // Objects come first, as in the kit (`Customize Folder` opens on "Objects").
+  objects,
   people,
   nature,
   food,
   activities,
   travel,
-  objects,
   symbols,
 }
 
@@ -98,6 +103,9 @@ const Map<SymbolCategoryId, String> _categorySymbols = {
       'airplane compass globe house-door-fill house-door house-fill house location-fill location '
       'pin scope',
   SymbolCategoryId.objects:
+      // The kit's first rows, in its order.
+      'star heart flag bell bolt house book bookmark camera music-note leaf moon sun cloud '
+      'snowflake umbrella key lightbulb gamecontroller airplane globe paintbrush wrench puzzle '
       'alarm archive battery-0 battery-10 battery-50 battery-charging battery bell-badge bell-fill '
       'bell-slash bell book bookmark-fill bookmark books-vertical-fill books-vertical calendar '
       'clipboard clock cpu cube desktop display-2 display doc-fill doc-plus doc-text doc dock '
@@ -508,22 +516,32 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
           330.0,
           math.min(folderPopoverSize.height, bounds.height - 16),
         );
-        final place = placePopover(
+        const arrow = AmalfiPopoverMetrics.arrowDepth;
+        final place = amalfiPopoverLayout(
           anchor: anchor,
-          size: Size(folderPopoverSize.width, height),
-          bounds: bounds,
-          preferred: TipEdge.right,
+          size: Size(folderPopoverSize.width + arrow, height),
+          bounds: bounds.size,
+          placement: AmalfiPopoverPlacement.trailing,
         );
-        _mainRect = place.rect;
+        final mainRect =
+            place.offset & Size(folderPopoverSize.width + arrow, height);
+        _mainRect = mainRect;
         final emoji = _emojiOpen
-            ? placePopover(
+            ? amalfiPopoverLayout(
                 anchor: _emojiAnchor,
-                size: emojiPopoverSize,
-                bounds: bounds,
-                preferred: TipEdge.bottom,
+                size: Size(
+                  emojiPopoverSize.width,
+                  emojiPopoverSize.height + arrow,
+                ),
+                bounds: bounds.size,
+                placement: AmalfiPopoverPlacement.below,
               )
             : null;
-        _emojiRect = emoji?.rect ?? Rect.zero;
+        final emojiRect = emoji == null
+            ? Rect.zero
+            : emoji.offset &
+                  Size(emojiPopoverSize.width, emojiPopoverSize.height + arrow);
+        _emojiRect = emojiRect;
         return CallbackShortcuts(
           bindings: {const SingleActivator(LogicalKeyboardKey.escape): _escape},
           child: Focus(
@@ -549,23 +567,37 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
                   ),
                 ),
                 Positioned.fromRect(
-                  rect: place.rect,
-                  child: PopoverPanel(
+                  rect: mainRect,
+                  child: AmalfiPopover(
                     key: const ValueKey('folder popover'),
-                    edge: place.edge,
-                    tip: place.tip,
-                    child: _body(),
+                    arrowEdge: amalfiPopoverArrowEdge(place.placement),
+                    arrowOffset: place.arrowOffset,
+                    padding: EdgeInsets.zero,
+                    child: SizedBox(
+                      width: folderPopoverSize.width,
+                      height: height,
+                      child: _body(),
+                    ),
                   ),
                 ),
                 if (emoji != null)
                   Positioned.fromRect(
                     key: const ValueKey('emoji host'),
-                    rect: emoji.rect,
-                    child: PopoverPanel(
+                    rect: emojiRect,
+                    child: AmalfiPopover(
                       key: const ValueKey('emoji popover'),
-                      edge: emoji.edge,
-                      tip: emoji.tip,
-                      child: EmojiPicker(onPick: _pickEmoji),
+                      arrowEdge: amalfiPopoverArrowEdge(emoji.placement),
+                      arrowOffset: emoji.arrowOffset,
+                      padding: EdgeInsets.zero,
+                      child: SizedBox(
+                        width: emojiPopoverSize.width,
+                        height: emojiPopoverSize.height,
+                        child: EmojiPicker(
+                          onPick: _pickEmoji,
+                          selected: _style.emoji,
+                          env: widget.env,
+                        ),
+                      ),
                     ),
                   ),
               ],
@@ -580,12 +612,12 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
     final p = _p;
     return Column(
       children: [
-        SizedBox(height: 202, child: _top(p)),
+        SizedBox(height: 194, child: _top(p)),
         _line(p),
         Expanded(child: _symbols(p)),
         _line(p),
         Padding(
-          padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+          padding: const EdgeInsets.fromLTRB(16, 7, 8, 18),
           child: Row(
             children: [
               _button(
@@ -595,7 +627,7 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
                 onTap: () => _save(_style.withSymbol(null).withEmoji(null)),
                 child: Text(l10n.folderClear, style: _text(p.text)),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               _button(
                 p,
                 key: 'folder emoji button',
@@ -605,8 +637,8 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _style.emoji != null
-                        ? Text(_style.emoji!, style: _text(p.text, size: 14))
-                        : _glyph('smiley', 14, p.text, fallback: '☺'),
+                        ? Text(_style.emoji!, style: _text(p.text, size: 16))
+                        : _glyph('smiley', 20, p.text, fallback: '☺'),
                     const SizedBox(width: 6),
                     Text(l10n.folderEmoji, style: _text(p.text)),
                   ],
@@ -641,32 +673,15 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: p.button,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(14),
         ),
         child: child,
       ),
     ),
   );
 
-  Widget _glyph(String name, double side, Color color, {String? fallback}) {
-    final dir = folderSymbolsDir(env: widget.env);
-    final file = dir == null ? null : File('$dir/regular/$name.svg');
-    if (file == null || !file.existsSync()) {
-      return SizedBox(
-        width: side,
-        height: side,
-        child: Center(
-          child: Text(fallback ?? '', style: _text(color, size: side)),
-        ),
-      );
-    }
-    return SvgPicture.file(
-      file,
-      width: side,
-      height: side,
-      colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-    );
-  }
+  Widget _glyph(String name, double side, Color color, {String? fallback}) =>
+      _symbolGlyph(name, side, color, env: widget.env, fallback: fallback);
 
   // The top: preview, name, colour row, caption ------------------------------------------------
 
@@ -705,17 +720,17 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
       clipBehavior: Clip.none,
       children: [
         Positioned(
-          top: 16,
+          top: 20,
           left: (folderPopoverSize.width - folderPreviewSide) / 2,
           width: folderPreviewSide,
           height: folderPreviewSide,
           child: _preview(),
         ),
         Positioned(
-          top: 116,
+          top: 124,
           left: 12,
           right: 12,
-          height: 16,
+          height: 18,
           child: Text(
             displayName(widget.path),
             key: const ValueKey('folder name'),
@@ -726,7 +741,7 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
           ),
         ),
         Positioned(
-          left: 12,
+          left: 16,
           top: folderRowCentre - 10,
           width: 20,
           height: 20,
@@ -790,10 +805,10 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
         ),
         if (caption != null)
           Positioned(
-            top: 178,
+            top: 180,
             left: 8,
             right: 8,
-            height: 14,
+            height: 12,
             child: Text(
               caption,
               key: const ValueKey('folder caption'),
@@ -906,27 +921,22 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
         for (final category in categories) ...[
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
+              padding: const EdgeInsets.fromLTRB(20, 7, 20, 4),
               child: SizedBox(
                 height: 16,
                 child: Text(
                   symbolCategoryTitle(category.id),
-                  style: _text(p.text, weight: FontWeight.w700),
+                  style: _text(p.secondary, weight: FontWeight.w600),
                 ),
               ),
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 28),
             sliver: SliverGrid.builder(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: folderSymbolColumns,
                 mainAxisExtent: folderSymbolCell,
-                crossAxisSpacing:
-                    (folderPopoverSize.width -
-                        40 -
-                        folderSymbolCell * folderSymbolColumns) /
-                    (folderSymbolColumns - 1),
               ),
               itemCount: category.names.length,
               itemBuilder: (context, i) =>
@@ -961,8 +971,8 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
               : null,
           child: SvgPicture.file(
             File('$dir/regular/$name.svg'),
-            width: 18,
-            height: 18,
+            width: 20,
+            height: 20,
             colorFilter: ColorFilter.mode(
               selected ? p.accent : p.glyph,
               BlendMode.srcIn,
@@ -1027,12 +1037,59 @@ class _PlusPainter extends CustomPainter {
   bool shouldRepaint(_PlusPainter old) => old.color != color;
 }
 
-/// The emoji picker (provisional, emoji_data.dart): a search field, the frequently used emoji and
-/// the categories in a grid of 6 columns, a category bar at the bottom. [onPick] gets the emoji.
+/// A silica-icons symbol (Regular) at [side], or [fallback] text without silica-icons.
+Widget _symbolGlyph(
+  String name,
+  double side,
+  Color color, {
+  Map<String, String>? env,
+  String? fallback,
+}) {
+  final dir = folderSymbolsDir(env: env);
+  final file = dir == null ? null : File('$dir/regular/$name.svg');
+  if (file == null || !file.existsSync()) {
+    return SizedBox(
+      width: side,
+      height: side,
+      child: Center(
+        child: Text(fallback ?? '', style: _text(color, size: side)),
+      ),
+    );
+  }
+  return SvgPicture.file(
+    file,
+    width: side,
+    height: side,
+    colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+  );
+}
+
+/// The category bar of the emoji picker (kit `Emoji Picker`): a symbol per button and the
+/// section of [emojiCategories] it jumps to (0 is "frequently used"; food is reached by
+/// scrolling past animals).
+const List<(String, int)> _emojiBar = [
+  ('clock', 0),
+  ('smiley', 1),
+  ('leaf', 2),
+  ('gamecontroller', 4),
+  ('airplane', 5),
+  ('lightbulb', 6),
+  ('at', 7),
+  ('flag', 8),
+];
+
+/// The emoji picker (kit `Apps/Mustache/Emoji Picker`, 320 × 296 content; contents provisional,
+/// emoji_data.dart): a search field, the frequently used emoji and the categories in a grid of
+/// 6 columns (48 × 44 cells, the chosen one on an accent tint), a category bar at the bottom.
+/// [onPick] gets the emoji.
 class EmojiPicker extends StatefulWidget {
-  const EmojiPicker({super.key, required this.onPick});
+  const EmojiPicker({super.key, required this.onPick, this.selected, this.env});
 
   final ValueChanged<String> onPick;
+
+  /// The folder's emoji now, drawn on the tint.
+  final String? selected;
+  final Map<String, String>? env;
 
   @override
   State<EmojiPicker> createState() => _EmojiPickerState();
@@ -1046,11 +1103,14 @@ class _EmojiPickerState extends State<EmojiPicker> {
     emojiCategories.length + 1,
     (_) => GlobalKey(),
   );
+  final GlobalKey _viewport = GlobalKey();
+  int _current = 0;
 
   @override
   void initState() {
     super.initState();
     _query.addListener(() => setState(() {}));
+    _scroll.addListener(_track);
   }
 
   @override
@@ -1061,8 +1121,23 @@ class _EmojiPickerState extends State<EmojiPicker> {
     super.dispose();
   }
 
-  // The emoji picker is dark only in the reference (light is not measured): light follows the
-  // popover's colours.
+  /// The section at the top of the grid is the category bar's current one.
+  void _track() {
+    final view = _viewport.currentContext?.findRenderObject();
+    if (view is! RenderBox || !view.attached) return;
+    final top = view.localToGlobal(Offset.zero).dy;
+    var current = 0;
+    for (var i = 0; i < _sections.length; i++) {
+      final box = _sections[i].currentContext?.findRenderObject();
+      if (box is RenderBox &&
+          box.attached &&
+          box.localToGlobal(Offset.zero).dy <= top + 8) {
+        current = i;
+      }
+    }
+    if (current != _current) setState(() => _current = current);
+  }
+
   _Palette get _p =>
       _Palette(AmalfiTheme.of(context).isDark, AmalfiTheme.of(context).colors);
 
@@ -1093,75 +1168,83 @@ class _EmojiPickerState extends State<EmojiPicker> {
       height: emojiPopoverSize.height,
       child: Column(
         children: [
-          Padding(padding: const EdgeInsets.all(10), child: _searchField(p)),
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: _searchField(p),
+          ),
           Expanded(
-            child: searching
-                ? (unique.isEmpty
-                      ? Center(
-                          child: Text(
-                            l10n.emojiNone,
-                            style: _text(p.secondary),
-                          ),
-                        )
-                      : ListView(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          children: [_grid(unique)],
-                        ))
-                : SingleChildScrollView(
-                    key: const ValueKey('emoji grid'),
-                    controller: _scroll,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (var i = 0; i <= emojiCategories.length; i++)
-                          Column(
-                            key: _sections[i],
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  top: 8,
-                                  bottom: 4,
-                                ),
-                                child: Text(
-                                  _title(i),
-                                  style: _text(
-                                    p.secondary,
-                                    size: 11,
-                                    weight: FontWeight.w700,
+            child: KeyedSubtree(
+              key: _viewport,
+              child: searching
+                  ? (unique.isEmpty
+                        ? Center(
+                            child: Text(
+                              l10n.emojiNone,
+                              style: _text(p.secondary),
+                            ),
+                          )
+                        : ListView(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            children: [_grid(unique)],
+                          ))
+                  : SingleChildScrollView(
+                      key: const ValueKey('emoji grid'),
+                      controller: _scroll,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (var i = 0; i <= emojiCategories.length; i++)
+                            Column(
+                              key: _sections[i],
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: SizedBox(
+                                    height: 16,
+                                    child: Text(
+                                      _title(i),
+                                      style: _text(
+                                        p.secondary,
+                                        size: 12,
+                                        weight: FontWeight.w600,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
-                              _grid(
-                                i == 0
-                                    ? frequentEmoji
-                                    : [
-                                        for (final e
-                                            in emojiCategories[i - 1].items)
-                                          e.emoji,
-                                      ],
-                              ),
-                            ],
-                          ),
-                      ],
+                                const SizedBox(height: 4),
+                                _grid(
+                                  i == 0
+                                      ? frequentEmoji
+                                      : [
+                                          for (final e
+                                              in emojiCategories[i - 1].items)
+                                            e.emoji,
+                                        ],
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
+            ),
           ),
           Container(height: 1, color: p.line),
           SizedBox(
-            height: 36,
+            height: 43,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                for (var i = 0; i <= emojiCategories.length; i++)
+                const SizedBox(width: 14),
+                for (var b = 0; b < _emojiBar.length; b++)
                   GestureDetector(
-                    key: ValueKey('emoji category $i'),
+                    key: ValueKey('emoji category ${_emojiBar[b].$2}'),
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
                       _query.clear();
+                      setState(() => _current = _emojiBar[b].$2);
                       WidgetsBinding.instance.addPostFrameCallback((_) {
-                        final ctx = _sections[i].currentContext;
+                        final ctx = _sections[_emojiBar[b].$2].currentContext;
                         if (ctx != null) {
                           Scrollable.ensureVisible(
                             ctx,
@@ -1171,12 +1254,17 @@ class _EmojiPickerState extends State<EmojiPicker> {
                       });
                     },
                     child: SizedBox(
-                      width: 30,
-                      height: 36,
+                      width: 36,
+                      height: 43,
                       child: Center(
-                        child: Text(
-                          i == 0 ? '🕘' : emojiCategories[i - 1].icon,
-                          style: _text(p.text, size: 16),
+                        child: _symbolGlyph(
+                          _emojiBar[b].$1,
+                          20,
+                          !searching && _current == _emojiBar[b].$2
+                              ? p.accent
+                              : p.glyph,
+                          env: widget.env,
+                          fallback: '·',
                         ),
                       ),
                     ),
@@ -1202,40 +1290,62 @@ class _EmojiPickerState extends State<EmojiPicker> {
       key: ValueKey('emoji ${emoji[i]}'),
       behavior: HitTestBehavior.opaque,
       onTap: () => widget.onPick(emoji[i]),
-      child: Center(child: Text(emoji[i], style: _text(_p.text, size: 32))),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Container(
+          width: 44,
+          height: 36,
+          alignment: Alignment.center,
+          decoration: emoji[i] == widget.selected
+              ? BoxDecoration(
+                  color: _p.tokens.accentAmalfiSoft,
+                  borderRadius: BorderRadius.circular(8),
+                )
+              : null,
+          child: Text(emoji[i], style: _text(_p.text, size: 28)),
+        ),
+      ),
     ),
   );
 
   Widget _searchField(_Palette p) => Container(
     key: const ValueKey('emoji search'),
-    width: 300,
+    width: 288,
     height: 28,
-    padding: const EdgeInsets.symmetric(horizontal: 8),
+    padding: const EdgeInsets.symmetric(horizontal: 12),
     alignment: Alignment.centerLeft,
     decoration: BoxDecoration(
-      color: p.button,
-      borderRadius: BorderRadius.circular(7),
+      color: p.tokens.surfaceSunken,
+      borderRadius: BorderRadius.circular(14),
     ),
-    child: Stack(
-      alignment: Alignment.centerLeft,
+    child: Row(
       children: [
-        ValueListenableBuilder(
-          valueListenable: _query,
-          builder: (context, value, _) => value.text.isEmpty
-              ? Text(l10n.emojiSearch, style: _text(p.secondary))
-              : const SizedBox.shrink(),
-        ),
-        DefaultTextEditingShortcuts(
-          child: EditableText(
-            controller: _query,
-            focusNode: _focus,
-            autofocus: true,
-            style: _text(p.text),
-            cursorColor: p.text,
-            backgroundCursorColor: p.text,
-            selectionColor: p.tokens.accentAmalfiSoft,
-            maxLines: 1,
-            onSubmitted: (_) {},
+        _symbolGlyph('search', 16, p.secondary, env: widget.env, fallback: '⌕'),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              ValueListenableBuilder(
+                valueListenable: _query,
+                builder: (context, value, _) => value.text.isEmpty
+                    ? Text(l10n.emojiSearch, style: _text(p.secondary))
+                    : const SizedBox.shrink(),
+              ),
+              DefaultTextEditingShortcuts(
+                child: EditableText(
+                  controller: _query,
+                  focusNode: _focus,
+                  autofocus: true,
+                  style: _text(p.text),
+                  cursorColor: p.text,
+                  backgroundCursorColor: p.text,
+                  selectionColor: p.tokens.accentAmalfiSoft,
+                  maxLines: 1,
+                  onSubmitted: (_) {},
+                ),
+              ),
+            ],
           ),
         ),
       ],

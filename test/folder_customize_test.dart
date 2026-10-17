@@ -112,8 +112,11 @@ void main() {
     await tester.pump();
   }
 
-  Rect body(WidgetTester tester) =>
-      tester.getRect(find.byKey(const ValueKey('folder popover')));
+  /// The body of the popover: its rectangle without the 8 pt arrow on the left.
+  Rect body(WidgetTester tester) {
+    final r = tester.getRect(find.byKey(const ValueKey('folder popover')));
+    return Rect.fromLTRB(r.left + 8, r.top, r.right, r.bottom);
+  }
 
   /// The left edge of a disc relative to the popover body.
   double discX(WidgetTester tester, String name) =>
@@ -126,22 +129,22 @@ void main() {
     }
   }
 
-  testWidgets('the popover: 320 x 670 body, arrow on the left of the icon', (
+  testWidgets('the popover: 320 x 460 body, arrow on the left of the icon', (
     tester,
   ) async {
     await pumpPopover(tester);
     final rect = body(tester);
-    expect(rect.size, const Size(320, 670));
+    expect(rect.size, const Size(320, 460));
     // To the right of the icon (64 pt wide at x 100), the arrow pointing at it.
     expect(rect.left, greaterThan(164));
-    // Preview 96 pt, discs 26 pt at a 34 pitch from x 42, the "+" 28 pt.
+    // Preview 96 pt, discs 26 pt at a 34 pitch from x 46, the "+" 28 pt.
     expect(
       tester.getSize(find.byKey(const ValueKey('folder preview'))),
       const Size(96, 96),
     );
-    expect(discX(tester, 'red'), 42);
-    expect(discX(tester, 'orange'), 76);
-    expect(discX(tester, 'gray'), 42 + 34 * 6);
+    expect(discX(tester, 'red'), 46);
+    expect(discX(tester, 'orange'), 80);
+    expect(discX(tester, 'gray'), 46 + 34 * 6);
     expect(
       tester.getSize(find.byKey(const ValueKey('folder disc red'))),
       const Size(26, 26),
@@ -152,11 +155,11 @@ void main() {
     );
     expect(
       tester.getSize(find.byKey(const ValueKey('folder emoji button'))),
-      const Size(147, 24),
+      const Size(144, 28),
     );
     expect(
       tester.getSize(find.byKey(const ValueKey('folder clear'))),
-      const Size(147, 24),
+      const Size(144, 28),
     );
     // The grid: 6 columns of 44 pt cells.
     final a = tester.getTopLeft(
@@ -218,16 +221,16 @@ void main() {
     expect(find.text('✓'), findsOneWidget);
     expect(find.byKey(const ValueKey('folder tag divider')), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 20));
-    expect(discX(tester, 'orange'), lessThan(84));
+    expect(discX(tester, 'orange'), lessThan(88));
     await slide(tester);
-    expect(discX(tester, 'red'), 42);
-    expect(discX(tester, 'orange'), 84);
-    expect(discX(tester, 'gray'), 84 + 34 * 5);
+    expect(discX(tester, 'red'), 46);
+    expect(discX(tester, 'orange'), 88);
+    expect(discX(tester, 'gray'), 88 + 34 * 5);
     final divider = tester.getRect(
       find.byKey(const ValueKey('folder tag divider')),
     );
     expect(divider.width, 2);
-    expect(divider.left - body(tester).left, 42 + 26 + 6);
+    expect(divider.left - body(tester).left, 46 + 26 + 6);
 
     // A second tag: the group is 36 wide, the newest in front, on the left; the folder takes
     // the colour of the last assigned.
@@ -235,9 +238,9 @@ void main() {
     await slide(tester);
     expect(disk.tags[_path], ['Red', 'Orange']);
     expect(styles.look(_path).tint, 'orange');
-    expect(discX(tester, 'orange'), 42);
-    expect(discX(tester, 'red'), 52);
-    expect(discX(tester, 'yellow'), 42 + 36 + 6 + 2 + 8);
+    expect(discX(tester, 'orange'), 46);
+    expect(discX(tester, 'red'), 56);
+    expect(discX(tester, 'yellow'), 46 + 36 + 6 + 2 + 8);
     // In front: orange paints after red.
     final order = [
       for (final w in tester.widgetList(
@@ -309,10 +312,10 @@ void main() {
     expect(styles.look(_path).tint, isNull);
     expect(find.byKey(const ValueKey('folder tag divider')), findsNothing);
     await tester.pump(const Duration(milliseconds: 100));
-    expect(discX(tester, 'red'), isNot(42 + 0.0), reason: 'still sliding');
+    expect(discX(tester, 'red'), isNot(46 + 0.0), reason: 'still sliding');
     await slide(tester, 700);
     for (var i = 0; i < TagColor.values.length; i++) {
-      expect(discX(tester, TagColor.values[i].name), 42 + 34.0 * i);
+      expect(discX(tester, TagColor.values[i].name), 46 + 34.0 * i);
     }
   });
 
@@ -363,22 +366,21 @@ void main() {
     expect(styles.look(_path).tint, 'blue');
   });
 
-  testWidgets('the symbols are in categories, People first, Symbols last', (
+  testWidgets('the symbols are in categories, Objects first as in the kit', (
     tester,
   ) async {
     final categories = folderSymbolCategories(env: env);
     expect(
       [for (final c in categories) c.id],
       [
+        SymbolCategoryId.objects,
         SymbolCategoryId.people,
         SymbolCategoryId.activities,
-        SymbolCategoryId.travel,
-        SymbolCategoryId.objects,
-        SymbolCategoryId.symbols,
       ],
     );
-    expect(categories.first.names, ['smiley']);
-    expect(categories.last.names, ['star']);
+    // The kit's first rows come first, then the rest of the category.
+    expect(categories.first.names, ['star', 'house', 'music-note', 'doc-text']);
+    expect(categories.last.names, ['music-list']);
     expect(SymbolCategoryId.values, hasLength(7));
     // Every symbol is in exactly one category.
     final all = [for (final c in categories) ...c.names];
@@ -397,7 +399,7 @@ void main() {
     expect(find.byKey(const ValueKey('emoji popover')), findsOneWidget);
     expect(
       tester.getSize(find.byKey(const ValueKey('emoji popover'))),
-      const Size(320, 444),
+      const Size(320, 304),
     );
     expect(
       tester.getSize(find.byKey(const ValueKey('emoji search'))).height,
@@ -708,7 +710,7 @@ void main() {
             .first,
       );
       final rect = tester.getRect(find.byKey(const ValueKey('folder popover')));
-      expect(rect.left, greaterThan(icon.right));
+      expect(rect.left, greaterThanOrEqualTo(icon.right));
       await tester.tap(find.byKey(const ValueKey('folder symbol star')));
       await tester.pump();
       expect(
