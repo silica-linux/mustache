@@ -1647,5 +1647,13 @@
   "settingsCurrentFolder": "Current folder",
   "@settingsCurrentFolder": {
     "description": "Settings \u203a Advanced: search scope."
-  }
+  },
+  "toolbarActions": "Actions",
+  "@toolbarActions": {"description": "Accessibility label of the Actions button of the toolbar and its item in the overflow menu."},
+  "toolbarTags": "Tags",
+  "@toolbarTags": {"description": "Accessibility label of the Tags button of the toolbar and header of its popover."},
+  "toolbarMore": "More",
+  "@toolbarMore": {"description": "Accessibility label of the overflow button of the toolbar."},
+  "tagsShowAll": "Show All…",
+  "@tagsShowAll": {"description": "Item of the Tags popover that lists every tag colour, not only the favourites."}
 }

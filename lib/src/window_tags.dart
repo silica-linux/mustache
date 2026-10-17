@@ -62,6 +62,76 @@ extension _Tags on _MustacheWindowState {
     }
   }
 
+  /// The Tags popover of the toolbar (kit `Toolbar/Tags Popover`): the first favourite colours, each
+  /// with its dot and a check when every selected item has it, and Show All… for the rest.
+  Future<void> _openTagsPopover(Rect anchor) async {
+    final host = _bodyKey.currentContext;
+    final items = _selection;
+    if (host == null || items.isEmpty) return;
+    var all = false;
+    var keepOpen = false;
+    await showAmalfiPopover(
+      context: host,
+      anchor: anchor,
+      padding: AmalfiPopoverMetrics.listPadding,
+      builder: (context, dismiss) => StatefulBuilder(
+        builder: (context, setPopover) {
+          final assigned = _sharedColors(items);
+          final dark = AmalfiTheme.of(context).isDark;
+          // The first five of Settings › Tags › Favourite tags (kit: five and Show All…).
+          final ordered = favouriteOrder(
+            widget.settings?.favouriteTags ?? const [],
+          );
+          final colors = all ? ordered : ordered.take(5).toList();
+          return AmalfiPopoverList(
+            width: 216,
+            autofocus: true,
+            // Choosing a colour closes it; Show All… keeps it open with the whole list.
+            onDismiss: () {
+              if (keepOpen) {
+                keepOpen = false;
+                return;
+              }
+              dismiss();
+            },
+            entries: [
+              AmalfiMenuSection(l10n.toolbarTags),
+              for (final color in colors)
+                AmalfiMenuAction(
+                  tagName(color),
+                  icon: TagDot(
+                    color: menuTagColor(color, dark: dark),
+                    side: 12,
+                    ring: false,
+                  ),
+                  checked: assigned.contains(color),
+                  onSelected: () => _toggleTag(color, items),
+                ),
+              if (!all && ordered.length > colors.length) ...[
+                const AmalfiMenuDivider(),
+                AmalfiMenuAction(
+                  l10n.tagsShowAll,
+                  onSelected: () {
+                    keepOpen = true;
+                    setPopover(() => all = true);
+                  },
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+    if (mounted) _focus.requestFocus();
+  }
+
+  /// The Actions menu of the toolbar (kit `Toolbar/Actions Menu`): the menu of the selected
+  /// items, or the folder's menu without a selection.
+  List<AmalfiMenuEntry> _toolbarActions() {
+    final items = _selection;
+    return items.isEmpty ? _backgroundMenu() : _itemsMenu(items);
+  }
+
   /// The actions at the bottom of the preview pane, depending on the choice (spec/preview-pane.md): Edit for
   /// images and PDFs (with the default app), More (the item menu) always.
   List<PaneAction> _paneActions() {

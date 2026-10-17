@@ -33,7 +33,7 @@ void main() {
   tearDown(() => root.deleteSync(recursive: true));
 
   Future<Settings> pump(WidgetTester tester, {String view = 'list'}) async {
-    tester.view.physicalSize = const Size(1000, 700);
+    tester.view.physicalSize = const Size(1400, 700);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final settings =

@@ -68,15 +68,23 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('the Share button appears for a selection and shares it', (
-    tester,
-  ) async {
+  // The Share segment of the Share · Tags · Actions capsule: the first third of it.
+  Offset shareSegment(WidgetTester tester) {
+    final capsule = tester.getRect(
+      find.byKey(const ValueKey('share tags actions')),
+    );
+    return capsule.topLeft + Offset(capsule.width / 6, capsule.height / 2);
+  }
+
+  testWidgets('Share is enabled for a selection and shares it', (tester) async {
     await pump(tester, service: true);
-    expect(find.byKey(const ValueKey('share piece')), findsNothing);
+    // Nothing selected: Share does nothing.
+    await tester.tapAt(shareSegment(tester));
+    await tester.pumpAndSettle();
+    expect(find.text('Mail'), findsNothing);
     await tester.tap(find.byKey(ValueKey('${home.path}/a.txt')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('share piece')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('share piece')));
+    await tester.tapAt(shareSegment(tester));
     await tester.pump(const Duration(milliseconds: 50));
     await tester.pumpAndSettle();
     // ignore: avoid_print
@@ -97,11 +105,14 @@ void main() {
     ]);
   });
 
-  testWidgets('without the share service there is no button', (tester) async {
+  testWidgets('without the share service Share stays disabled', (tester) async {
     await pump(tester, service: false);
     await tester.tap(find.byKey(ValueKey('${home.path}/a.txt')));
     await tester.pumpAndSettle();
     expect(calls, isNotEmpty);
-    expect(find.byKey(const ValueKey('share piece')), findsNothing);
+    await tester.tapAt(shareSegment(tester));
+    await tester.pumpAndSettle();
+    expect(find.text('Mail'), findsNothing);
+    expect(find.text('Copy'), findsNothing);
   });
 }

@@ -255,6 +255,11 @@ void main() {
     (tester) async {
       await pumpWindow(tester);
       await shortcut(tester, LogicalKeyboardKey.keyF);
+      // Search starts with the first letter; emptied again, Save has nothing to keep.
+      await tester.enterText(find.byType(EditableText).last, 'x');
+      await tester.pump();
+      await tester.enterText(find.byType(EditableText).last, '');
+      await tester.pump();
       await tester.tap(find.byKey(const ValueKey('save search button')));
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.byKey(const ValueKey('save search')), findsNothing);

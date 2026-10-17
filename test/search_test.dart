@@ -42,9 +42,12 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
     await tester.pump();
     expect(find.byKey(const ValueKey('search field')), findsOneWidget);
+    // ⌘F opens and focuses the field; search starts when text is typed.
+    expect(find.byKey(const ValueKey('scope bar')), findsNothing);
+    await tester.enterText(find.byType(EditableText).last, 'bilancio');
+    await tester.pump();
     expect(find.byKey(const ValueKey('scope bar')), findsOneWidget);
     expect(find.text('Searching “This Computer”'), findsOneWidget);
-    await tester.enterText(find.byType(EditableText).last, 'bilancio');
     await tester.pump(const Duration(milliseconds: 300));
     for (var i = 0; i < 20; i++) {
       await tester.runAsync(
@@ -58,11 +61,16 @@ void main() {
     expect(find.text('altro.txt'), findsNothing);
     expect(find.textContaining('.nascosta'), findsNothing);
 
-    // Esc: the field is cleared, the window stays in search.
+    // Esc: the field is cleared and collapses, the folder is back.
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pump();
+    expect(find.byKey(const ValueKey('scope bar')), findsNothing);
+    expect(find.textContaining('lettera'), findsWidgets);
+
+    // Typing again and ⌘[: back to the folder.
+    await tester.enterText(find.byType(EditableText).last, 'bilancio');
+    await tester.pump();
     expect(find.byKey(const ValueKey('scope bar')), findsOneWidget);
-    expect(find.text('lettera.txt'), findsNothing);
 
     // ⌘[: back to the folder.
     await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);

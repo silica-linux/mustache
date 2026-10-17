@@ -1143,4 +1143,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsCurrentFolder => 'Current folder';
+
+  @override
+  String get toolbarActions => 'Actions';
+
+  @override
+  String get toolbarTags => 'Tags';
+
+  @override
+  String get toolbarMore => 'More';
+
+  @override
+  String get tagsShowAll => 'Show All…';
 }

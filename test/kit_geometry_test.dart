@@ -253,8 +253,10 @@ void main() {
       await pump(tester, view: 'list');
       final kit = loadKit('Search');
       final scope = loadKit('Scope Bar');
-      await tester.tap(find.byType(AmalfiSearchField));
-      await tester.pump();
+      // The circle grows into the field; with it open the view group is a pop-up.
+      await tester.tap(find.byKey(const ValueKey('search button')));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(AmalfiSearchField), findsOneWidget);
       await tester.enterText(find.byType(EditableText).last, 'doc');
       await tester.pump(const Duration(milliseconds: 400));
       final bar = tester.getRect(find.byKey(const ValueKey('scope bar')));
@@ -273,7 +275,7 @@ void main() {
       expect(capsule.top, scope.rect('Capsule selected').top);
       expect(capsule.height, scope.rect('Capsule selected').height);
       expect(capsule.left, closeTo(scope.rect('Capsule selected').left, 2));
-      // The header follows the scope bar; the search toolbar has no view switcher.
+      // The header follows the scope bar; the search toolbar has the view pop-up, not the group.
       final header = tester.getRect(
         find.byKey(const ValueKey('column header')),
       );

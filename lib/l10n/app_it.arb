@@ -327,5 +327,9 @@
   "settingsFoldersOnTopDesktop": "Sulla scrivania",
   "settingsWhenSearching": "Durante la ricerca",
   "settingsSearchIn": "Cerca in",
-  "settingsCurrentFolder": "Cartella corrente"
+  "settingsCurrentFolder": "Cartella corrente",
+  "toolbarActions": "Azioni",
+  "toolbarTags": "Tag",
+  "toolbarMore": "Altro",
+  "tagsShowAll": "Mostra tutti…"
 }

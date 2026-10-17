@@ -224,27 +224,35 @@ void main() {
     tester,
   ) async {
     await pump(tester);
-    final kit = loadKit('Toolbar Icons');
-    // The content section starts at x 240, 52 tall; the controls are inside their pieces (4 pt).
+    final kit = loadKit('Toolbar Full');
+    // The content section starts at x 240, 52 tall: the Full state of the kit (Group is not
+    // there yet: the view group sits 64 pt (56 + a gap of 8) further right).
     final bar = tester.getRect(find.byKey(const ValueKey('toolbar')));
     expect(bar, Rect.fromLTWH(240, 0, 760, 52));
     Rect inBar(Finder f) => tester.getRect(f).shift(-bar.topLeft);
-    final nav = inBar(find.byKey(const ValueKey('back and forward')));
-    final navPiece = kit.rect('Nav');
-    expect(nav.left, navPiece.left + 4);
-    expect(nav.size, const Size(73, 36));
-    expect(nav.top, 8);
-    final views = inBar(find.byKey(const ValueKey('view group')));
-    final viewsPiece = kit.rect('Segmented 4');
-    expect(views.left, viewsPiece.left + 4);
-    expect(views.width, viewsPiece.width - 8);
-    expect(views.height, 36);
-    final search = inBar(find.byKey(const ValueKey('search field')));
-    final searchPiece = kit.rect('Search');
-    expect(search.left, searchPiece.left + 4);
-    expect(search.right, searchPiece.right - 4);
     expect(
-      inBar(find.byKey(const ValueKey('title'))).left,
+      inBar(find.byKey(const ValueKey('back and forward'))),
+      kit.rect('Back and forward'),
+    );
+    expect(
+      inBar(find.byKey(const ValueKey('search button'))),
+      kit.rect('Search'),
+    );
+    expect(
+      inBar(find.byKey(const ValueKey('share tags actions'))),
+      kit.rect('Share, Tags, Actions'),
+    );
+    expect(
+      inBar(find.byKey(const ValueKey('view group'))),
+      kit.rect('View').shift(const Offset(64, 0)),
+    );
+    expect(
+      inBar(find.byKey(const ValueKey('search button'))),
+      kit.rect('Search'),
+    );
+    // The title piece has 8 pt before the text.
+    expect(
+      inBar(find.byKey(const ValueKey('title'))).left + 8,
       kit.rect('Title').left,
     );
 

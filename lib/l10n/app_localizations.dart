@@ -2065,6 +2065,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Current folder'**
   String get settingsCurrentFolder;
+
+  /// Accessibility label of the Actions button of the toolbar and its item in the overflow menu.
+  ///
+  /// In en, this message translates to:
+  /// **'Actions'**
+  String get toolbarActions;
+
+  /// Accessibility label of the Tags button of the toolbar and header of its popover.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get toolbarTags;
+
+  /// Accessibility label of the overflow button of the toolbar.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get toolbarMore;
+
+  /// Item of the Tags popover that lists every tag colour, not only the favourites.
+  ///
+  /// In en, this message translates to:
+  /// **'Show All…'**
+  String get tagsShowAll;
 }
 
 class _AppLocalizationsDelegate

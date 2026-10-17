@@ -1144,4 +1144,16 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get settingsCurrentFolder => 'Cartella corrente';
+
+  @override
+  String get toolbarActions => 'Azioni';
+
+  @override
+  String get toolbarTags => 'Tag';
+
+  @override
+  String get toolbarMore => 'Altro';
+
+  @override
+  String get tagsShowAll => 'Mostra tutti…';
 }

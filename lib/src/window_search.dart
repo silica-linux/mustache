@@ -18,16 +18,64 @@ const Duration searchDebounce = Duration(milliseconds: 250);
 enum SearchScope { computer, folder }
 
 extension _Search on _MustacheWindowState {
-  void _startSearch() {
-    _enterSearch();
-    _searchFocus.requestFocus();
+  /// ⌘F and the circle: the field opens (the circle grows into it) and takes the focus. Search
+  /// itself starts only when text is typed.
+  void _startSearch() => _openSearchField();
+
+  void _openSearchField() {
+    _update(() => _searchExpanded = true);
+    // The field exists from the next frame on.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _searchFocus.requestFocus();
+    });
   }
 
-  /// Esc in the field: it is cleared, but the window stays in search (R13.4).
+  /// Whether the field is open: opened by the circle or ⌘F, focused, or holding text (it then
+  /// stays open without the focus).
+  bool get _searchOpen =>
+      _searchExpanded ||
+      _searchFocus.hasFocus ||
+      _searchQuery.text.isNotEmpty ||
+      _searching;
+
+  /// The field lost or gained the focus: the toolbar draws it again, and an empty field that
+  /// lost the focus (a click in the content) collapses back into the circle and leaves search.
+  void _searchFocusChanged() {
+    if (!mounted) return;
+    if (!_searchFocus.hasFocus && _searchQuery.text.isEmpty) {
+      _collapseSearch();
+    } else {
+      _update(() {});
+    }
+  }
+
+  void _searchPointer(PointerDownEvent event) {
+    if (!_searchFocus.hasFocus) return;
+    final box = _searchFieldKey.currentContext?.findRenderObject();
+    if (box is RenderBox &&
+        box.attached &&
+        (box.localToGlobal(Offset.zero) & box.size).contains(event.position)) {
+      return;
+    }
+    _focus.requestFocus();
+  }
+
+  /// The field collapses (Esc, the clear button, a click elsewhere with nothing typed): search
+  /// ends, the circle comes back.
+  void _collapseSearch() {
+    _searchExpanded = false;
+    if (_searching) {
+      _endSearch();
+    } else {
+      _update(() {});
+    }
+  }
+
+  /// Esc or the clear button in the field: it is emptied and collapses; the folder is back.
   void _clearSearchField() {
     _searchQuery.clear();
     _searchToken++;
-    _update(() => _entries = const []);
+    _collapseSearch();
     _focus.requestFocus();
   }
 
@@ -107,8 +155,7 @@ extension _Search on _MustacheWindowState {
     if (token == _searchToken && mounted) show();
   }
 
-  /// Search starts when the field takes the focus or ⌘F is pressed: the scope bar and the results
-  /// replace the folder's view.
+  /// Search starts when text is typed: the scope bar and the results replace the folder's view.
   void _enterSearch() {
     if (_searching) return;
     _update(() {
@@ -123,10 +170,8 @@ extension _Search on _MustacheWindowState {
     key: const ValueKey('search field'),
     canRequestFocus: false,
     skipTraversal: true,
-    onFocusChange: (focused) {
-      if (focused) _enterSearch();
-    },
     child: AmalfiSearchField(
+      key: _searchFieldKey,
       controller: _searchQuery,
       focusNode: _searchFocus,
       size: AmalfiFieldSize.toolbar,
