@@ -22,7 +22,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:silica_ui/silica_ui.dart';
 
 import 'emoji_data.dart';
@@ -969,15 +968,7 @@ class _FolderCustomizeOverlayState extends State<FolderCustomizeOverlay> {
                   border: Border.all(color: p.accent, width: 2),
                 )
               : null,
-          child: SvgPicture.file(
-            File('$dir/regular/$name.svg'),
-            width: 20,
-            height: 20,
-            colorFilter: ColorFilter.mode(
-              selected ? p.accent : p.glyph,
-              BlendMode.srcIn,
-            ),
-          ),
+          child: _symbolGlyph(name, 20, selected ? p.accent : p.glyph),
         ),
       ),
     );
@@ -1037,32 +1028,26 @@ class _PlusPainter extends CustomPainter {
   bool shouldRepaint(_PlusPainter old) => old.color != color;
 }
 
-/// A silica-icons symbol (Regular) at [side], or [fallback] text without silica-icons.
+/// A Silica Symbols symbol (Regular, the bundled font: sharp at any size) at [side], or
+/// [fallback] text when neither the font nor an installed silica-icons has it.
 Widget _symbolGlyph(
   String name,
   double side,
   Color color, {
   Map<String, String>? env,
   String? fallback,
-}) {
-  final dir = folderSymbolsDir(env: env);
-  final file = dir == null ? null : File('$dir/regular/$name.svg');
-  if (file == null || !file.existsSync()) {
-    return SizedBox(
-      width: side,
-      height: side,
-      child: Center(
-        child: Text(fallback ?? '', style: _text(color, size: side)),
-      ),
-    );
-  }
-  return SvgPicture.file(
-    file,
+}) => AmalfiSymbol(
+  name,
+  size: side,
+  color: color,
+  fallback: SizedBox(
     width: side,
     height: side,
-    colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-  );
-}
+    child: Center(
+      child: Text(fallback ?? '', style: _text(color, size: side)),
+    ),
+  ),
+);
 
 /// The category bar of the emoji picker (kit `Emoji Picker`): a symbol per button and the
 /// section of [emojiCategories] it jumps to (0 is "frequently used"; food is reached by
