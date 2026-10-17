@@ -82,6 +82,7 @@ class MustacheToolbar extends StatelessWidget {
     this.sidebarToggleWhenHidden,
     this.onBackHistory,
     this.onForwardHistory,
+    this.onHistoryRelease,
   });
 
   final String title;
@@ -107,6 +108,10 @@ class MustacheToolbar extends StatelessWidget {
   final ValueChanged<Offset>? onBackHistory;
   final ValueChanged<Offset>? onForwardHistory;
 
+  /// The long press that opened the history menu ends: over the segment (`onButton`) the menu
+  /// closes; elsewhere it is a click at `position`.
+  final void Function(bool onButton, Offset position)? onHistoryRelease;
+
   Widget _nav(BuildContext context) => Builder(
     builder: (context) => GestureDetector(
       key: const ValueKey('back and forward'),
@@ -118,6 +123,13 @@ class MustacheToolbar extends StatelessWidget {
         final callback = index == 0 ? onBackHistory : onForwardHistory;
         callback?.call(
           box.localToGlobal(Offset(index * 32.0, box.size.height)),
+        );
+      },
+      onLongPressEnd: (d) {
+        final box = context.findRenderObject()! as RenderBox;
+        onHistoryRelease?.call(
+          box.size.contains(d.localPosition),
+          d.globalPosition,
         );
       },
       child: AmalfiActionSegments(

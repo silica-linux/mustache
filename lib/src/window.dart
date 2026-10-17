@@ -8,7 +8,14 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:flutter/gestures.dart' show kDoubleTapTimeout, kPrimaryButton;
+import 'package:flutter/gestures.dart'
+    show
+        GestureBinding,
+        PointerDeviceKind,
+        PointerDownEvent,
+        PointerUpEvent,
+        kDoubleTapTimeout,
+        kPrimaryButton;
 import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -248,6 +255,10 @@ class _MustacheWindowState extends State<MustacheWindow>
     with SingleTickerProviderStateMixin {
   late final History _history = History(widget.start);
 
+  /// Closes the history menu that a long press on Back or Forward opened; null: none is open.
+  VoidCallback? _closeHistoryMenu;
+  bool _afterHistoryPress = false;
+
   /// The window is the active one for Ossido: the embedder says so with `flutter/lifecycle`
   /// (`resumed` active, `inactive` not; without news, active).
   bool _windowActive = _isActive(WidgetsBinding.instance.lifecycleState);
@@ -476,6 +487,7 @@ class _MustacheWindowState extends State<MustacheWindow>
 
   @override
   void dispose() {
+    _closeHistoryMenu?.call();
     _menuHub?.release(this);
     _closeInfoWindows();
     _infoRevision.dispose();
@@ -1358,7 +1370,7 @@ class _MustacheWindowState extends State<MustacheWindow>
   void _historyMenu(Offset at, {required bool back}) {
     final places = back ? _history.backList : _history.forwardList;
     if (places.isEmpty) return;
-    _showMenu(at, [
+    _showHistoryMenu(at, [
       for (var i = 0; i < places.length; i++)
         AmalfiMenuAction(
           displayName(places[i]),
@@ -1371,6 +1383,93 @@ class _MustacheWindowState extends State<MustacheWindow>
           },
         ),
     ]);
+  }
+
+  /// The press that opened the history menu ends. Over Back or Forward the menu closes without
+  /// navigating (MU-07, R1.31); anywhere else it counts as a click there (the pointer went down
+  /// on the button, so the menu would not see the release): over an item it chooses it, over the
+  /// window it closes the menu.
+  void _releaseHistoryMenu(bool onButton, Offset position) {
+    final close = _closeHistoryMenu;
+    if (close == null) return;
+    // The segment also sees this release as a click: it must not navigate.
+    Timer.run(() => _afterHistoryPress = false);
+    if (onButton) {
+      close();
+      return;
+    }
+    const pointer = 0x4d55;
+    final binding = GestureBinding.instance;
+    binding.handlePointerEvent(
+      PointerDownEvent(
+        pointer: pointer,
+        kind: PointerDeviceKind.mouse,
+        position: position,
+        buttons: kPrimaryButton,
+      ),
+    );
+    binding.handlePointerEvent(
+      PointerUpEvent(
+        pointer: pointer,
+        kind: PointerDeviceKind.mouse,
+        position: position,
+      ),
+    );
+  }
+
+  /// The history menu is held open by the press that opened it: releasing over Back or Forward
+  /// closes it without navigating (MU-07, R1.31); releasing over an item chooses it.
+  void _showHistoryMenu(Offset at, List<AmalfiMenuEntry> entries) {
+    final host = _bodyKey.currentContext;
+    if (host == null) return;
+    final overlay = Overlay.maybeOf(host, rootOverlay: true);
+    if (overlay == null) return;
+    _closeHistoryMenu?.call();
+    final brightness = AmalfiTheme.of(host).brightness;
+    final direction = Directionality.maybeOf(host) ?? TextDirection.ltr;
+    late final OverlayEntry entry;
+    var closed = false;
+    void close() {
+      if (closed) return;
+      closed = true;
+      Timer.run(() => _afterHistoryPress = false);
+      if (_closeHistoryMenu == close) _closeHistoryMenu = null;
+      entry.remove();
+      entry.dispose();
+      if (!mounted) return;
+      (_customizing == null ? _focus : _customizeFocus).requestFocus();
+    }
+
+    entry = OverlayEntry(
+      builder: (_) => Directionality(
+        textDirection: direction,
+        child: AmalfiTheme(
+          brightness: brightness,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Listener(
+                  behavior: HitTestBehavior.opaque,
+                  onPointerDown: (_) => close(),
+                ),
+              ),
+              CustomSingleChildLayout(
+                delegate: _MenuAt(at),
+                child: AmalfiMenu(
+                  entries: entries,
+                  opaque: true,
+                  autofocus: true,
+                  onDismiss: close,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    _closeHistoryMenu = close;
+    _afterHistoryPress = true;
+    overlay.insert(entry);
   }
 
   /// The bars between the toolbar and the content (kit `Tab Bar`, `Scope Bar`, `List Header`): the
@@ -1435,6 +1534,7 @@ class _MustacheWindowState extends State<MustacheWindow>
   }) => MustacheToolbar(
     onBackHistory: (at) => _historyMenu(at, back: true),
     onForwardHistory: (at) => _historyMenu(at, back: false),
+    onHistoryRelease: _releaseHistoryMenu,
     // With the sidebar hidden the toolbar starts with the slot of the window buttons and the
     // toggle that shows the sidebar again.
     sidebarToggleWhenHidden: visible < 60 ? _toggleSidebar : null,
@@ -1451,6 +1551,7 @@ class _MustacheWindowState extends State<MustacheWindow>
     canGoBack: _history.canGoBack || _searching,
     canGoForward: _history.canGoForward,
     onBack: () {
+      if (_afterHistoryPress) return;
       // From search, Back returns to the folder (R13.4).
       if (_searching) {
         _endSearch();
@@ -1459,6 +1560,7 @@ class _MustacheWindowState extends State<MustacheWindow>
       }
     },
     onForward: () {
+      if (_afterHistoryPress) return;
       if (_history.forward()) _load();
     },
     view: _searching ? null : _view,
@@ -1574,4 +1676,25 @@ class _MustacheWindowState extends State<MustacheWindow>
     );
     return view;
   }
+}
+
+/// Places a menu with its top-left corner at [position], moved inside the overlay when it
+/// would leave it.
+class _MenuAt extends SingleChildLayoutDelegate {
+  const _MenuAt(this.position);
+
+  final Offset position;
+
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) =>
+      constraints.loosen();
+
+  @override
+  Offset getPositionForChild(Size size, Size childSize) => Offset(
+    math.max(0, math.min(position.dx, size.width - childSize.width)),
+    math.max(0, math.min(position.dy, size.height - childSize.height)),
+  );
+
+  @override
+  bool shouldRelayout(_MenuAt old) => old.position != position;
 }

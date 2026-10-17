@@ -150,10 +150,7 @@ void main() {
       kind: PointerDeviceKind.mouse,
     );
     await tester.pump(const Duration(milliseconds: 600));
-    await hold.up();
-    await tester.pump();
-    // The previous place, in the menu below the segment (its bottom left corner); the click
-    // opens it.
+    // The previous place, in the menu below the segment (its bottom left corner).
     final name = root.path.split('/').last;
     final item = find.descendant(
       of: find.byType(AmalfiMenu),
@@ -163,12 +160,44 @@ void main() {
     final panel = tester.getRect(find.byType(AmalfiMenu));
     expect(panel.left, nav.left);
     expect(panel.top, nav.bottom);
-    await tester.tap(item);
+    // Releasing over the item chooses it.
+    await hold.moveTo(tester.getCenter(item));
+    await hold.up();
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 60));
     }
+    expect(find.byType(AmalfiMenu), findsNothing);
     expect(find.text('nota.txt'), findsOneWidget);
   });
+
+  testWidgets(
+    'releasing on Back with the history menu open closes it (MU-07)',
+    (tester) async {
+      await pump(tester);
+      await tester.tap(find.text('Alfa'));
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+      await tester.pump();
+      expect(find.text('dentro.txt'), findsOneWidget);
+      final nav = tester.getRect(
+        find.byKey(const ValueKey('back and forward')),
+      );
+      final hold = await tester.startGesture(
+        Offset(nav.left + 16, nav.center.dy),
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(find.byType(AmalfiMenu), findsOneWidget);
+      await hold.up();
+      await tester.pump(const Duration(milliseconds: 300));
+      // Closed, and the window did not navigate.
+      expect(find.byType(AmalfiMenu), findsNothing);
+      expect(find.text('dentro.txt'), findsOneWidget);
+      expect(find.text('nota.txt'), findsNothing);
+    },
+  );
 
   testWidgets('the toolbar: pieces at the frames of the kit Toolbar Icons', (
     tester,
