@@ -22,7 +22,7 @@ const double previewSearchWidth = 232;
 Widget symbolGlyph(String name, {double? size, Color? color}) =>
     AmalfiSymbol(name, size: size, color: color);
 
-/// The sidebar section of the toolbar, a blur strip with the sidebar's edge over the full-height
+/// The sidebar section of the toolbar, a blur strip over the full-height
 /// sidebar: the slot of the window buttons, then the sidebar toggle.
 class MustacheSidebarBar extends StatelessWidget {
   const MustacheSidebarBar({
@@ -39,7 +39,6 @@ class MustacheSidebarBar extends StatelessWidget {
     child: AmalfiToolbar.sidebarSection(
       key: const ValueKey('sidebar bar'),
       surface: AmalfiToolbarSurface.blur,
-      edge: true,
       active: active,
       children: [
         const SizedBox(width: windowControlsSlot),

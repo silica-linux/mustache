@@ -45,18 +45,28 @@ const Duration sectionExpand = Duration(milliseconds: 308);
 const double sectionCollapseDelay = 70 / 255;
 const double sectionExpandDelay = 120 / 308;
 
-/// Hiding and showing the sidebar (⌃⌘S): ~240 / ~230 ms, S curve; showing starts ~40 ms after the
-/// key.
-const Duration sidebarHide = Duration(milliseconds: 240);
-const Duration sidebarShow = Duration(milliseconds: 270);
-const double sidebarShowDelay = 40 / 270;
-
 /// A sidebar section: a title (empty: no heading) and its places.
 @immutable
 class SidebarSection {
-  const SidebarSection(this.title, this.places);
+  const SidebarSection(
+    this.title,
+    this.places, {
+    this.glyphs = SidebarGlyphs.accent,
+  });
   final String title;
   final List<Place> places;
+
+  /// The colour of the section's glyphs (silica-ui#95: coloured by section, never per item).
+  final SidebarGlyphs glyphs;
+}
+
+/// The glyph colour of a sidebar section.
+enum SidebarGlyphs {
+  /// `Accent/Amalfi`: Pinned and saved searches.
+  accent,
+
+  /// `Text/Secondary`: Places.
+  secondary,
 }
 
 /// The sidebar width after a drag: between the minimum and the maximum that leaves 316 pt to the
@@ -179,52 +189,59 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
       // One child per section so that a collapsed section takes only its header: the gap between
       // the header and the first row is part of what slides away. Between sections the kit's 8 is
       // added here (the panel adds it itself only before its own headers).
+      final colors = AmalfiTheme.of(context).colors;
       children.add(
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (children.isNotEmpty)
-              const SizedBox(height: AmalfiSidebarMetrics.sectionGap),
-            if (title.isNotEmpty)
-              // The header is plain (kit `Sidebar`: `Header/Plain`) and shows its chevron while the
-              // pointer is over it, or while the section is closed, so that it can be opened
-              // (MU-11).
-              MouseRegion(
-                onEnter: (_) => setState(() => _hovered = title),
-                onExit: (_) => setState(() {
-                  if (_hovered == title) _hovered = null;
-                }),
-                child: AmalfiSidebarHeader(
-                  key: ValueKey('header $title'),
-                  title: title,
-                  expanded: _hovered == title || _collapsing(title)
-                      ? !_collapsing(title)
-                      : null,
-                  onToggle: () => _toggle(title),
-                ),
-              ),
-            ClipRect(
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                heightFactor: openness,
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    top: title.isEmpty ? 0 : AmalfiSidebarMetrics.rowGap,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    spacing: AmalfiSidebarMetrics.rowGap,
-                    children: [
-                      for (final place in section.places)
-                        _row(place, showText: textVisible),
-                    ],
+        AmalfiSidebarGlyphColor(
+          color: switch (section.glyphs) {
+            SidebarGlyphs.accent => colors.accentAmalfi,
+            SidebarGlyphs.secondary => colors.textSecondary,
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (children.isNotEmpty)
+                const SizedBox(height: AmalfiSidebarMetrics.sectionGap),
+              if (title.isNotEmpty)
+                // The header is plain (kit `Sidebar`: `Header/Plain`) and shows its chevron while the
+                // pointer is over it, or while the section is closed, so that it can be opened
+                // (MU-11).
+                MouseRegion(
+                  onEnter: (_) => setState(() => _hovered = title),
+                  onExit: (_) => setState(() {
+                    if (_hovered == title) _hovered = null;
+                  }),
+                  child: AmalfiSidebarHeader(
+                    key: ValueKey('header $title'),
+                    title: title,
+                    expanded: _hovered == title || _collapsing(title)
+                        ? !_collapsing(title)
+                        : null,
+                    onToggle: () => _toggle(title),
                   ),
                 ),
+              ClipRect(
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  heightFactor: openness,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      top: title.isEmpty ? 0 : AmalfiSidebarMetrics.rowGap,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      spacing: AmalfiSidebarMetrics.rowGap,
+                      children: [
+                        for (final place in section.places)
+                          _row(place, showText: textVisible),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }
@@ -274,6 +291,7 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
       );
     }
     final color = place.kind == PlaceKind.tag ? tagColor(place.label) : null;
+    final active = WindowActiveScope.of(context);
     return _SidebarRow(
       key: key,
       label: label,
@@ -283,6 +301,8 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
           ? TagDot(
               color: color == null
                   ? null
+                  : !active && !drop
+                  ? AmalfiTheme.of(context).colors.textSecondary
                   : sidebarTagColor(
                       color,
                       dark: AmalfiTheme.of(context).isDark,
@@ -327,18 +347,27 @@ class _SidebarRowState extends State<_SidebarRow> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = AmalfiTheme.of(context).colors;
+    final theme = AmalfiTheme.of(context);
+    final colors = theme.colors;
+    // In an inactive window (kit `Selected Inactive`) the selection is a neutral capsule and the
+    // label is Text/Secondary, as in `AmalfiSidebarRow`.
+    final active = WindowActiveScope.of(context);
     final fill = widget.drop
         ? colors.accentAmalfi
         : widget.selected
-        ? colors.accentAmalfiSoft
+        ? active
+              ? colors.accentAmalfiSoft
+              : theme.isDark
+              ? colors.surfaceControl
+              : colors.surfaceControlPressed
         : _hovered
         ? colors.lineSeparator
         : null;
+    final labelColor = active ? colors.textPrimary : colors.textSecondary;
     final style = widget.selected && !widget.drop
-        ? AmalfiType.bodyEmphasis(color: colors.textPrimary)
+        ? AmalfiType.bodyEmphasis(color: labelColor)
         : AmalfiType.body(
-            color: widget.drop ? colors.textOnAccent : colors.textPrimary,
+            color: widget.drop ? colors.textOnAccent : labelColor,
           );
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),

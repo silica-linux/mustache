@@ -45,9 +45,7 @@ extension _WindowMenus on _MustacheWindowState {
     final parent = _tagView == null ? parentOf(_history.current) : null;
     String? place(PlaceKind kind) =>
         widget.places.where((p) => p.kind == kind).firstOrNull?.path;
-    final sidebarShown =
-        !(_sidebarShown.status == AnimationStatus.reverse ||
-            _sidebarShown.value == 0);
+    final sidebarShown = _sidebarOpen;
     return MenuSpec(
       selectionName: single?.name,
       selectionCount: items.length,

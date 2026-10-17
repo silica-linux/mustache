@@ -327,13 +327,9 @@ class _MustacheWindowState extends State<MustacheWindow>
   late double _sidebarWidth =
       widget.settings?.sidebarWidth ?? sidebarDefaultWidth;
 
-  /// 1: sidebar visible, 0: hidden (⌃⌘S or dragged against the edge).
-  late final AnimationController _sidebarShown = AnimationController(
-    vsync: this,
-    duration: sidebarShow,
-    reverseDuration: sidebarHide,
-    value: 1,
-  )..addListener(() => setState(() {}));
+  /// Whether the sidebar is shown (⌃⌘S or dragged against the edge); the slide is
+  /// [AmalfiSidebarRevealBuilder]'s.
+  bool _sidebarOpen = true;
   bool _resizing = false;
 
   /// The arrow cursor (the anchor stays where the ⇧ selection started) and the selection at the
@@ -530,7 +526,6 @@ class _MustacheWindowState extends State<MustacheWindow>
     _focus.dispose();
     _customizeFocus.dispose();
     _listScrollX.dispose();
-    _sidebarShown.dispose();
     _slowClick?.cancel();
     _recentClickTimer?.cancel();
     HardwareKeyboard.instance.removeHandler(_springKey);
@@ -597,36 +592,16 @@ class _MustacheWindowState extends State<MustacheWindow>
   /// `setState` for the operations in `window_operations.dart` (an extension cannot call it).
   void _update(VoidCallback change) => setState(change);
 
-  void _toggleSidebar() {
-    if (_sidebarShown.status == AnimationStatus.reverse ||
-        _sidebarShown.value == 0) {
-      _sidebarShown.forward();
-    } else {
-      _sidebarShown.reverse();
-    }
-  }
-
-  /// How much of the sidebar shows (0–1): S curve; showing starts with a ~40 ms delay.
-  double get _sidebarProgress {
-    final value = _sidebarShown.value;
-    if (_sidebarShown.status == AnimationStatus.forward) {
-      final t = ((value - sidebarShowDelay) / (1 - sidebarShowDelay)).clamp(
-        0.0,
-        1.0,
-      );
-      return Curves.easeInOut.transform(t);
-    }
-    return Curves.easeInOut.transform(value);
-  }
+  void _toggleSidebar() => setState(() => _sidebarOpen = !_sidebarOpen);
 
   void _dragSidebar(double x, double windowWidth) {
     final width = dragWidth(x, windowWidth);
     setState(() {
       _resizing = true;
       if (width == 0) {
-        _sidebarShown.value = 0;
+        _sidebarOpen = false;
       } else {
-        _sidebarShown.value = 1;
+        _sidebarOpen = true;
         _sidebarWidth = width;
       }
     });
@@ -1141,350 +1116,364 @@ class _MustacheWindowState extends State<MustacheWindow>
         child: Focus(
           focusNode: _focus,
           autofocus: true,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final windowWidth = constraints.maxWidth;
-              // While hiding, the sidebar slides left (keeping its width) and the content widens.
-              final shown = _resizing ? _sidebarShown.value : _sidebarProgress;
-              final visible = _sidebarWidth * shown;
-              final colors = AmalfiTheme.of(context).colors;
-              // The preview section: the preview pane (⇧⌘P), always in the gallery and in the
-              // column view (kit `Gallery`, `Columns`).
-              // (A dialog has no pane: the file chooser keeps the columns alone.)
-              final pane =
-                  _previewPane ||
-                  (widget.dialog == null &&
-                      !_searching &&
-                      (_view == ViewMode.gallery || _view == ViewMode.columns));
-              // A press outside the search field takes the focus off it (an empty field then
-              // collapses back into the circle).
-              return Listener(
-                behavior: HitTestBehavior.translucent,
-                onPointerDown: _searchPointer,
-                child: Stack(
-                  key: _bodyKey,
-                  children: [
-                    // The sidebar: its section of the toolbar over its list (the surface is the
-                    // sidebar's, so the bar and the list are one region).
-                    Positioned(
-                      left: visible - _sidebarWidth,
-                      top: 0,
-                      bottom: 0,
-                      width: _sidebarWidth,
-                      child: ColoredBox(
-                        color: colors.surfaceSidebar,
-                        child: Stack(
-                          children: [
-                            Positioned.fill(
-                              child: Sidebar(
-                                topInset: AmalfiToolbarMetrics.toolbarHeight,
-                                sections: [
-                                  SidebarSection(l10n.sidebarPinned, [
-                                    for (final place in widget.places)
-                                      if (place.kind != PlaceKind.home &&
-                                          _sidebarShows(place.kind.name))
-                                        place,
-                                  ]),
-                                  SidebarSection(l10n.sidebarPlaces, [
-                                    for (final place in widget.places)
-                                      if (place.kind == PlaceKind.home &&
-                                          _sidebarShows(place.kind.name))
-                                        place,
-                                    if (_sidebarShows(PlaceKind.trash.name))
-                                      widget.trash,
-                                  ]),
-                                  SidebarSection(
-                                    l10n.savedSearchesFolder,
-                                    _savedPlaces,
-                                  ),
-                                  SidebarSection(
-                                    l10n.sidebarTags,
-                                    _sidebarShows('tags')
-                                        ? _tagPlaces
-                                        : const [],
-                                  ),
-                                ],
-                                current: _savedViewShown
-                                    ? '$searchPathPrefix$_savedView'
-                                    : _tagView == null
-                                    ? _history.current
-                                    : '$tagPathPrefix$_tagView',
-                                onSelect: (place) => switch (place.kind) {
-                                  PlaceKind.tag => _showTag(place.label),
-                                  PlaceKind.search => _openSavedSearch(
-                                    place.path.substring(
-                                      searchPathPrefix.length,
-                                    ),
-                                  ),
-                                  _ => _navigate(place.path),
-                                },
-                                onDrop: _drop,
-                              ),
-                            ),
-                            Positioned(
-                              left: 0,
-                              top: 0,
-                              right: 0,
-                              child: MustacheSidebarBar(
-                                active: _active,
-                                onToggle: _toggleSidebar,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: visible,
-                      top: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: ColoredBox(
-                        color: colors.surfaceWindow,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  _toolbar(visible, withSearch: !pane),
-                                  ..._bars(),
-                                  Expanded(
-                                    // The open folder as a drop target: a 2 pt line along the edge
-                                    // of the content.
-                                    child: FolderDropTarget(
-                                      path: _history.current,
-                                      onDrop: _drop,
-                                      builder: (context, active) => Stack(
-                                        children: [
-                                          Positioned.fill(child: _views()),
-                                          if (active)
-                                            Positioned.fill(
-                                              child: IgnorePointer(
-                                                child: DecoratedBox(
-                                                  decoration: BoxDecoration(
-                                                    border: Border.all(
-                                                      color: dropLine,
-                                                      width: 2,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  if (_pathBar)
-                                    PathBar(
-                                      // The chosen item is the last segment (R1.17).
-                                      path: _selected.length == 1
-                                          ? _selected.first
-                                          : _history.current,
-                                      env: widget.iconsEnv,
-                                      onOpen: (path) {
-                                        final entry = entryAt(path);
-                                        if (entry == null) return;
-                                        if (entry.isDirectory) {
-                                          _navigate(path);
-                                        } else {
-                                          _openEntry(entry);
-                                        }
-                                      },
-                                    ),
-                                  if (widget.dialog != null) _dialogButtons(),
-                                  // The status bar below the path bar (spec/bars.md); it moves the
-                                  // window (MU-08).
-                                  if (_statusBar)
-                                    WindowDragArea(
-                                      child: StatusBar(
-                                        active: _active,
-                                        text: statusText(
-                                          count: _entries.length,
-                                          selected: _selected.length,
-                                          free: _free,
-                                          listing:
-                                              !_searching && _tagView == null,
-                                        ),
-                                        slider:
-                                            _view == ViewMode.icons &&
-                                                !_searching
-                                            ? sliderValueFor(_iconSide)
-                                            : null,
-                                        onSlider: (value) {
-                                          setState(
-                                            () =>
-                                                _iconSide = iconSideFor(value),
-                                          );
-                                          widget.settings?.iconSide = _iconSide;
-                                        },
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            if (pane) _previewColumn(),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // The draggable edge, also with the sidebar hidden (pulling it reopens the
-                    // sidebar).
-                    Positioned(
-                      left: visible - 3,
-                      top: 0,
-                      bottom: 0,
-                      width: 6,
-                      child: SidebarDivider(
-                        key: const ValueKey('sidebar edge'),
-                        onDrag: (x) => _dragSidebar(x, windowWidth),
-                        onRelease: _releaseSidebar,
-                      ),
-                    ),
-                    // The Customize Folder popover, under the context menu.
-                    // (The Positioned widgets have keys so that one appearing does not shift the
-                    // menu onto the other's element and restart it.)
-                    if (_customizing case final path?)
-                      Positioned.fill(
-                        key: const ValueKey('customize host'),
-                        child: FolderCustomizeOverlay(
-                          key: ValueKey('customize $path'),
-                          path: path,
-                          env: widget.iconsEnv,
-                          waitForAnchor: widget.customize == path,
-                          focusNode: _customizeFocus,
-                          writeTags: writeTags,
-                          onTagsChanged: (tags) =>
-                              _update(() => _tagCache[path] = tags),
-                          onEditTags: () => _editTags(path),
-                          onClose: () {
-                            _update(() => _customizing = null);
-                            _focus.requestFocus();
-                          },
-                        ),
-                      ),
-                    // Quick preview: the last chosen item; the arrows change it.
-                    if (_quickPreview && _selection.isNotEmpty)
-                      Positioned.fill(child: _quickPreviewPanel()),
-                    // The Get Info panels (no windows here), side by side at +285 pt.
-                    for (var i = 0; i < _infos.length; i++)
-                      if (entryAt(_infos[i]) case final entry?)
-                        Positioned(
-                          right: 12.0 + 285 * i,
-                          top: 40,
-                          bottom: 12,
-                          child: Align(
-                            alignment: Alignment.topCenter,
-                            child: InfoPanel(
-                              entry: entry,
-                              kind: _kind(entry),
-                              mime: entry.isDirectory ? null : _typeOf(entry),
-                              env: widget.iconsEnv,
-                              open: _infoOpen,
-                              openWith: entry.isDirectory
-                                  ? null
-                                  : _registry.defaultFor(_typeOf(entry))?.name,
-                              onToggle: _toggleInfoSection,
-                              tags: _tagsOf(entry),
-                              onAddTag: (tag) => _addTag(entry, tag),
-                              onClose: () =>
-                                  setState(() => _infos.remove(_infos[i])),
-                              onRename: (name) {
-                                final old = _infos[i];
-                                final result = renameEntry(old, name);
-                                if (result.error != null) {
-                                  _showError(l10n.cantRename, result.error);
-                                  return;
-                                }
-                                _undo.push(RenameOp(old, result.path!));
-                                setState(() => _infos[i] = result.path!);
-                                _load();
-                              },
-                            ),
-                          ),
-                        ),
-                    // The progress window does not block the rest.
-                    if (_progress != null && _alert == null)
-                      Align(
-                        alignment: const Alignment(0, 0.85),
-                        child: ProgressWindow(
-                          transfer: _progress!,
-                          icon: _appIcon,
-                        ),
-                      ),
-                    // The conflict waits for a choice: it covers the window.
-                    if (_conflict != null)
-                      Positioned.fill(
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {},
-                          child: Align(
-                            alignment: const Alignment(0, -0.5),
-                            child: ConflictWindow(
-                              name: _conflict!.name,
-                              moving: _conflict!.moving,
-                              icon: _appIcon,
-                              onChoice: _chooseConflict,
-                            ),
-                          ),
-                        ),
-                      ),
-                    // A sheet hangs from the toolbar over a veil (kit `Go To Folder`, `Save Search`).
-                    if (_sheet != null)
-                      Positioned.fill(
-                        child: CallbackShortcuts(
-                          bindings: {
-                            const SingleActivator(LogicalKeyboardKey.escape):
-                                _closeSheet,
-                          },
+          child: AmalfiSidebarRevealBuilder(
+            visible: _sidebarOpen,
+            builder: (context, progress) => LayoutBuilder(
+              builder: (context, constraints) {
+                final windowWidth = constraints.maxWidth;
+                // While hiding, the sidebar slides left (keeping its width) and the content widens;
+                // dragging its edge follows the pointer.
+                final shown = _resizing ? (_sidebarOpen ? 1.0 : 0.0) : progress;
+                final visible = _sidebarWidth * shown;
+                final colors = AmalfiTheme.of(context).colors;
+                // The preview section: the preview pane (⇧⌘P), always in the gallery and in the
+                // column view (kit `Gallery`, `Columns`).
+                // (A dialog has no pane: the file chooser keeps the columns alone.)
+                final pane =
+                    _previewPane ||
+                    (widget.dialog == null &&
+                        !_searching &&
+                        (_view == ViewMode.gallery ||
+                            _view == ViewMode.columns));
+                // A press outside the search field takes the focus off it (an empty field then
+                // collapses back into the circle).
+                return Listener(
+                  behavior: HitTestBehavior.translucent,
+                  onPointerDown: _searchPointer,
+                  child: Stack(
+                    key: _bodyKey,
+                    children: [
+                      // The sidebar: its section of the toolbar over its list (the surface is the
+                      // sidebar's, so the bar and the list are one region).
+                      Positioned(
+                        left: visible - _sidebarWidth,
+                        top: 0,
+                        bottom: 0,
+                        width: _sidebarWidth,
+                        child: ColoredBox(
+                          color: colors.surfaceSidebar,
                           child: Stack(
                             children: [
-                              Positioned(
-                                left: 0,
-                                right: 0,
-                                top: AmalfiToolbarMetrics.toolbarHeight,
-                                bottom: 0,
-                                child: GestureDetector(
-                                  key: const ValueKey('sheet veil'),
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: _closeSheet,
-                                  child: const AmalfiSheetScrim(),
+                              Positioned.fill(
+                                child: Sidebar(
+                                  topInset: AmalfiToolbarMetrics.toolbarHeight,
+                                  sections: [
+                                    SidebarSection(l10n.sidebarPinned, [
+                                      for (final place in widget.places)
+                                        if (place.kind != PlaceKind.home &&
+                                            _sidebarShows(place.kind.name))
+                                          place,
+                                    ]),
+                                    SidebarSection(
+                                      l10n.sidebarPlaces,
+                                      glyphs: SidebarGlyphs.secondary,
+                                      [
+                                        for (final place in widget.places)
+                                          if (place.kind == PlaceKind.home &&
+                                              _sidebarShows(place.kind.name))
+                                            place,
+                                        if (_sidebarShows(PlaceKind.trash.name))
+                                          widget.trash,
+                                      ],
+                                    ),
+                                    SidebarSection(
+                                      l10n.savedSearchesFolder,
+                                      _savedPlaces,
+                                    ),
+                                    SidebarSection(
+                                      l10n.sidebarTags,
+                                      _sidebarShows('tags')
+                                          ? _tagPlaces
+                                          : const [],
+                                    ),
+                                  ],
+                                  current: _savedViewShown
+                                      ? '$searchPathPrefix$_savedView'
+                                      : _tagView == null
+                                      ? _history.current
+                                      : '$tagPathPrefix$_tagView',
+                                  onSelect: (place) => switch (place.kind) {
+                                    PlaceKind.tag => _showTag(place.label),
+                                    PlaceKind.search => _openSavedSearch(
+                                      place.path.substring(
+                                        searchPathPrefix.length,
+                                      ),
+                                    ),
+                                    _ => _navigate(place.path),
+                                  },
+                                  onDrop: _drop,
                                 ),
                               ),
-                              Positioned.fill(
-                                child: Align(
-                                  alignment: _sheetCentered
-                                      ? Alignment.center
-                                      : Alignment.topCenter,
-                                  child: Padding(
-                                    padding: EdgeInsets.only(
-                                      top: _sheetCentered ? 0 : 102,
-                                    ),
-                                    child: _sheet,
-                                  ),
+                              Positioned(
+                                left: 0,
+                                top: 0,
+                                right: 0,
+                                child: MustacheSidebarBar(
+                                  active: _active,
+                                  onToggle: _toggleSidebar,
                                 ),
                               ),
                             ],
                           ),
                         ),
                       ),
-                    // An alert covers the window: the rest gets no clicks while it is open.
-                    if (_alert != null)
-                      Positioned.fill(
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {},
-                          child: Align(
-                            alignment: const Alignment(0, -0.5),
-                            child: _alert,
+                      Positioned(
+                        left: visible,
+                        top: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: ColoredBox(
+                          color: colors.surfaceWindow,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    _toolbar(visible, withSearch: !pane),
+                                    ..._bars(),
+                                    Expanded(
+                                      // The open folder as a drop target: a 2 pt line along the edge
+                                      // of the content.
+                                      child: FolderDropTarget(
+                                        path: _history.current,
+                                        onDrop: _drop,
+                                        builder: (context, active) => Stack(
+                                          children: [
+                                            Positioned.fill(child: _views()),
+                                            if (active)
+                                              Positioned.fill(
+                                                child: IgnorePointer(
+                                                  child: DecoratedBox(
+                                                    decoration: BoxDecoration(
+                                                      border: Border.all(
+                                                        color: dropLine,
+                                                        width: 2,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    if (_pathBar)
+                                      PathBar(
+                                        // The chosen item is the last segment (R1.17).
+                                        path: _selected.length == 1
+                                            ? _selected.first
+                                            : _history.current,
+                                        env: widget.iconsEnv,
+                                        onOpen: (path) {
+                                          final entry = entryAt(path);
+                                          if (entry == null) return;
+                                          if (entry.isDirectory) {
+                                            _navigate(path);
+                                          } else {
+                                            _openEntry(entry);
+                                          }
+                                        },
+                                      ),
+                                    if (widget.dialog != null) _dialogButtons(),
+                                    // The status bar below the path bar (spec/bars.md); it moves the
+                                    // window (MU-08).
+                                    if (_statusBar)
+                                      WindowDragArea(
+                                        child: StatusBar(
+                                          active: _active,
+                                          text: statusText(
+                                            count: _entries.length,
+                                            selected: _selected.length,
+                                            free: _free,
+                                            listing:
+                                                !_searching && _tagView == null,
+                                          ),
+                                          slider:
+                                              _view == ViewMode.icons &&
+                                                  !_searching
+                                              ? sliderValueFor(_iconSide)
+                                              : null,
+                                          onSlider: (value) {
+                                            setState(
+                                              () => _iconSide = iconSideFor(
+                                                value,
+                                              ),
+                                            );
+                                            widget.settings?.iconSide =
+                                                _iconSide;
+                                          },
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              if (pane) _previewColumn(),
+                            ],
                           ),
                         ),
                       ),
-                  ],
-                ),
-              );
-            },
+                      // The draggable edge, also with the sidebar hidden (pulling it reopens the
+                      // sidebar).
+                      Positioned(
+                        left: visible - 3,
+                        top: 0,
+                        bottom: 0,
+                        width: 6,
+                        child: SidebarDivider(
+                          key: const ValueKey('sidebar edge'),
+                          onDrag: (x) => _dragSidebar(x, windowWidth),
+                          onRelease: _releaseSidebar,
+                        ),
+                      ),
+                      // The Customize Folder popover, under the context menu.
+                      // (The Positioned widgets have keys so that one appearing does not shift the
+                      // menu onto the other's element and restart it.)
+                      if (_customizing case final path?)
+                        Positioned.fill(
+                          key: const ValueKey('customize host'),
+                          child: FolderCustomizeOverlay(
+                            key: ValueKey('customize $path'),
+                            path: path,
+                            env: widget.iconsEnv,
+                            waitForAnchor: widget.customize == path,
+                            focusNode: _customizeFocus,
+                            writeTags: writeTags,
+                            onTagsChanged: (tags) =>
+                                _update(() => _tagCache[path] = tags),
+                            onEditTags: () => _editTags(path),
+                            onClose: () {
+                              _update(() => _customizing = null);
+                              _focus.requestFocus();
+                            },
+                          ),
+                        ),
+                      // Quick preview: the last chosen item; the arrows change it.
+                      if (_quickPreview && _selection.isNotEmpty)
+                        Positioned.fill(child: _quickPreviewPanel()),
+                      // The Get Info panels (no windows here), side by side at +285 pt.
+                      for (var i = 0; i < _infos.length; i++)
+                        if (entryAt(_infos[i]) case final entry?)
+                          Positioned(
+                            right: 12.0 + 285 * i,
+                            top: 40,
+                            bottom: 12,
+                            child: Align(
+                              alignment: Alignment.topCenter,
+                              child: InfoPanel(
+                                entry: entry,
+                                kind: _kind(entry),
+                                mime: entry.isDirectory ? null : _typeOf(entry),
+                                env: widget.iconsEnv,
+                                open: _infoOpen,
+                                openWith: entry.isDirectory
+                                    ? null
+                                    : _registry
+                                          .defaultFor(_typeOf(entry))
+                                          ?.name,
+                                onToggle: _toggleInfoSection,
+                                tags: _tagsOf(entry),
+                                onAddTag: (tag) => _addTag(entry, tag),
+                                onClose: () =>
+                                    setState(() => _infos.remove(_infos[i])),
+                                onRename: (name) {
+                                  final old = _infos[i];
+                                  final result = renameEntry(old, name);
+                                  if (result.error != null) {
+                                    _showError(l10n.cantRename, result.error);
+                                    return;
+                                  }
+                                  _undo.push(RenameOp(old, result.path!));
+                                  setState(() => _infos[i] = result.path!);
+                                  _load();
+                                },
+                              ),
+                            ),
+                          ),
+                      // The progress window does not block the rest.
+                      if (_progress != null && _alert == null)
+                        Align(
+                          alignment: const Alignment(0, 0.85),
+                          child: ProgressWindow(
+                            transfer: _progress!,
+                            icon: _appIcon,
+                          ),
+                        ),
+                      // The conflict waits for a choice: it covers the window.
+                      if (_conflict != null)
+                        Positioned.fill(
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {},
+                            child: Align(
+                              alignment: const Alignment(0, -0.5),
+                              child: ConflictWindow(
+                                name: _conflict!.name,
+                                moving: _conflict!.moving,
+                                icon: _appIcon,
+                                onChoice: _chooseConflict,
+                              ),
+                            ),
+                          ),
+                        ),
+                      // A sheet hangs from the toolbar over a veil (kit `Go To Folder`, `Save Search`).
+                      if (_sheet != null)
+                        Positioned.fill(
+                          child: CallbackShortcuts(
+                            bindings: {
+                              const SingleActivator(LogicalKeyboardKey.escape):
+                                  _closeSheet,
+                            },
+                            child: Stack(
+                              children: [
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  top: AmalfiToolbarMetrics.toolbarHeight,
+                                  bottom: 0,
+                                  child: GestureDetector(
+                                    key: const ValueKey('sheet veil'),
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: _closeSheet,
+                                    child: const AmalfiSheetScrim(),
+                                  ),
+                                ),
+                                Positioned.fill(
+                                  child: Align(
+                                    alignment: _sheetCentered
+                                        ? Alignment.center
+                                        : Alignment.topCenter,
+                                    child: Padding(
+                                      padding: EdgeInsets.only(
+                                        top: _sheetCentered ? 0 : 102,
+                                      ),
+                                      child: _sheet,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      // An alert covers the window: the rest gets no clicks while it is open.
+                      if (_alert != null)
+                        Positioned.fill(
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {},
+                            child: Align(
+                              alignment: const Alignment(0, -0.5),
+                              child: _alert,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ),
