@@ -3,7 +3,7 @@
 // wallpaper and below the windows; Ossido keeps the process running and makes Mustache the
 // frontmost app when the desktop is clicked.
 //
-// Icons are 96 pt; the first one's right edge is 18 pt from the screen's right edge, its top 40 pt
+// Icons are 96 pt; the first one's right edge is 22 pt from the screen's right edge (its cell 8 pt), its top 40 pt
 // from the top; the grid pitch is 124 × 148 and new icons fill it top to bottom, then towards the
 // left (R15.1). Labels are white and bold with a soft shadow, the same in light and dark. With
 // Sort By › None icons keep free positions (stored like the windows' ones, keyed by the desktop
@@ -49,50 +49,50 @@ import 'xattr.dart' as xattr;
 
 /// The desktop's icon size, label size and grid (MU-90).
 const double desktopIconSide = 96;
-const double desktopLabelSize = 12;
+const double desktopLabelSize = 13;
 const double desktopPitchX = 124;
 const double desktopPitchY = 148;
-const double desktopRight = 18;
+const double desktopRight = 22;
 const double desktopTop = 40;
 
 /// The space kept free at the bottom for the Dock: 8 rows on a 1440 pt display (R15.1).
 const double desktopBottom = 84;
 
-/// The selection around the icon (MU-90): a rounded square of 108 × 108, 6 pt around the 96 pt
-/// icon, whose outer 2 pt are a light outline (white ~10 %) and the inside black ~30 % (`#545559`
-/// and `#88898c` over the measured wallpaper), the same in light and dark. It is painted behind
-/// the icon and never takes part in the layout: selecting moves neither the icon nor its name.
-/// The corner radius is ~8 pt (DESKTOP-SEL).
-const double desktopSelectionPad = 6;
+/// The selection around the icon (kit `Apps/Mustache/Desktop`): a rounded square of 104 × 104,
+/// 4 pt around the 96 pt icon, radius 16, black 30 % inside a 2 pt light line (white 45 %), the
+/// same in light and dark. It is painted behind the icon and never takes part in the layout:
+/// selecting moves neither the icon nor its name.
+const double desktopSelectionPad = 4;
 const double desktopSelectionSide = desktopIconSide + 2 * desktopSelectionPad;
-const double desktopSelectionRadius = 8;
+const double desktopSelectionRadius = 16;
 const double desktopSelectionOutlineWidth = 2;
 const Color desktopSelectionFill = Color(0x4D000000);
-const Color desktopSelectionOutline = Color(0x1AFFFFFF);
+const Color desktopSelectionOutline = Color(0x73FFFFFF);
 
-/// The selected name's capsule (MU-90, DESKTOP-SEL): 17 pt tall with fully round ends, 5 pt of side
-/// padding, accent blue with white text; light grey `#d0d0d0` with dark text while the desktop is
-/// not the active surface (a window is key), the square unchanged.
-/// `Accent/Amalfi`, light and dark (the kit has no desktop screen: the geometry stays as measured).
-const Color desktopCapsule = Color(0xFF0E77E6);
-const Color desktopCapsuleDark = Color(0xFF3D95FF);
+/// The selected name's capsule (kit): one capsule hugging the label, radius 10, 6 pt of side
+/// padding and 2 pt above and below the lines, `Accent/Amalfi` with white text; light grey
+/// `#d0d0d0` with dark text while the desktop is not the active surface (a window is key), the
+/// square unchanged.
 const Color desktopCapsuleInactive = Color(0xFFD0D0D0);
 const Color desktopCapsuleInactiveText = Color(0xFF1D1D1F);
-const double desktopCapsulePad = 5;
-const double desktopCapsuleRadius = 8.5;
+const double desktopCapsulePad = 6;
+const double desktopCapsulePadY = 2;
+const double desktopCapsuleRadius = 10;
 
-/// The name starts 8 pt below the icon (its capsule's top 104 pt below the icon's top, MU-90), one
-/// line of 17 pt per row of text.
+/// The capsule's top is 8 pt below the icon, the name's text 10 pt (kit); one line is 18 pt (Headline
+/// 13 / 18), at most two, the middle of a longer name truncated.
 const double desktopLabelGap = 8;
-const double desktopLabelLine = 17;
+const double desktopLabelLine = 18;
 
 /// The widest a line of the name gets.
 const double desktopLabelWidth = desktopPitchX - 12;
 
-/// The rubber band on the desktop (DESKTOP-SEL): square corners, white fill ~15 %, 1 pt outline
-/// white ~57 %.
-const Color desktopBandFill = Color(0x26FFFFFF);
-const Color desktopBandBorder = Color(0x91FFFFFF);
+/// The rubber band on the desktop (kit): square corners, a 1 pt line, white 10 % fill and 32 % line
+/// in dark, black 10 % and 33 % in light.
+const Color desktopBandFill = Color(0x1AFFFFFF);
+const Color desktopBandBorder = Color(0x52FFFFFF);
+const Color desktopBandFillLight = Color(0x1A000000);
+const Color desktopBandBorderLight = Color(0x54000000);
 
 /// The drag threshold on the desktop (R7.7: 4–5 pt).
 const double desktopDragThreshold = 4.5;
@@ -838,10 +838,12 @@ class DesktopViewState extends State<DesktopView>
     );
   }
 
+  /// Headline on accent: Inter 13 / 18 semibold, white.
   static const TextStyle _labelStyle = TextStyle(
     fontFamily: uiFontFamily,
     package: 'silica_ui',
     fontSize: desktopLabelSize,
+    height: desktopLabelLine / desktopLabelSize,
     fontWeight: FontWeight.w600,
     color: Color(0xFFFFFFFF),
   );
@@ -875,23 +877,20 @@ class DesktopViewState extends State<DesktopView>
     desktopIconSide,
   );
 
-  /// The rectangles of the name's lines (the capsules when selected).
+  /// The rectangle of the name (the capsule when selected): one, hugging its lines.
   List<Rect> _labelRects(String key, Offset at) {
     final lines = _linesOf(key);
+    final width = lines.fold<double>(
+      0,
+      (w, line) => math.max(w, _lineWidth(line)),
+    );
     return [
-      for (var i = 0; i < lines.length; i++)
-        Rect.fromCenter(
-          center: Offset(
-            at.dx,
-            at.dy +
-                desktopIconSide +
-                desktopLabelGap +
-                desktopLabelLine * i +
-                desktopLabelLine / 2,
-          ),
-          width: _lineWidth(lines[i]) + 2 * desktopCapsulePad,
-          height: desktopLabelLine,
-        ),
+      Rect.fromLTWH(
+        at.dx - (width + 2 * desktopCapsulePad) / 2,
+        at.dy + desktopIconSide + desktopLabelGap,
+        width + 2 * desktopCapsulePad,
+        desktopLabelLine * lines.length + 2 * desktopCapsulePadY,
+      ),
     ];
   }
 
@@ -1426,13 +1425,17 @@ class DesktopViewState extends State<DesktopView>
               if (band != null)
                 Positioned.fromRect(
                   rect: band,
-                  child: const IgnorePointer(
+                  child: IgnorePointer(
                     child: DecoratedBox(
-                      key: ValueKey('desktop rubber band'),
+                      key: const ValueKey('desktop rubber band'),
                       decoration: BoxDecoration(
-                        color: desktopBandFill,
+                        color: dark ? desktopBandFill : desktopBandFillLight,
                         border: Border.fromBorderSide(
-                          BorderSide(color: desktopBandBorder),
+                          BorderSide(
+                            color: dark
+                                ? desktopBandBorder
+                                : desktopBandBorderLight,
+                          ),
                         ),
                       ),
                     ),
@@ -1480,7 +1483,7 @@ class DesktopViewState extends State<DesktopView>
     final shown = isSelected && !_unselectedYet.contains(icon.key);
     final shadowed = _labelStyle.copyWith(
       shadows: const [
-        Shadow(color: Color(0xB3000000), offset: Offset(0, 1), blurRadius: 2.5),
+        Shadow(color: Color(0x99000000), offset: Offset(0, 1), blurRadius: 3),
       ],
     );
     final lines = labelLines(icon.label, desktopLabelWidth, _labelStyle);
@@ -1512,36 +1515,44 @@ class DesktopViewState extends State<DesktopView>
             onCancel: () => setState(() => _renaming = null),
           )
         else
-          for (final line in lines)
-            Container(
-              height: desktopLabelLine,
-              padding: const EdgeInsets.symmetric(
-                horizontal: desktopCapsulePad,
-              ),
-              decoration: shown
-                  ? BoxDecoration(
-                      color: !_surfaceActive
-                          ? desktopCapsuleInactive
-                          : dark
-                          ? desktopCapsuleDark
-                          : desktopCapsule,
-                      borderRadius: BorderRadius.circular(desktopCapsuleRadius),
-                    )
-                  : null,
-              child: Center(
-                widthFactor: 1,
-                child: Text(
-                  line,
-                  maxLines: 1,
-                  softWrap: false,
-                  style: !shown
-                      ? shadowed
-                      : _surfaceActive
-                      ? _labelStyle
-                      : _labelStyle.copyWith(color: desktopCapsuleInactiveText),
-                ),
-              ),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: desktopCapsulePad,
+              vertical: desktopCapsulePadY,
             ),
+            decoration: shown
+                ? BoxDecoration(
+                    color: !_surfaceActive
+                        ? desktopCapsuleInactive
+                        : AmalfiTheme.of(context).colors.accentAmalfi,
+                    borderRadius: BorderRadius.circular(desktopCapsuleRadius),
+                  )
+                : null,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final line in lines)
+                  SizedBox(
+                    height: desktopLabelLine,
+                    child: Center(
+                      widthFactor: 1,
+                      child: Text(
+                        line,
+                        maxLines: 1,
+                        softWrap: false,
+                        style: !shown
+                            ? shadowed
+                            : _surfaceActive
+                            ? _labelStyle
+                            : _labelStyle.copyWith(
+                                color: desktopCapsuleInactiveText,
+                              ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
       ],
     );
     final height =
@@ -1549,6 +1560,7 @@ class DesktopViewState extends State<DesktopView>
         desktopIconSide +
         desktopLabelGap +
         desktopLabelLine * math.max(lines.length, 2) +
+        2 * desktopCapsulePadY +
         4;
     return Positioned(
       key: ValueKey('desktop ${icon.key}'),

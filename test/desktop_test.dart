@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:silica_ui/silica_ui.dart' show AmalfiColors;
 import 'package:mustache/src/desktop.dart';
 import 'package:mustache/src/icon_view.dart' show EntryIcon;
 import 'package:silica_ui/silica_ui.dart' show SilicaDrag;
@@ -24,10 +25,10 @@ void main() {
   const screen = Size(2560, 1440);
   const grid = DesktopGrid(screen);
 
-  group('grid (MU-90, R15.1)', () {
-    test('first icon 18 pt from the right edge and 40 from the top', () {
+  group('grid (kit Desktop, R15.1)', () {
+    test('first icon 22 pt from the right edge and 40 from the top', () {
       final first = grid.cell(0, 0);
-      expect(first.dx + desktopIconSide / 2, 2560 - 18);
+      expect(first.dx + desktopIconSide / 2, 2560 - 22);
       expect(first.dy, 40);
       expect(grid.cell(1, 0).dx, first.dx - 124);
       expect(grid.cell(0, 1).dy, 40 + 148);
@@ -409,12 +410,12 @@ void main() {
       expect(state.selected, {'one.txt'});
       expect(tester.getRect(inIcon(find.byType(EntryIcon))), icon);
       expect(tester.getRect(find.text('one.txt')), name);
-      // The square: 108 × 108, 6 pt around the icon (MU-90).
+      // The square: 104 × 104, 4 pt around the icon (MU-90).
       expect(
         tester.getRect(find.byKey(const ValueKey('desktop selection'))),
-        Rect.fromLTWH(at.dx - 54, at.dy - 6, 108, 108),
+        Rect.fromLTWH(at.dx - 52, at.dy - 4, 104, 104),
       );
-      // The capsule's top 104 pt below the icon's top, 17 pt tall.
+      // The capsule's top 104 pt below the icon's top, 22 pt tall for one line (18 + 2 + 2).
       final capsule = tester.getRect(
         find
             .ancestor(
@@ -424,7 +425,7 @@ void main() {
             .first,
       );
       expect(capsule.top, at.dy + 104);
-      expect(capsule.height, 17);
+      expect(capsule.height, 22);
     });
 
     testWidgets(
@@ -666,8 +667,8 @@ void main() {
                   )
                   .decoration!
               as BoxDecoration;
-      expect(capsule().color, desktopCapsule);
-      expect(capsule().borderRadius, BorderRadius.circular(8.5));
+      expect(capsule().color, AmalfiColors.light.accentAmalfi);
+      expect(capsule().borderRadius, BorderRadius.circular(10));
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
       await tester.pump();
       expect(capsule().color, const Color(0xFFD0D0D0));
@@ -675,13 +676,13 @@ void main() {
       expect(find.byKey(const ValueKey('desktop selection')), findsOneWidget);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pump();
-      expect(capsule().color, desktopCapsule);
+      expect(capsule().color, AmalfiColors.light.accentAmalfi);
     });
 
     test('measured values of the band, the badge and the square', () {
-      expect(desktopBandFill.a, closeTo(0.15, 0.01));
-      expect(desktopBandBorder.a, closeTo(0.57, 0.01));
-      expect(desktopSelectionSide, 108);
+      expect(desktopBandFill.a, closeTo(0.10, 0.01));
+      expect(desktopBandBorder.a, closeTo(0.32, 0.01));
+      expect(desktopSelectionSide, 104);
       expect(desktopSelectionOutlineWidth, 2);
       expect(desktopBadgeFromPointer.dx, greaterThan(0));
       expect(desktopBadgeFromPointer.dy, greaterThan(0));
