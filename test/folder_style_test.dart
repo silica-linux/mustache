@@ -260,7 +260,7 @@ void main() {
     final plain = Directory('${home.path}/Plain')..createSync();
     expect(
       styledFolderIcon(plain.path, env: env, styles: styles)!.icon.id,
-      'folder',
+      'folder-generic',
     );
 
     disk.tags[plain.path] = ['Blue'];

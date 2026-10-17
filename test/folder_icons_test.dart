@@ -5,39 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mustache/src/icon_view.dart';
 import 'package:mustache/src/model.dart';
 import 'package:mustache/src/folder_icons.dart';
+
+import 'folder_fixture.dart';
 import 'package:silica_ui/silica_ui.dart';
-
-const String svg =
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">'
-    '<rect x="100" y="100" width="824" height="824" fill="#2f8cff"/></svg>';
-
-const String folderManifest = '''
-{
-  "format": 1, "id": "folder", "name": "Folder", "kind": "file",
-  "layers": [ { "role": "artwork", "file": "icon.svg" } ],
-  "variants": {
-    "dark": { "artwork": "icon-dark.svg" },
-    "full": { "artwork": "icon-full.svg" },
-    "full-dark": { "artwork": "icon-full-dark.svg" }
-  },
-  "dynamic": null
-}
-''';
-
-Directory iconRoot({bool full = true}) {
-  final root = Directory.systemTemp.createTempSync('silica-icons-');
-  final dir = Directory('${root.path}/files/folder')
-    ..createSync(recursive: true);
-  File('${dir.path}/icon.json').writeAsStringSync(
-    full
-        ? folderManifest
-        : folderManifest.replaceAll(RegExp(r'"full[^}]*\}'), '"x": {}'),
-  );
-  for (final name in ['icon', 'icon-dark', 'icon-full', 'icon-full-dark']) {
-    File('${dir.path}/$name.svg').writeAsStringSync(svg);
-  }
-  return root;
-}
 
 void main() {
   test('a folder is full with one visible item; hidden files do not count', () {
@@ -65,23 +35,27 @@ void main() {
     expect(folderHasItems(dir.path), isFalse);
   });
 
-  test('the full variant swaps the artwork and keeps id and dark', () {
-    final root = iconRoot();
-    addTearDown(() => root.deleteSync(recursive: true));
-    final env = {'SILICA_ICONS_DIR': root.path};
-    final plain = findSilicaIcon('folder', env: env)!;
-    final full = fullFolderVariant(plain);
-    expect(full.id, 'folder');
-    expect(full.layers.single.path, endsWith('/icon-full.svg'));
-    expect(full.layers.single.darkPath, endsWith('/icon-full-dark.svg'));
-    expect(plain.layers.single.path, endsWith('/icon.svg'));
-  });
+  test(
+    'the full variant swaps the artwork and keeps id and dynamic content',
+    () {
+      final root = folderIconsRoot();
+      addTearDown(() => root.deleteSync(recursive: true));
+      final env = {'SILICA_ICONS_DIR': root.path};
+      final plain = findSilicaIcon('folder-generic', env: env)!;
+      final full = fullFolderVariant(plain);
+      expect(full.id, 'folder-generic');
+      expect(full.layers.single.path, endsWith('/icon-full.svg'));
+      expect(full.layers.single.darkPath, isNull);
+      expect(full.dynamic, isNotNull);
+      expect(plain.layers.single.path, endsWith('/icon.svg'));
+    },
+  );
 
   test('an icon without a full variant stays as it is', () {
-    final root = iconRoot(full: false);
+    final root = folderIconsRoot(withFull: false);
     addTearDown(() => root.deleteSync(recursive: true));
     final plain = findSilicaIcon(
-      'folder',
+      'folder-generic',
       env: {'SILICA_ICONS_DIR': root.path},
     );
     expect(plain, isNotNull);
@@ -89,10 +63,10 @@ void main() {
   });
 
   test('fullFolder keeps symbol and tint', () {
-    final root = iconRoot();
+    final root = folderIconsRoot();
     addTearDown(() => root.deleteSync(recursive: true));
     final plain = findSilicaIcon(
-      'folder',
+      'folder-generic',
       env: {'SILICA_ICONS_DIR': root.path},
     )!;
     const tint = Color(0xFF2FB350);
@@ -105,7 +79,7 @@ void main() {
   testWidgets('EntryIcon draws an empty folder plain and a full one full', (
     tester,
   ) async {
-    final root = iconRoot();
+    final root = folderIconsRoot();
     final tree = Directory.systemTemp.createTempSync('full-entries');
     addTearDown(() {
       root.deleteSync(recursive: true);
