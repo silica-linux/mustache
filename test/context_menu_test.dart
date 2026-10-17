@@ -27,13 +27,27 @@ void main() {
       'XDG_DATA_DIRS': '${home.path}/sys',
       'XDG_CONFIG_HOME': '${home.path}/.config',
       'XDG_CONFIG_DIRS': '${home.path}/etc',
+      'SILICA_ICONS_DIR': '${home.path}/icons',
     };
+    final icon = Directory('${home.path}/icons/apps/scrivi')
+      ..createSync(recursive: true);
+    const svg =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">'
+        '<rect width="1024" height="1024" fill="#888"/></svg>';
+    File('${icon.path}/background.svg').writeAsStringSync(svg);
+    File('${icon.path}/foreground.svg').writeAsStringSync(svg);
+    File('${icon.path}/icon.json').writeAsStringSync(
+      '{"format":1,"id":"scrivi","name":"Scrivi","kind":"app","keyline":"square",'
+      '"layers":[{"role":"background","file":"background.svg"},'
+      '{"role":"foreground","file":"foreground.svg"}]}',
+    );
     for (final (id, name) in [('scrivi', 'Scrivi'), ('appunti', 'Appunti')]) {
       File('${home.path}/.local/share/applications/$id.desktop')
         ..createSync(recursive: true)
         ..writeAsStringSync(
           '[Desktop Entry]\nType=Application\nName=$name\nExec=$id %f\n'
-          'MimeType=text/plain;\n',
+          'MimeType=text/plain;\n'
+          '${id == 'scrivi' ? 'X-Silica-Icon=scrivi\n' : ''}',
         );
     }
     File('${home.path}/.config/mimeapps.list')
@@ -93,6 +107,23 @@ void main() {
     expect(find.text('Appunti'), findsOneWidget);
     final defaultTop = tester.getTopLeft(find.text('Scrivi (default)')).dy;
     expect(tester.getTopLeft(find.text('Appunti')).dy, greaterThan(defaultTop));
+    expect(tester.getSize(find.byType(AmalfiMenu).last).width, 192);
+    // Silica's own app has its 16 pt icon; the other apps keep the slot, empty (labels line up).
+    expect(find.byType(AmalfiAppIcon), findsNWidgets(2));
+    // Its canvas is 16 pt, centred in the menu's icon slot: the body is 824/1024 of it.
+    expect(find.byType(SilicaIcon), findsOneWidget);
+    expect(
+      tester.getSize(find.byType(SilicaIcon)).width,
+      closeTo(12.875, 0.01),
+    );
+    expect(
+      tester.getCenter(find.byType(SilicaIcon)),
+      tester.getCenter(find.byType(AmalfiAppIcon).first),
+    );
+    expect(
+      tester.getTopLeft(find.text('Appunti')).dx,
+      tester.getTopLeft(find.text('Scrivi (default)')).dx,
+    );
   });
 
   testWidgets('a right click on an unselected row does not select it: ring', (

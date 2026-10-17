@@ -160,6 +160,7 @@ extension _WindowMenus on _MustacheWindowState {
     ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     SilicaMenuItem item(String label, DesktopApp app) => SilicaMenuItem(
       label: label,
+      icon: app.silicaIcon,
       onSelected: () => _openWith([
         for (final e in _selection)
           if (!e.isDirectory) e,

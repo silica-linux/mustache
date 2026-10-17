@@ -157,6 +157,11 @@ extension _Context on _MustacheWindowState {
     }
   });
 
+  /// The 16 pt icon of an app in Open With (kit `Icons/App/16`), drawn from its own icon; an app
+  /// that is not one of Silica's gets an empty box, so the labels of the apps line up.
+  Widget _appIcon(DesktopApp app) =>
+      AmalfiAppIcon(app.silicaIcon ?? '', env: widget.iconsEnv);
+
   /// "Open With ›": the default on top with "(default)", then the others by name, then "Other…"
   /// (R10.1).
   AmalfiMenuAction _openWithMenu(List<Entry> files) {
@@ -168,15 +173,22 @@ extension _Context on _MustacheWindowState {
     ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     return AmalfiMenuAction(
       l10n.openWith,
+      // `Submenu/Open With` in the kit is 192 wide.
+      submenuWidth: 192,
       submenu: [
         if (preferred != null)
           AmalfiMenuAction(
             l10n.defaultApp(preferred.name),
+            icon: _appIcon(preferred),
             onSelected: () => _openWith(files, preferred),
           ),
         if (preferred != null && others.isNotEmpty) const AmalfiMenuDivider(),
         for (final app in others)
-          AmalfiMenuAction(app.name, onSelected: () => _openWith(files, app)),
+          AmalfiMenuAction(
+            app.name,
+            icon: _appIcon(app),
+            onSelected: () => _openWith(files, app),
+          ),
         const AmalfiMenuDivider(),
         AmalfiMenuAction(l10n.otherApp, enabled: false),
       ],

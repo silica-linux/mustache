@@ -19,6 +19,7 @@ class DesktopApp {
     required this.exec,
     this.mimeTypes = const [],
     this.icon,
+    this.silicaIcon,
     this.terminal = false,
   });
 
@@ -28,6 +29,10 @@ class DesktopApp {
   final String exec;
   final List<String> mimeTypes;
   final String? icon;
+
+  /// `X-Silica-Icon`: the silica-icons name or the `icon/` folder of one of Silica's own apps;
+  /// null for every other app.
+  final String? silicaIcon;
   final bool terminal;
 }
 
@@ -61,6 +66,7 @@ DesktopApp? parseDesktopApp(String id, String text, {String? locale}) {
         if (t.trim().isNotEmpty) t.trim(),
     ],
     icon: values['Icon'],
+    silicaIcon: values['X-Silica-Icon'],
     terminal: values['Terminal'] == 'true',
   );
 }

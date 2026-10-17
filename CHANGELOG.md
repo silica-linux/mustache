@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Added (mustache#23):** the Open With submenu shows the 16 pt icon of each of Silica's own apps
+  (`X-Silica-Icon` of its desktop entry, drawn by `AmalfiAppIcon`; other apps keep an empty slot so
+  the labels line up), 192 wide, in Actions and the context menu; the File menu passes the icon id
+  to the menu bar. Needs silica_ui with `AmalfiAppIcon` and `AmalfiMenuAction.submenuWidth`.
+
 Amalfi (silica_ui 1.0.0 "Amalfi", milestone M6): the whole window is rebuilt on the Amalfi design
 system from the kit page `App · Mustache` (silica_ui v1.0.0-alpha.5). Look and measures are the
 kit's (sidebar 240, flat 52 pt toolbar split in sidebar, content and preview sections, 104 pt icon
