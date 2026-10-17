@@ -328,10 +328,16 @@ enum PlaceKind {
 
   /// A tag (path `tag:<name>`): shows the items that carry it.
   tag,
+
+  /// A saved search (path `search:<file>`): runs it.
+  search,
 }
 
 /// The prefix of tag paths in the sidebar.
 const String tagPathPrefix = 'tag:';
+
+/// The path of a saved search's sidebar row: `search:` and the `.search` file.
+const String searchPathPrefix = 'search:';
 
 /// The user folders from `~/.config/user-dirs.dirs` (xdg-user-dirs specification), with the folder
 /// name as the label; only those that exist.

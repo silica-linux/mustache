@@ -1819,6 +1819,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close Tab'**
   String get menuCloseTab;
+
+  /// Tooltip of a sheet's close button.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get closeSheet;
+
+  /// Header over the suggestions of the Go to Folder sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to:'**
+  String get goToFolderHeader;
+
+  /// Header of the Go to Folder sheet when the typed path does not exist.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder not found'**
+  String get goToFolderNotFound;
+
+  /// Title of the Save Search sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Save this search'**
+  String get saveSearchTitle;
+
+  /// Message of the Save Search sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Name it and choose where to keep it.'**
+  String get saveSearchMessage;
+
+  /// Label of the name field of the Save Search sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Save As:'**
+  String get saveSearchName;
+
+  /// Label of the tags field of the Save Search sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags:'**
+  String get saveSearchTags;
+
+  /// Label of the folder pop-up of the Save Search sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Where:'**
+  String get saveSearchWhere;
+
+  /// Placeholder of the tags field of the Save Search sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Add tags'**
+  String get saveSearchAddTags;
+
+  /// Checkbox of the Save Search sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to Sidebar'**
+  String get saveSearchAddToSidebar;
+
+  /// The folder saved searches are kept in, and the sidebar section.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved Searches'**
+  String get savedSearchesFolder;
+
+  /// Default name of a saved search in a folder, for example Documents named Lemon.
+  ///
+  /// In en, this message translates to:
+  /// **'{folder} named {query}'**
+  String savedSearchNameInFolder(String folder, String query);
+
+  /// Default name of a saved search of this computer.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for {query}'**
+  String savedSearchNameEverywhere(String query);
+
+  /// Alert title when the saved search file cannot be written.
+  ///
+  /// In en, this message translates to:
+  /// **'The search could not be saved'**
+  String get saveSearchError;
+
+  /// The Save button of the scope bar.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get saveSearchButton;
+
+  /// Alert when a .search file is damaged.
+  ///
+  /// In en, this message translates to:
+  /// **'“{name}” is not a saved search.'**
+  String savedSearchDamaged(String name);
 }
 
 class _AppLocalizationsDelegate

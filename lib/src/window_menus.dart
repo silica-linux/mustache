@@ -31,7 +31,7 @@ extension _WindowMenus on _MustacheWindowState {
 
   MenuSpec _menuSpec() {
     final dialog = widget.dialog != null;
-    final blocked = _alert != null || _conflict != null;
+    final blocked = _modalOpen || _conflict != null;
     final items = _selection;
     final single = items.length == 1 ? items.first : null;
     final files = [
@@ -98,6 +98,7 @@ extension _WindowMenus on _MustacheWindowState {
       pasteCount: FileClipboard.paths.length,
       selectAll: run(_selectAll, when: _ordered.isNotEmpty),
       find: run(_startSearch),
+      goToFolder: run(_openGoToFolder, when: !dialog),
       view: _view,
       setView: blocked ? null : _setView,
       galleryEnabled: !dialog,
@@ -210,7 +211,7 @@ extension _WindowMenus on _MustacheWindowState {
   );
 
   void _toggleQuickPreview() {
-    if (_renaming != null || _alert != null) return;
+    if (_renaming != null || _modalOpen) return;
     _update(() => _quickPreview = !_quickPreview && _selected.isNotEmpty);
   }
 

@@ -286,5 +286,21 @@
   "searchPlaceholder": "Cerca",
   "toggleSidebar": "Barra laterale",
   "iconSize": "Dimensione icone",
-  "menuCloseTab": "Chiudi tab"
+  "menuCloseTab": "Chiudi tab",
+  "closeSheet": "Chiudi",
+  "goToFolderHeader": "Vai a:",
+  "goToFolderNotFound": "Cartella non trovata",
+  "saveSearchTitle": "Salva questa ricerca",
+  "saveSearchMessage": "Dai un nome e scegli dove tenerla.",
+  "saveSearchName": "Salva come:",
+  "saveSearchTags": "Tag:",
+  "saveSearchWhere": "Dove:",
+  "saveSearchAddTags": "Aggiungi tag",
+  "saveSearchAddToSidebar": "Aggiungi alla barra laterale",
+  "savedSearchesFolder": "Ricerche salvate",
+  "savedSearchNameInFolder": "{folder} con nome {query}",
+  "savedSearchNameEverywhere": "Ricerca di {query}",
+  "saveSearchError": "Impossibile salvare la ricerca",
+  "saveSearchButton": "Salva",
+  "savedSearchDamaged": "“{name}” non è una ricerca salvata."
 }

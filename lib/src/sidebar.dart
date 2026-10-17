@@ -84,6 +84,7 @@ String symbolFor(PlaceKind kind) => switch (kind) {
   PlaceKind.videos => 'video',
   PlaceKind.trash => 'trash',
   PlaceKind.tag => '',
+  PlaceKind.search => 'search',
 };
 
 /// The tag dot of a sidebar row: 12 pt, the Amalfi palette.
@@ -236,7 +237,9 @@ class _SidebarState extends State<Sidebar> with TickerProviderStateMixin {
 
   Widget _row(Place place, {required bool showText}) {
     final onDrop = widget.onDrop;
-    if (onDrop == null || place.kind == PlaceKind.tag) {
+    if (onDrop == null ||
+        place.kind == PlaceKind.tag ||
+        place.kind == PlaceKind.search) {
       return _rowContent(place, showText: showText, drop: false);
     }
     return FolderDropTarget(

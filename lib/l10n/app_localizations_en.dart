@@ -1011,4 +1011,58 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get menuCloseTab => 'Close Tab';
+
+  @override
+  String get closeSheet => 'Close';
+
+  @override
+  String get goToFolderHeader => 'Go to:';
+
+  @override
+  String get goToFolderNotFound => 'Folder not found';
+
+  @override
+  String get saveSearchTitle => 'Save this search';
+
+  @override
+  String get saveSearchMessage => 'Name it and choose where to keep it.';
+
+  @override
+  String get saveSearchName => 'Save As:';
+
+  @override
+  String get saveSearchTags => 'Tags:';
+
+  @override
+  String get saveSearchWhere => 'Where:';
+
+  @override
+  String get saveSearchAddTags => 'Add tags';
+
+  @override
+  String get saveSearchAddToSidebar => 'Add to Sidebar';
+
+  @override
+  String get savedSearchesFolder => 'Saved Searches';
+
+  @override
+  String savedSearchNameInFolder(String folder, String query) {
+    return '$folder named $query';
+  }
+
+  @override
+  String savedSearchNameEverywhere(String query) {
+    return 'Search for $query';
+  }
+
+  @override
+  String get saveSearchError => 'The search could not be saved';
+
+  @override
+  String get saveSearchButton => 'Save';
+
+  @override
+  String savedSearchDamaged(String name) {
+    return '“$name” is not a saved search.';
+  }
 }

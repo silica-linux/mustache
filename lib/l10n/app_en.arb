@@ -1469,5 +1469,87 @@
   "menuCloseTab": "Close Tab",
   "@menuCloseTab": {
     "description": "Accessibility label of the close button of a tab."
+  },
+  "closeSheet": "Close",
+  "@closeSheet": {
+    "description": "Tooltip of a sheet's close button."
+  },
+  "goToFolderHeader": "Go to:",
+  "@goToFolderHeader": {
+    "description": "Header over the suggestions of the Go to Folder sheet."
+  },
+  "goToFolderNotFound": "Folder not found",
+  "@goToFolderNotFound": {
+    "description": "Header of the Go to Folder sheet when the typed path does not exist."
+  },
+  "saveSearchTitle": "Save this search",
+  "@saveSearchTitle": {
+    "description": "Title of the Save Search sheet."
+  },
+  "saveSearchMessage": "Name it and choose where to keep it.",
+  "@saveSearchMessage": {
+    "description": "Message of the Save Search sheet."
+  },
+  "saveSearchName": "Save As:",
+  "@saveSearchName": {
+    "description": "Label of the name field of the Save Search sheet."
+  },
+  "saveSearchTags": "Tags:",
+  "@saveSearchTags": {
+    "description": "Label of the tags field of the Save Search sheet."
+  },
+  "saveSearchWhere": "Where:",
+  "@saveSearchWhere": {
+    "description": "Label of the folder pop-up of the Save Search sheet."
+  },
+  "saveSearchAddTags": "Add tags",
+  "@saveSearchAddTags": {
+    "description": "Placeholder of the tags field of the Save Search sheet."
+  },
+  "saveSearchAddToSidebar": "Add to Sidebar",
+  "@saveSearchAddToSidebar": {
+    "description": "Checkbox of the Save Search sheet."
+  },
+  "savedSearchesFolder": "Saved Searches",
+  "@savedSearchesFolder": {
+    "description": "The folder saved searches are kept in, and the sidebar section."
+  },
+  "savedSearchNameInFolder": "{folder} named {query}",
+  "@savedSearchNameInFolder": {
+    "description": "Default name of a saved search in a folder, for example Documents named Lemon.",
+    "placeholders": {
+      "folder": {
+        "type": "String"
+      },
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "savedSearchNameEverywhere": "Search for {query}",
+  "@savedSearchNameEverywhere": {
+    "description": "Default name of a saved search of this computer.",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "saveSearchError": "The search could not be saved",
+  "@saveSearchError": {
+    "description": "Alert title when the saved search file cannot be written."
+  },
+  "saveSearchButton": "Save",
+  "@saveSearchButton": {
+    "description": "The Save button of the scope bar."
+  },
+  "savedSearchDamaged": "“{name}” is not a saved search.",
+  "@savedSearchDamaged": {
+    "description": "Alert when a .search file is damaged.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   }
 }

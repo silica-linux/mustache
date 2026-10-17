@@ -46,6 +46,9 @@ import 'preview_pane.dart';
 import 'quick_preview.dart';
 import 'status_bar.dart';
 import 'rename_field.dart';
+import 'go_to_folder.dart';
+import 'save_search_sheet.dart';
+import 'saved_search.dart';
 import 'sounds.dart';
 import 'transfer.dart';
 import 'transfer_ui.dart';
@@ -56,6 +59,7 @@ import 'tags.dart';
 import 'toolbar.dart';
 
 part 'window_arrange.dart';
+part 'window_sheets.dart';
 part 'window_info.dart';
 part 'window_columns.dart';
 part 'window_context.dart';
@@ -116,6 +120,10 @@ class TogglePartIntent extends Intent {
 
 class NewWindowIntent extends Intent {
   const NewWindowIntent();
+}
+
+class GoToFolderIntent extends Intent {
+  const GoToFolderIntent();
 }
 
 class SearchIntent extends Intent {
@@ -332,6 +340,15 @@ class _MustacheWindowState extends State<MustacheWindow>
   String? _renaming;
   Timer? _slowClick;
   Widget? _alert;
+
+  /// A sheet attached to the window (Go to Folder, Save Search): over a veil, one at a time.
+  Widget? _sheet;
+  bool _sheetCentered = false;
+  bool get _modalOpen => _alert != null || _sheet != null;
+
+  /// The saved search shown in the results, and the text it searched for.
+  String? _savedView;
+  String _savedQuery = '';
 
   /// The apps (read the first time an app is opened), the MIME types and the open context menu.
   AppRegistry? _apps;
@@ -666,6 +683,10 @@ class _MustacheWindowState extends State<MustacheWindow>
     _slowClick?.cancel();
     if (entry.isDirectory) {
       _navigate(entry.path);
+    } else if (entry.extension == savedSearchExtension &&
+        widget.dialog == null &&
+        SavedSearch.read(entry.path) != null) {
+      _openSavedSearch(entry.path);
     } else if (widget.dialog case final d?) {
       // In the Open dialog a double click on a file chooses it.
       if (!d.save && !d.directory) _finish([entry.path]);
@@ -929,6 +950,8 @@ class _MustacheWindowState extends State<MustacheWindow>
         SingleActivator(LogicalKeyboardKey.space): QuickPreviewIntent(),
         SingleActivator(LogicalKeyboardKey.keyI, meta: true): InfoIntent(),
         SingleActivator(LogicalKeyboardKey.keyF, meta: true): SearchIntent(),
+        SingleActivator(LogicalKeyboardKey.keyG, meta: true, shift: true):
+            GoToFolderIntent(),
         SingleActivator(LogicalKeyboardKey.keyN, meta: true): NewWindowIntent(),
         SingleActivator(LogicalKeyboardKey.quoteSingle, meta: true):
             TogglePartIntent(WindowPart.statusBar),
@@ -985,7 +1008,7 @@ class _MustacheWindowState extends State<MustacheWindow>
           ),
           FileCommandIntent: CallbackAction<FileCommandIntent>(
             onInvoke: (intent) {
-              if (_alert != null || _renaming != null) return null;
+              if (_modalOpen || _renaming != null) return null;
               switch (intent.command) {
                 case FileCommand.rename:
                   if (widget.dialog != null) {
@@ -1028,6 +1051,12 @@ class _MustacheWindowState extends State<MustacheWindow>
               return null;
             },
           ),
+          GoToFolderIntent: CallbackAction<GoToFolderIntent>(
+            onInvoke: (_) {
+              if (widget.dialog == null) _openGoToFolder();
+              return null;
+            },
+          ),
           SearchIntent: CallbackAction<SearchIntent>(
             onInvoke: (_) {
               _startSearch();
@@ -1050,7 +1079,7 @@ class _MustacheWindowState extends State<MustacheWindow>
             onInvoke: (_) {
               if (_quickPreview) {
                 setState(() => _quickPreview = false);
-              } else if (widget.dialog != null && _alert == null) {
+              } else if (widget.dialog != null && !_modalOpen) {
                 // Esc in the dialog: cancel.
                 _finish(const []);
               }
@@ -1127,14 +1156,24 @@ class _MustacheWindowState extends State<MustacheWindow>
                                     if (place.kind == PlaceKind.home) place,
                                   widget.trash,
                                 ]),
+                                SidebarSection(
+                                  l10n.savedSearchesFolder,
+                                  _savedPlaces,
+                                ),
                                 SidebarSection(l10n.sidebarTags, _tagPlaces),
                               ],
-                              current: _tagView == null
+                              current: _savedViewShown
+                                  ? '$searchPathPrefix$_savedView'
+                                  : _tagView == null
                                   ? _history.current
                                   : '$tagPathPrefix$_tagView',
-                              onSelect: (place) => place.kind == PlaceKind.tag
-                                  ? _showTag(place.label)
-                                  : _navigate(place.path),
+                              onSelect: (place) => switch (place.kind) {
+                                PlaceKind.tag => _showTag(place.label),
+                                PlaceKind.search => _openSavedSearch(
+                                  place.path.substring(searchPathPrefix.length),
+                                ),
+                                _ => _navigate(place.path),
+                              },
                               onDrop: _drop,
                             ),
                           ),
@@ -1342,6 +1381,45 @@ class _MustacheWindowState extends State<MustacheWindow>
                             icon: _appIcon,
                             onChoice: _chooseConflict,
                           ),
+                        ),
+                      ),
+                    ),
+                  // A sheet hangs from the toolbar over a veil (kit `Go To Folder`, `Save Search`).
+                  if (_sheet != null)
+                    Positioned.fill(
+                      child: CallbackShortcuts(
+                        bindings: {
+                          const SingleActivator(LogicalKeyboardKey.escape):
+                              _closeSheet,
+                        },
+                        child: Stack(
+                          children: [
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              top: AmalfiToolbarMetrics.toolbarHeight,
+                              bottom: 0,
+                              child: GestureDetector(
+                                key: const ValueKey('sheet veil'),
+                                behavior: HitTestBehavior.opaque,
+                                onTap: _closeSheet,
+                                child: const AmalfiSheetScrim(),
+                              ),
+                            ),
+                            Positioned.fill(
+                              child: Align(
+                                alignment: _sheetCentered
+                                    ? Alignment.center
+                                    : Alignment.topCenter,
+                                child: Padding(
+                                  padding: EdgeInsets.only(
+                                    top: _sheetCentered ? 0 : 102,
+                                  ),
+                                  child: _sheet,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),

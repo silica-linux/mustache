@@ -54,6 +54,7 @@ class MenuSpec {
     this.pasteCount = 0,
     this.selectAll,
     this.find,
+    this.goToFolder,
     this.view,
     this.setView,
     this.galleryEnabled = true,
@@ -123,6 +124,9 @@ class MenuSpec {
   final int pasteCount;
   final VoidCallback? selectAll;
   final VoidCallback? find;
+
+  /// Go › Go to Folder… (⇧⌘G).
+  final VoidCallback? goToFolder;
 
   // View.
   final ViewMode? view;
@@ -633,7 +637,7 @@ SilicaMenu _goMenu(MenuSpec s) {
       _group([
         _item(
           l10n.menuGoToFolder,
-          null,
+          s.goToFolder,
           key: _cmd(LogicalKeyboardKey.keyG, shift: true),
         ),
         _item(

@@ -105,6 +105,22 @@ class Settings {
     _save();
   }
 
+  /// The saved searches shown in the sidebar: paths of `.search` files.
+  List<String> get savedSearches {
+    final value = _data['savedSearches'];
+    return value is List
+        ? [
+            for (final v in value)
+              if (v is String) v,
+          ]
+        : const [];
+  }
+
+  set savedSearches(List<String> value) {
+    _data['savedSearches'] = value;
+    _save();
+  }
+
   void _save() {
     try {
       final file = File(path);

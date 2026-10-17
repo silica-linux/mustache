@@ -141,8 +141,7 @@ extension _Search on _MustacheWindowState {
   );
 
   /// The scope bar (kit `Scope Bar`): 32 tall, a "search in" label and the two scopes, the chosen
-  /// one on a sunken capsule, a 1 pt separator below. The kit's "Save" button is not here: saving a
-  /// search is not implemented (mustache issue).
+  /// one on a sunken capsule, a 1 pt separator below. The Save button keeps the search (window_sheets.dart).
   Widget _scopeBar() {
     final colors = AmalfiTheme.of(context).colors;
     Widget capsule(String label, SearchScope scope) {
@@ -203,6 +202,25 @@ extension _Search on _MustacheWindowState {
                   SearchScope.folder,
                 ),
               ],
+            ),
+          ),
+          // The kit's Save button (`Buttons/Push/Secondary/Small`) at the end of the bar.
+          Positioned(
+            right: 8,
+            top: 0,
+            bottom: 1,
+            child: Center(
+              child: ListenableBuilder(
+                listenable: _searchQuery,
+                builder: (context, _) => AmalfiPushButton(
+                  key: const ValueKey('save search button'),
+                  label: l10n.saveSearchButton,
+                  size: AmalfiControlSize.small,
+                  onPressed: _searchQuery.text.trim().isEmpty
+                      ? null
+                      : _openSaveSearch,
+                ),
+              ),
             ),
           ),
           Positioned(
