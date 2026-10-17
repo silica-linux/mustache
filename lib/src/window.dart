@@ -1294,6 +1294,7 @@ class _MustacheWindowState extends State<MustacheWindow>
                           child: InfoPanel(
                             entry: entry,
                             kind: _kind(entry),
+                            mime: entry.isDirectory ? null : _typeOf(entry),
                             env: widget.iconsEnv,
                             open: _infoOpen,
                             openWith: entry.isDirectory

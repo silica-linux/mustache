@@ -771,6 +771,27 @@
   "@infoGeneral": {
     "description": "Info section."
   },
+  "infoMoreInfo": "More Info",
+  "@infoMoreInfo": {
+    "description": "Info section with the metadata of the item."
+  },
+  "infoContentType": "Content type",
+  "@infoContentType": {
+    "description": "More Info label: the MIME type."
+  },
+  "infoDimensions": "Dimensions",
+  "@infoDimensions": {
+    "description": "More Info label: the pixel size of an image."
+  },
+  "infoPixels": "{width} × {height} pixels",
+  "@infoPixels": {
+    "description": "Pixel size of an image.",
+    "placeholders": {"width": {"type": "int"}, "height": {"type": "int"}}
+  },
+  "infoLastOpened": "Last opened",
+  "@infoLastOpened": {
+    "description": "More Info label: the last access date."
+  },
   "infoNameExtension": "Name and Extension",
   "@infoNameExtension": {
     "description": "Info section."

@@ -13,6 +13,7 @@
 // it is drawn inside the Mustache window with its own frame, as before.
 
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/widgets.dart';
 import 'package:silica_ui/silica_ui.dart';
@@ -28,11 +29,23 @@ const double infoLabelWidth = 64;
 const double infoSectionHeight = 28;
 const double infoRow = 20;
 
+/// Images larger than this are not read for their dimensions.
+const int _maxImageBytes = 64 << 20;
+
 /// The sections, in order.
-enum InfoSection { general, name, comments, openWith, preview, permissions }
+enum InfoSection {
+  general,
+  more,
+  name,
+  comments,
+  openWith,
+  preview,
+  permissions,
+}
 
 String infoSectionTitle(InfoSection s) => switch (s) {
   InfoSection.general => l10n.infoGeneral,
+  InfoSection.more => l10n.infoMoreInfo,
   InfoSection.name => l10n.infoNameExtension,
   InfoSection.comments => l10n.infoComments,
   InfoSection.openWith => l10n.openWith,
@@ -45,6 +58,7 @@ String infoSectionTitle(InfoSection s) => switch (s) {
 class StatDetails {
   const StatDetails({
     this.created,
+    this.accessed,
     this.blocks = 0,
     this.owner = '',
     this.group = '',
@@ -52,6 +66,7 @@ class StatDetails {
   });
 
   final DateTime? created;
+  final DateTime? accessed;
   final int blocks;
   final String owner;
   final String group;
@@ -59,7 +74,7 @@ class StatDetails {
 
   int get onDisk => blocks * 512;
 
-  /// From the output of `stat -c '%W %b %U %G %a'`.
+  /// From the output of `stat -c '%W %b %U %G %a %X'` (the last field is optional).
   static StatDetails parse(String line) {
     final parts = line.trim().split(' ');
     if (parts.length < 5) return const StatDetails();
@@ -67,6 +82,9 @@ class StatDetails {
     return StatDetails(
       created: birth > 0
           ? DateTime.fromMillisecondsSinceEpoch(birth * 1000)
+          : null,
+      accessed: parts.length > 5 && (int.tryParse(parts[5]) ?? 0) > 0
+          ? DateTime.fromMillisecondsSinceEpoch(int.parse(parts[5]) * 1000)
           : null,
       blocks: int.tryParse(parts[1]) ?? 0,
       owner: parts[2],
@@ -77,7 +95,7 @@ class StatDetails {
 
   static StatDetails of(String path) {
     try {
-      final r = Process.runSync('stat', ['-c', '%W %b %U %G %a', path]);
+      final r = Process.runSync('stat', ['-c', '%W %b %U %G %a %X', path]);
       return r.exitCode == 0 ? parse('${r.stdout}') : const StatDetails();
     } on ProcessException {
       return const StatDetails();
@@ -131,6 +149,7 @@ class InfoPanel extends StatefulWidget {
     required this.onClose,
     required this.onRename,
     this.openWith,
+    this.mime,
     this.env,
     this.framed = true,
     this.onHeight,
@@ -161,6 +180,9 @@ class InfoPanel extends StatefulWidget {
 
   /// The app that opens the file (null for folders).
   final String? openWith;
+
+  /// The MIME type of a file (More Info); null for folders.
+  final String? mime;
   final Map<String, String>? env;
 
   /// The item's tags and adding one from the field (null: no field).
@@ -185,9 +207,13 @@ class _InfoPanelState extends State<InfoPanel> {
   final GlobalKey _contentKey = GlobalKey();
   double? _reportedHeight;
 
+  /// The pixel size of an image, once read (More Info); null while loading or when it is not one.
+  ({int width, int height})? _dimensions;
+
   @override
   void initState() {
     super.initState();
+    _readDimensions();
     // The comment is saved when leaving the field (R11.2).
     _commentFocus.addListener(() {
       if (!_commentFocus.hasFocus) {
@@ -207,6 +233,36 @@ class _InfoPanelState extends State<InfoPanel> {
       _stat = StatDetails.of(widget.entry.path);
       _name.text = widget.entry.name;
       _comment.text = readAttribute(widget.entry.path, commentAttribute) ?? '';
+      _dimensions = null;
+      _readDimensions();
+    }
+  }
+
+  /// Reads the size of an image file from its header, off the first frame.
+  Future<void> _readDimensions() async {
+    final path = widget.entry.path;
+    final mime = widget.mime;
+    if (widget.entry.isDirectory ||
+        mime == null ||
+        !mime.startsWith('image/') ||
+        widget.entry.size > _maxImageBytes) {
+      return;
+    }
+    try {
+      final bytes = await File(path).readAsBytes();
+      final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
+      try {
+        final descriptor = await ui.ImageDescriptor.encoded(buffer);
+        final size = (width: descriptor.width, height: descriptor.height);
+        descriptor.dispose();
+        if (mounted && widget.entry.path == path) {
+          setState(() => _dimensions = size);
+        }
+      } finally {
+        buffer.dispose();
+      }
+    } on Object {
+      // Not an image the engine decodes: the row stays at "--".
     }
   }
 
@@ -494,6 +550,20 @@ class _InfoPanelState extends State<InfoPanel> {
             _row(l10n.location, parentOf(entry.path) ?? '/'),
             _row(l10n.created, _date(_stat.created)),
             _row(l10n.modified, _date(entry.modified)),
+          ],
+        );
+      case InfoSection.more:
+        final mime = widget.mime;
+        final image = mime != null && mime.startsWith('image/');
+        return Column(
+          children: [
+            if (!entry.isDirectory) _row(l10n.infoContentType, mime ?? '--'),
+            if (image)
+              _row(l10n.infoDimensions, switch (_dimensions) {
+                final d? => l10n.infoPixels(d.width, d.height),
+                null => '--',
+              }),
+            _row(l10n.infoLastOpened, _date(_stat.accessed)),
           ],
         );
       case InfoSection.name:

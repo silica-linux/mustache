@@ -72,6 +72,7 @@ extension _InfoWindows on _MustacheWindowState {
         framed: false,
         entry: entry,
         kind: _kind(entry),
+        mime: entry.isDirectory ? null : _typeOf(entry),
         env: widget.iconsEnv,
         open: _infoOpen,
         openWith: entry.isDirectory

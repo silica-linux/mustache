@@ -17,6 +17,11 @@ void main() {
     expect(s.owner, 'io');
     expect(s.mode, 0x1a0);
     expect(StatDetails.parse('0 0 a b 644').created, isNull);
+    expect(StatDetails.parse('0 0 a b 644').accessed, isNull);
+    expect(
+      StatDetails.parse('0 0 a b 644 1760000100').accessed,
+      DateTime.fromMillisecondsSinceEpoch(1760000100000),
+    );
     expect(privilegeOf(0x1a0, 6), Privilege.readWrite);
     expect(privilegeOf(0x1a0, 3), Privilege.readOnly);
     expect(privilegeOf(0x1a0, 0), Privilege.none);
@@ -77,6 +82,14 @@ void main() {
           find.textContaining('on disk)').evaluate().length,
       greaterThan(0),
     );
+    // More Info: the content type and the last access (no dimensions for a text file).
+    expect(find.text('Content type'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('section more')));
+    await tester.pump();
+    expect(find.text('Content type'), findsOneWidget);
+    expect(find.text('text/plain'), findsOneWidget);
+    expect(find.text('Last opened'), findsOneWidget);
+    expect(find.text('Dimensions'), findsNothing);
     // Comments closed: it opens and the state stays for the next ones.
     await tester.tap(find.byKey(const ValueKey('section comments')));
     await tester.pump();

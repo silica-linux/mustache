@@ -920,6 +920,36 @@ abstract class AppLocalizations {
   /// **'General'**
   String get infoGeneral;
 
+  /// Info section with the metadata of the item.
+  ///
+  /// In en, this message translates to:
+  /// **'More Info'**
+  String get infoMoreInfo;
+
+  /// More Info label: the MIME type.
+  ///
+  /// In en, this message translates to:
+  /// **'Content type'**
+  String get infoContentType;
+
+  /// More Info label: the pixel size of an image.
+  ///
+  /// In en, this message translates to:
+  /// **'Dimensions'**
+  String get infoDimensions;
+
+  /// Pixel size of an image.
+  ///
+  /// In en, this message translates to:
+  /// **'{width} × {height} pixels'**
+  String infoPixels(int width, int height);
+
+  /// More Info label: the last access date.
+  ///
+  /// In en, this message translates to:
+  /// **'Last opened'**
+  String get infoLastOpened;
+
   /// Info section.
   ///
   /// In en, this message translates to:

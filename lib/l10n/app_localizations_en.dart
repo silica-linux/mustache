@@ -528,6 +528,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get infoGeneral => 'General';
 
   @override
+  String get infoMoreInfo => 'More Info';
+
+  @override
+  String get infoContentType => 'Content type';
+
+  @override
+  String get infoDimensions => 'Dimensions';
+
+  @override
+  String infoPixels(int width, int height) {
+    return '$width × $height pixels';
+  }
+
+  @override
+  String get infoLastOpened => 'Last opened';
+
+  @override
   String get infoNameExtension => 'Name and Extension';
 
   @override

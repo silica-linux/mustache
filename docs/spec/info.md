@@ -19,7 +19,7 @@ Sections, in order (Mustache's labels):
 
 1. **General**: Type; Size, as "N bytes (X on disk)"; Where, on several lines; Created;
    Modified; and the Stationery pad and Locked checkboxes.
-2. **More Info**: metadata. It shows a spinner while loading and "--" when there is nothing.
+2. **More Info**: metadata. It shows a spinner while loading and "--" when there is nothing. Silica shows the content type (MIME), the pixel size of images and the last opened date, collapsed by default (kit `Apps/Mustache/Info`).
 3. **Name and Extension**: a field and a Hide extension checkbox.
 4. **Comments**.
 5. **Open With**: not shown for folders.
