@@ -45,6 +45,24 @@ String copyName(String dir, String name, {bool isDirectory = false}) {
   return uniqueName(dir, l10n.copySuffix(base), ext);
 }
 
+/// Make Link (⌃⌘A): a symbolic link to `path` next to it, named "name link.ext".
+OpResult makeLink(String path) {
+  final type = FileSystemEntity.typeSync(path, followLinks: false);
+  if (type == FileSystemEntityType.notFound) return _fail(l10n.errorGone);
+  final dir = parentOf(path) ?? '/';
+  final (base, ext) = splitExtension(
+    displayName(path),
+    isDirectory: type == FileSystemEntityType.directory,
+  );
+  final target = '$dir/${uniqueName(dir, l10n.linkSuffix(base), ext)}';
+  try {
+    Link(target).createSync(path);
+    return _ok(target);
+  } on FileSystemException catch (e) {
+    return _fail(_describe(e));
+  }
+}
+
 /// Creates the new folder name (or "… 2") in `dir`.
 OpResult createFolder(String dir) {
   final path = '$dir/${uniqueName(dir, newFolderName)}';

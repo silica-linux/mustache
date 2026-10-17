@@ -275,6 +275,25 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String linkSuffix(String base) {
+    return '$base link';
+  }
+
+  @override
+  String get opMakeLink => 'Make Link';
+
+  @override
+  String opMakeLinkMany(int count) {
+    return 'Make $count links';
+  }
+
+  @override
+  String get cantMakeLink => 'Can\'t make a link.';
+
+  @override
+  String get cantShowOriginal => 'Can\'t show the original.';
+
+  @override
   String get errorGone => 'The item no longer exists.';
 
   @override

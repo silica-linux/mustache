@@ -15,6 +15,7 @@ import 'package:mustache/src/menu_scope.dart';
 import 'package:mustache/src/model.dart';
 import 'package:mustache/src/settings.dart';
 import 'package:mustache/src/tabs.dart';
+import 'package:mustache/src/transfer.dart' show FileClipboard;
 import 'package:mustache/src/window.dart';
 import 'package:silica_ui/silica_ui.dart' show SilicaMenuDelegate;
 
@@ -258,6 +259,28 @@ void main() {
     expect(enabled('File', 'Manage Shared Folder…'), isFalse);
     expect(enabled('Edit', 'Copy “Alfa”'), isTrue);
     await tester.pump(const Duration(seconds: 1));
+  });
+
+  testWidgets('Edit › Cut, File › Make Link and Show Original', (tester) async {
+    await start(tester, window());
+    expect(enabled('File', 'Make Link'), isFalse);
+    expect(enabled('File', 'Show Original'), isFalse);
+    await tester.tap(find.text('nota.txt'));
+    await tester.pump();
+    await tester.pump();
+    expect(enabled('Edit', 'Cut'), isTrue);
+    expect(enabled('File', 'Show Original'), isFalse);
+    await choose(tester, item('Edit', 'Cut'));
+    expect(FileClipboard.cut, isTrue);
+    expect(enabled('Edit', 'Paste Item'), isTrue);
+    await choose(tester, item('File', 'Make Link'));
+    expect(
+      Link('${root.path}/nota link.txt').targetSync(),
+      '${root.path}/nota.txt',
+    );
+    // The new link is selected: Show Original is available.
+    expect(enabled('File', 'Show Original'), isTrue);
+    await tester.pump(const Duration(seconds: 2));
   });
 
   testWidgets('App › Empty Trash… asks, then deletes what the Trash holds', (

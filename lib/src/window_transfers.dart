@@ -6,10 +6,16 @@
 part of 'window.dart';
 
 extension _Transfers on _MustacheWindowState {
-  void _copySelection([List<Entry>? items]) {
+  void _copySelection([List<Entry>? items]) => _toClipboard(items, cut: false);
+
+  /// Edit › Cut: like Copy; the next paste moves the items instead of copying them.
+  void _cutSelection() => _toClipboard(null, cut: true);
+
+  void _toClipboard(List<Entry>? items, {required bool cut}) {
     final paths = [for (final e in items ?? _selection) e.path];
     if (paths.isEmpty) return;
     FileClipboard.paths = paths;
+    FileClipboard.cut = cut;
     // Also as text, for other apps (one path per line).
     Clipboard.setData(ClipboardData(text: paths.join('\n'))).ignore();
     // Paste in the menus is now enabled.
@@ -30,7 +36,10 @@ extension _Transfers on _MustacheWindowState {
       _history.current,
     );
     // Once moved, the clipboard no longer applies.
-    if (move) FileClipboard.paths = const [];
+    if (move) {
+      FileClipboard.paths = const [];
+      FileClipboard.cut = false;
+    }
   }
 
   /// Starts a copy or a move to `destination`.

@@ -382,6 +382,36 @@
       }
     }
   },
+  "linkSuffix": "{base} link",
+  "@linkSuffix": {
+    "description": "Name of a link made with Make Link.",
+    "placeholders": {
+      "base": {
+        "type": "String"
+      }
+    }
+  },
+  "opMakeLink": "Make Link",
+  "@opMakeLink": {
+    "description": "Name of the undoable Make Link."
+  },
+  "opMakeLinkMany": "Make {count} links",
+  "@opMakeLinkMany": {
+    "description": "Name of the undoable Make Link of several items.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cantMakeLink": "Can't make a link.",
+  "@cantMakeLink": {
+    "description": "Error title."
+  },
+  "cantShowOriginal": "Can't show the original.",
+  "@cantShowOriginal": {
+    "description": "Error title."
+  },
   "errorGone": "The item no longer exists.",
   "@errorGone": {
     "description": "Error."

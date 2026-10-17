@@ -85,8 +85,14 @@ extension _WindowMenus on _MustacheWindowState {
       redo: run(_redoLast, when: _undo.redoLabel != null && !dialog),
       redoLabel: _undo.redoLabel,
       copy: run(_copySelection, when: items.isNotEmpty && !dialog),
+      cut: run(_cutSelection, when: items.isNotEmpty && !dialog),
+      makeLink: run(_makeLink, when: items.isNotEmpty && !dialog),
+      showOriginal: run(
+        _showOriginal,
+        when: single != null && single.isLink && !dialog,
+      ),
       paste: run(
-        () => _paste(move: false),
+        () => _paste(move: FileClipboard.cut),
         when: FileClipboard.paths.isNotEmpty && !dialog,
       ),
       pasteCount: FileClipboard.paths.length,

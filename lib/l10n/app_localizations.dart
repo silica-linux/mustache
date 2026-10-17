@@ -554,6 +554,36 @@ abstract class AppLocalizations {
   /// **'{base} copy'**
   String copySuffix(String base);
 
+  /// Name of a link made with Make Link.
+  ///
+  /// In en, this message translates to:
+  /// **'{base} link'**
+  String linkSuffix(String base);
+
+  /// Name of the undoable Make Link.
+  ///
+  /// In en, this message translates to:
+  /// **'Make Link'**
+  String get opMakeLink;
+
+  /// Name of the undoable Make Link of several items.
+  ///
+  /// In en, this message translates to:
+  /// **'Make {count} links'**
+  String opMakeLinkMany(int count);
+
+  /// Error title.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t make a link.'**
+  String get cantMakeLink;
+
+  /// Error title.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t show the original.'**
+  String get cantShowOriginal;
+
   /// Error.
   ///
   /// In en, this message translates to:

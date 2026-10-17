@@ -274,6 +274,25 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
+  String linkSuffix(String base) {
+    return '$base collegamento';
+  }
+
+  @override
+  String get opMakeLink => 'Creazione collegamento';
+
+  @override
+  String opMakeLinkMany(int count) {
+    return 'Creazione di $count collegamenti';
+  }
+
+  @override
+  String get cantMakeLink => 'Non si può creare il collegamento.';
+
+  @override
+  String get cantShowOriginal => 'Non si può mostrare l\'originale.';
+
+  @override
   String get errorGone => 'L\'elemento non esiste più.';
 
   @override

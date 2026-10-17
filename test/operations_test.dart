@@ -16,6 +16,16 @@ void main() {
 
   String p(String name) => '${root.path}/$name';
 
+  test('make link: a symbolic link named "name link.ext"', () {
+    File(p('nota.txt')).writeAsStringSync('ciao');
+    final first = makeLink(p('nota.txt'));
+    expect(first.path, p('nota link.txt'));
+    expect(makeLink(p('nota.txt')).path, p('nota link 2.txt'));
+    expect(Link(first.path!).targetSync(), p('nota.txt'));
+    expect(File(first.path!).readAsStringSync(), 'ciao');
+    expect(makeLink(p('assente')).error, isNotNull);
+  });
+
   test('names: extension, new folder, copies', () {
     expect(splitExtension('appunti.txt'), ('appunti', '.txt'));
     expect(splitExtension('.bashrc'), ('.bashrc', ''));

@@ -284,4 +284,7 @@ class MoveOp extends Undoable {
 class FileClipboard {
   FileClipboard._();
   static List<String> paths = const [];
+
+  /// The paths were cut (⌘X): the next paste moves them.
+  static bool cut = false;
 }

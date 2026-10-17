@@ -1009,7 +1009,7 @@ class _MustacheWindowState extends State<MustacheWindow>
                 case FileCommand.copy:
                   _copySelection();
                 case FileCommand.paste:
-                  _paste(move: false);
+                  _paste(move: FileClipboard.cut);
                 case FileCommand.move:
                   _paste(move: true);
               }

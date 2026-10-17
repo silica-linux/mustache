@@ -177,6 +177,58 @@ extension _Operations on _MustacheWindowState {
     if (error != null) _showError(l10n.cantDuplicate, error);
   }
 
+  /// File › Make Link: a symbolic link next to each selected item; the selection moves to them.
+  void _makeLink() {
+    final sources = _selection;
+    if (sources.isEmpty) return;
+    final made = <String, String>{};
+    String? error;
+    for (final entry in sources) {
+      final result = makeLink(entry.path);
+      if (result.error != null) {
+        error = result.error;
+        break;
+      }
+      made[result.path!] = entry.path;
+    }
+    if (made.isNotEmpty) {
+      _undo.push(
+        CreateOp(
+          made.keys.toList(),
+          made.length == 1 ? l10n.opMakeLink : l10n.opMakeLinkMany(made.length),
+          (link) {
+            final source = made[link];
+            if (source == null) return (path: null, error: l10n.unknownCopy);
+            final again = makeLink(source);
+            if (again.error != null || again.path == link) return again;
+            return renameEntry(again.path!, displayName(link));
+          },
+        ),
+      );
+      _select(made.keys);
+      unawaited(playUiSound(UiSound.fileTransfer));
+    }
+    _load();
+    if (error != null) _showError(l10n.cantMakeLink, error);
+  }
+
+  /// File › Show Original: the folder of the link's target, with the target selected.
+  void _showOriginal() {
+    final items = _selection;
+    if (items.length != 1 || !items.first.isLink) return;
+    String target;
+    try {
+      target = Link(items.first.path).resolveSymbolicLinksSync();
+    } on FileSystemException {
+      _showError(l10n.cantShowOriginal, l10n.errorGone);
+      return;
+    }
+    final parent = parentOf(target);
+    if (parent == null) return;
+    _navigate(parent);
+    _update(() => _select([target]));
+  }
+
   /// ⌘⌫: to the Trash (the selection moves to the next item); inside the Trash, Put Back.
   /// To the Trash: the selected items, or `targets` (the row with the menu ring).
   void _moveToTrash([List<Entry>? targets]) {

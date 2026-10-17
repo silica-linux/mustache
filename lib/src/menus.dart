@@ -47,6 +47,9 @@ class MenuSpec {
     this.redo,
     this.redoLabel,
     this.copy,
+    this.cut,
+    this.makeLink,
+    this.showOriginal,
     this.paste,
     this.pasteCount = 0,
     this.selectAll,
@@ -113,6 +116,9 @@ class MenuSpec {
   final VoidCallback? redo;
   final String? redoLabel;
   final VoidCallback? copy;
+  final VoidCallback? cut;
+  final VoidCallback? makeLink;
+  final VoidCallback? showOriginal;
   final VoidCallback? paste;
   final int pasteCount;
   final VoidCallback? selectAll;
@@ -279,7 +285,7 @@ SilicaMenu _fileMenu(MenuSpec s) {
         _item(l10n.duplicate, s.duplicate, key: _cmd(LogicalKeyboardKey.keyD)),
         _item(
           l10n.menuMakeLink,
-          null,
+          s.makeLink,
           key: _cmd(LogicalKeyboardKey.keyA, control: true),
         ),
         _item(
@@ -298,7 +304,11 @@ SilicaMenu _fileMenu(MenuSpec s) {
         ),
       ]),
       _group([
-        _item(l10n.menuShowOriginal, null, key: _cmd(LogicalKeyboardKey.keyR)),
+        _item(
+          l10n.menuShowOriginal,
+          s.showOriginal,
+          key: _cmd(LogicalKeyboardKey.keyR),
+        ),
         _item(
           l10n.menuAddToSidebar,
           null,
@@ -345,7 +355,7 @@ SilicaMenu _editMenu(MenuSpec s) {
       _group([
         _item(
           l10n.menuCut,
-          null,
+          s.cut,
           key: _cmd(LogicalKeyboardKey.keyX),
           role: SilicaMenuItemRole.cut,
         ),
