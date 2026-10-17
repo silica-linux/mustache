@@ -187,6 +187,12 @@ class AppLocalizationsIt extends AppLocalizations {
   String get paneEdit => 'Modifica';
 
   @override
+  String get shareLabel => 'Condividi';
+
+  @override
+  String get shareCopy => 'Copia';
+
+  @override
   String get paneMore => 'Altro';
 
   @override

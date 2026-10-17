@@ -428,6 +428,18 @@ abstract class AppLocalizations {
   /// **'Edit'**
   String get paneEdit;
 
+  /// Tooltip and accessibility label of the Share button in the preview toolbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get shareLabel;
+
+  /// Share menu item that copies the items to the clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get shareCopy;
+
   /// Preview pane action that opens the item menu.
   ///
   /// In en, this message translates to:

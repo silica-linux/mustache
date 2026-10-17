@@ -60,6 +60,7 @@ import 'tags.dart';
 import 'toolbar.dart';
 
 part 'window_arrange.dart';
+part 'window_share.dart';
 part 'window_sheets.dart';
 part 'window_settings.dart';
 part 'window_info.dart';
@@ -264,6 +265,12 @@ class MustacheWindow extends StatefulWidget {
 class _MustacheWindowState extends State<MustacheWindow>
     with SingleTickerProviderStateMixin {
   late final History _history = History(widget.start);
+
+  /// The Share button of the preview section (silica-desktop#217): the selection it was asked
+  /// for, whether the service has targets for it, and the button for the menu's position.
+  String _shareFor = '';
+  bool _shareable = false;
+  final GlobalKey _shareKey = GlobalKey();
 
   /// Closes the history menu that a long press on Back or Forward opened; null: none is open.
   VoidCallback? _closeHistoryMenu;
@@ -1613,7 +1620,12 @@ class _MustacheWindowState extends State<MustacheWindow>
       children: [
         MustachePreviewBar(
           active: _active,
-          search: AmalfiToolbarPiece(child: _searchField(previewSearchWidth)),
+          share: _shareButton(),
+          search: AmalfiToolbarPiece(
+            child: _searchField(
+              _shareable ? previewSearchWidthWithShare : previewSearchWidth,
+            ),
+          ),
         ),
         Expanded(
           child: PreviewPane(

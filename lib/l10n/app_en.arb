@@ -235,6 +235,10 @@
   "@paneEdit": {
     "description": "Preview pane action that opens the file with its app."
   },
+  "shareLabel": "Share",
+  "@shareLabel": {"description": "Tooltip and accessibility label of the Share button in the preview toolbar."},
+  "shareCopy": "Copy",
+  "@shareCopy": {"description": "Share menu item that copies the items to the clipboard."},
   "paneMore": "More",
   "@paneMore": {
     "description": "Preview pane action that opens the item menu."

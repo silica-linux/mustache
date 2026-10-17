@@ -55,6 +55,8 @@
   "tagErrorDetail": "Il disco non permette gli attributi estesi.",
   "addTag": "Aggiungi un tag…",
   "paneEdit": "Modifica",
+  "shareLabel": "Condividi",
+  "shareCopy": "Copia",
   "paneMore": "Altro",
   "sizeZero": "Zero byte",
   "sizeBytes": "{count, plural, other{{count} byte}}",

@@ -22,6 +22,9 @@ const double toolbarViewsMinRoom = 12 + 72 + 160 + 144 + 8;
 const double toolbarSearchWidth = 200;
 const double previewSearchWidth = 232;
 
+/// The search field next to the Share piece (kit `Toolbar Preview`: Share 44 at x 12, Search from 56).
+const double previewSearchWidthWithShare = previewSearchWidth - 44;
+
 /// The glyph of an Icon Kit symbol installed with silica-icons (`symbols/regular`); empty when
 /// it is not installed.
 Widget symbolGlyph(String name, {double? size, Color? color}) =>
@@ -232,10 +235,14 @@ class MustachePreviewBar extends StatelessWidget {
     super.key,
     required this.active,
     required this.search,
+    this.share,
   });
 
   final bool active;
   final Widget search;
+
+  /// The Share piece (kit `Piece/Share`), left of the search field; null: not drawn.
+  final Widget? share;
 
   @override
   Widget build(BuildContext context) => WindowDragArea(
@@ -243,7 +250,7 @@ class MustachePreviewBar extends StatelessWidget {
       key: const ValueKey('preview bar'),
       active: active,
       surface: AmalfiToolbarSurface.sidebar,
-      children: [search],
+      children: [?share, search],
     ),
   );
 }
