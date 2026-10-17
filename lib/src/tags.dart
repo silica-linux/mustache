@@ -63,13 +63,13 @@ bool sameTag(String name, String wanted) =>
     (tagColor(wanted) != null && tagColor(name) == tagColor(wanted));
 
 /// The color of a tag in the Amalfi palette (kit `Apps/Mustache/Tag Row`: Red, Orange, Green, Blue
-/// and Purple are `Palette/Terracotta`, `Palette/Limone`, `Palette/Ulivo`, `Accent/Amalfi` and
+/// and Purple are `Palette/Terracotta`, `Palette/Arancia`, `Palette/Ulivo`, `Accent/Amalfi` and
 /// `Palette/Lavanda`).
 Color tagPaletteColor(TagColor c, {required bool dark}) {
   final colors = AmalfiColors.of(dark ? Brightness.dark : Brightness.light);
   return switch (c) {
     TagColor.red => colors.paletteTerracotta,
-    TagColor.orange => colors.paletteLimone,
+    TagColor.orange => colors.paletteArancia,
     // Assumption: not measured (the kit has no Yellow or Gray tag): a lighter Limone and a neutral.
     TagColor.yellow => dark ? const Color(0xFFFFE680) : const Color(0xFFFFE14D),
     TagColor.green => colors.paletteUlivo,
