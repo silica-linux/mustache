@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
@@ -163,13 +164,21 @@ void main() {
     }
 
     final divider = find.byKey(const ValueKey('sidebar edge'));
+    final button = find.byKey(const ValueKey('sidebar toggle'));
+    // The one toggle follows x = max(96, edge - 52) and the nav block max(140, edge + 12).
+    expect(tester.getTopLeft(button).dx, 188);
     await toggle();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 120));
     final half = tester.getCenter(divider).dx;
     expect(half, inExclusiveRange(40, 160));
+    expect(
+      tester.getTopLeft(button).dx,
+      closeTo(math.max(96, half - 52), 0.01),
+    );
     await tester.pump(const Duration(milliseconds: 130));
     expect(tester.getCenter(divider).dx, 0);
+    expect(tester.getTopLeft(button).dx, 96);
     await toggle();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 30));

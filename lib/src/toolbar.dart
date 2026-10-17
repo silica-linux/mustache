@@ -23,16 +23,12 @@ Widget symbolGlyph(String name, {double? size, Color? color}) =>
     AmalfiSymbol(name, size: size, color: color);
 
 /// The sidebar section of the toolbar, a blur strip over the full-height
-/// sidebar: the slot of the window buttons, then the sidebar toggle.
+/// sidebar: the slot of the window buttons. The sidebar toggle is one widget over the window
+/// ([AmalfiToolbarFollower]), so that it moves with the reveal instead of jumping.
 class MustacheSidebarBar extends StatelessWidget {
-  const MustacheSidebarBar({
-    super.key,
-    required this.active,
-    required this.onToggle,
-  });
+  const MustacheSidebarBar({super.key, required this.active});
 
   final bool active;
-  final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) => WindowDragArea(
@@ -43,7 +39,6 @@ class MustacheSidebarBar extends StatelessWidget {
       children: [
         const SizedBox(width: windowControlsSlot),
         const AmalfiSpacerPiece(),
-        sidebarToggle(onToggle),
       ],
     ),
   );
@@ -84,7 +79,7 @@ class MustacheToolbar extends StatefulWidget {
     this.onShare,
     this.onTags,
     this.actions,
-    this.sidebarToggleWhenHidden,
+    this.leadingInset = 12,
     this.onBackHistory,
     this.onForwardHistory,
     this.onHistoryRelease,
@@ -131,7 +126,8 @@ class MustacheToolbar extends StatefulWidget {
   final List<AmalfiMenuEntry> Function()? actions;
 
   /// With the sidebar hidden: the toggle (after the slot of the window buttons) that shows it.
-  final VoidCallback? sidebarToggleWhenHidden;
+  /// The section's leading padding: it follows the sidebar edge (`AmalfiToolbarFollow.inset`).
+  final double leadingInset;
 
   /// Long press on Back / Forward: the history menu, from the bottom left corner of the segment.
   final ValueChanged<Offset>? onBackHistory;
@@ -376,10 +372,9 @@ class _MustacheToolbarState extends State<MustacheToolbar> {
   Widget build(BuildContext context) => WindowDragArea(
     child: LayoutBuilder(
       builder: (context, box) {
-        // The toolbar's own width: right of the window buttons when the sidebar is hidden.
-        final hidden = widget.sidebarToggleWhenHidden != null;
-        final width =
-            box.maxWidth - (hidden ? windowControlsSlot - 12 + 44 : 0);
+        // The toolbar's own width: right of the window buttons and the toggle when the sidebar
+        // is hidden.
+        final width = box.maxWidth - (widget.leadingInset - 12);
         final search = widget.searchField != null;
         final layout = _layout = resolveToolbarLayout(
           width,
@@ -412,11 +407,8 @@ class _MustacheToolbarState extends State<MustacheToolbar> {
         return AmalfiToolbar.section(
           key: const ValueKey('toolbar'),
           active: widget.active,
+          padding: EdgeInsets.only(left: widget.leadingInset, right: 8),
           children: [
-            if (widget.sidebarToggleWhenHidden case final toggle?) ...[
-              const SizedBox(width: windowControlsSlot - 12),
-              sidebarToggle(toggle),
-            ],
             AmalfiToolbarPiece(child: _nav(context)),
             // The title and the empty space beside it move the window (silica-ui#96).
             Expanded(

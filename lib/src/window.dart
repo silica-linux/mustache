@@ -1208,10 +1208,7 @@ class _MustacheWindowState extends State<MustacheWindow>
                                 left: 0,
                                 top: 0,
                                 right: 0,
-                                child: MustacheSidebarBar(
-                                  active: _active,
-                                  onToggle: _toggleSidebar,
-                                ),
+                                child: MustacheSidebarBar(active: _active),
                               ),
                             ],
                           ),
@@ -1327,6 +1324,12 @@ class _MustacheWindowState extends State<MustacheWindow>
                           onDrag: (x) => _dragSidebar(x, windowWidth),
                           onRelease: _releaseSidebar,
                         ),
+                      ),
+                      // The one sidebar toggle: x = max(96, edge - 52) frame by frame, with the
+                      // sidebar reveal (silica-ui#98).
+                      AmalfiToolbarFollower(
+                        edge: visible,
+                        child: sidebarToggle(_toggleSidebar),
                       ),
                       // The Customize Folder popover, under the context menu.
                       // (The Positioned widgets have keys so that one appearing does not shift the
@@ -1641,6 +1644,10 @@ class _MustacheWindowState extends State<MustacheWindow>
     ),
   );
 
+  /// Where back/forward start with the sidebar hidden: after the window buttons slot and the
+  /// toggle piece.
+  static const double _navClosedX = windowControlsSlot + 44;
+
   /// The content section of the toolbar (spec/toolbar.md, kit `Toolbar *`); `visible` is the
   /// visible part of the sidebar.
   Widget _toolbar(
@@ -1650,9 +1657,13 @@ class _MustacheWindowState extends State<MustacheWindow>
     onBackHistory: (at) => _historyMenu(at, back: true),
     onForwardHistory: (at) => _historyMenu(at, back: false),
     onHistoryRelease: _releaseHistoryMenu,
-    // With the sidebar hidden the toolbar starts with the slot of the window buttons and the
-    // toggle that shows the sidebar again.
-    sidebarToggleWhenHidden: visible < 60 ? _toggleSidebar : null,
+    // Back/forward and the title move as one block with the sidebar edge, right of the toggle
+    // once the sidebar is gone: x = max(closed, edge + 12).
+    leadingInset: AmalfiToolbarFollow.inset(
+      edge: visible,
+      closedX: _navClosedX,
+      offset: AmalfiToolbarMetrics.sectionPadding.left,
+    ),
     title: widget.dialog != null && widget.dialog!.title.isNotEmpty
         ? widget.dialog!.title
         : _searching

@@ -1,6 +1,5 @@
 // The Share button of the preview toolbar (silica-desktop#217).
 
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
@@ -43,10 +42,10 @@ void main() {
             final args = call.arguments as Map;
             return args['method'] == 'Targets'
                 ? [
-                    jsonEncode([
-                      {'id': 'copy', 'name': 'Copy', 'icon': ''},
-                      {'id': 'dev.frascella.Mail', 'name': 'Mail', 'icon': ''},
-                    ]),
+                    [
+                      ['copy', 'Copy', ''],
+                      ['dev.frascella.Mail', 'Mail', ''],
+                    ],
                   ]
                 : [true];
           },
