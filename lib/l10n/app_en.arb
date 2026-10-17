@@ -1551,5 +1551,97 @@
         "type": "String"
       }
     }
+  },
+  "settingsTitle": "Settings",
+  "@settingsTitle": {
+    "description": "Title of the Settings window."
+  },
+  "settingsGeneral": "General",
+  "@settingsGeneral": {
+    "description": "Settings pane."
+  },
+  "settingsTags": "Tags",
+  "@settingsTags": {
+    "description": "Settings pane."
+  },
+  "settingsSidebar": "Sidebar",
+  "@settingsSidebar": {
+    "description": "Settings pane."
+  },
+  "settingsAdvanced": "Advanced",
+  "@settingsAdvanced": {
+    "description": "Settings pane."
+  },
+  "settingsWindowsAndNames": "Windows and names",
+  "@settingsWindowsAndNames": {
+    "description": "Settings \u203a General heading."
+  },
+  "settingsNewWindowsShow": "New windows show",
+  "@settingsNewWindowsShow": {
+    "description": "Settings \u203a General: the folder a new window opens at."
+  },
+  "settingsOpenInTabs": "Open folders in tabs instead of new windows",
+  "@settingsOpenInTabs": {
+    "description": "Settings \u203a General: New Window opens a tab."
+  },
+  "settingsHomeFolder": "Home folder",
+  "@settingsHomeFolder": {
+    "description": "The user's home folder, in Settings."
+  },
+  "settingsShowTags": "Show these tags in the sidebar",
+  "@settingsShowTags": {
+    "description": "Settings \u203a Tags heading."
+  },
+  "settingsFavouriteTags": "Favourite tags",
+  "@settingsFavouriteTags": {
+    "description": "Settings \u203a Tags heading."
+  },
+  "settingsFavouritesCaption": "Drag to reorder: the first seven appear in the context menu.",
+  "@settingsFavouritesCaption": {
+    "description": "Settings \u203a Tags caption."
+  },
+  "settingsColourFolders": "Colour folders by tag",
+  "@settingsColourFolders": {
+    "description": "Settings \u203a Tags switch."
+  },
+  "settingsConfirmBefore": "Ask for confirmation before",
+  "@settingsConfirmBefore": {
+    "description": "Settings \u203a Advanced heading."
+  },
+  "settingsConfirmExtension": "Changing a file extension",
+  "@settingsConfirmExtension": {
+    "description": "Settings \u203a Advanced."
+  },
+  "settingsConfirmTrash": "Emptying the Trash",
+  "@settingsConfirmTrash": {
+    "description": "Settings \u203a Advanced."
+  },
+  "settingsTrashCleanup": "Remove items from the Trash after 30 days",
+  "@settingsTrashCleanup": {
+    "description": "Settings \u203a Advanced switch."
+  },
+  "settingsFoldersOnTop": "Keep folders on top",
+  "@settingsFoldersOnTop": {
+    "description": "Settings \u203a Advanced heading."
+  },
+  "settingsFoldersOnTopWindows": "In windows when sorting by name",
+  "@settingsFoldersOnTopWindows": {
+    "description": "Settings \u203a Advanced."
+  },
+  "settingsFoldersOnTopDesktop": "On the desktop",
+  "@settingsFoldersOnTopDesktop": {
+    "description": "Settings \u203a Advanced."
+  },
+  "settingsWhenSearching": "When searching",
+  "@settingsWhenSearching": {
+    "description": "Settings \u203a Advanced heading."
+  },
+  "settingsSearchIn": "Search in",
+  "@settingsSearchIn": {
+    "description": "Settings \u203a Advanced: default search scope."
+  },
+  "settingsCurrentFolder": "Current folder",
+  "@settingsCurrentFolder": {
+    "description": "Settings \u203a Advanced: search scope."
   }
 }

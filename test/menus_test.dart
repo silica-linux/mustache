@@ -169,7 +169,7 @@ void main() {
       'hide_others',
       'show_all',
     ]);
-    // Nothing to run yet behind About and Settings: disabled; Empty Trash works.
+    // Nothing to run yet behind About: disabled; Settings and Empty Trash work.
     expect(item('Mustache', 'Empty Trash…')['enabled'], isTrue);
     expect(items('Mustache').first['enabled'], isFalse);
     expect(item('Mustache', 'Empty Trash…')['shortcut'], {
@@ -178,6 +178,31 @@ void main() {
       'shift': true,
     });
   });
+
+  testWidgets(
+    'App › Settings… opens the Settings (a sheet where Silica has no windows)',
+    (tester) async {
+      await start(tester, window());
+      final settings = items(
+        'Mustache',
+      ).firstWhere((i) => i['role'] == 'settings');
+      await choose(tester, settings);
+      for (var i = 0; i < 5; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.byKey(const ValueKey('settings sheet')), findsOneWidget);
+      expect(find.text('Windows and names'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('settings pane advanced')));
+      await tester.pump();
+      expect(find.text('Keep folders on top'), findsOneWidget);
+      await tester.tapAt(const Offset(4, 300));
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.byKey(const ValueKey('settings sheet')), findsNothing);
+    },
+  );
 
   testWidgets('no selection: item actions are disabled, the rest runs', (
     tester,

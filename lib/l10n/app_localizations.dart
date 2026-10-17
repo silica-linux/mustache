@@ -1915,6 +1915,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'“{name}” is not a saved search.'**
   String savedSearchDamaged(String name);
+
+  /// Title of the Settings window.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTitle;
+
+  /// Settings pane.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get settingsGeneral;
+
+  /// Settings pane.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get settingsTags;
+
+  /// Settings pane.
+  ///
+  /// In en, this message translates to:
+  /// **'Sidebar'**
+  String get settingsSidebar;
+
+  /// Settings pane.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get settingsAdvanced;
+
+  /// Settings › General heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Windows and names'**
+  String get settingsWindowsAndNames;
+
+  /// Settings › General: the folder a new window opens at.
+  ///
+  /// In en, this message translates to:
+  /// **'New windows show'**
+  String get settingsNewWindowsShow;
+
+  /// Settings › General: New Window opens a tab.
+  ///
+  /// In en, this message translates to:
+  /// **'Open folders in tabs instead of new windows'**
+  String get settingsOpenInTabs;
+
+  /// The user's home folder, in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Home folder'**
+  String get settingsHomeFolder;
+
+  /// Settings › Tags heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Show these tags in the sidebar'**
+  String get settingsShowTags;
+
+  /// Settings › Tags heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Favourite tags'**
+  String get settingsFavouriteTags;
+
+  /// Settings › Tags caption.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to reorder: the first seven appear in the context menu.'**
+  String get settingsFavouritesCaption;
+
+  /// Settings › Tags switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour folders by tag'**
+  String get settingsColourFolders;
+
+  /// Settings › Advanced heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask for confirmation before'**
+  String get settingsConfirmBefore;
+
+  /// Settings › Advanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Changing a file extension'**
+  String get settingsConfirmExtension;
+
+  /// Settings › Advanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Emptying the Trash'**
+  String get settingsConfirmTrash;
+
+  /// Settings › Advanced switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove items from the Trash after 30 days'**
+  String get settingsTrashCleanup;
+
+  /// Settings › Advanced heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep folders on top'**
+  String get settingsFoldersOnTop;
+
+  /// Settings › Advanced.
+  ///
+  /// In en, this message translates to:
+  /// **'In windows when sorting by name'**
+  String get settingsFoldersOnTopWindows;
+
+  /// Settings › Advanced.
+  ///
+  /// In en, this message translates to:
+  /// **'On the desktop'**
+  String get settingsFoldersOnTopDesktop;
+
+  /// Settings › Advanced heading.
+  ///
+  /// In en, this message translates to:
+  /// **'When searching'**
+  String get settingsWhenSearching;
+
+  /// Settings › Advanced: default search scope.
+  ///
+  /// In en, this message translates to:
+  /// **'Search in'**
+  String get settingsSearchIn;
+
+  /// Settings › Advanced: search scope.
+  ///
+  /// In en, this message translates to:
+  /// **'Current folder'**
+  String get settingsCurrentFolder;
 }
 
 class _AppLocalizationsDelegate

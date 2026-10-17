@@ -48,6 +48,7 @@ import 'status_bar.dart';
 import 'rename_field.dart';
 import 'go_to_folder.dart';
 import 'save_search_sheet.dart';
+import 'settings_view.dart';
 import 'saved_search.dart';
 import 'sounds.dart';
 import 'transfer.dart';
@@ -60,6 +61,7 @@ import 'toolbar.dart';
 
 part 'window_arrange.dart';
 part 'window_sheets.dart';
+part 'window_settings.dart';
 part 'window_info.dart';
 part 'window_columns.dart';
 part 'window_context.dart';
@@ -350,6 +352,9 @@ class _MustacheWindowState extends State<MustacheWindow>
   String? _savedView;
   String _savedQuery = '';
 
+  /// The settings the window follows, as last applied (to see what changed).
+  bool _foldersOnTop = true;
+
   /// The apps (read the first time an app is opened), the MIME types and the open context menu.
   AppRegistry? _apps;
   final Map<String, String> _types = {};
@@ -493,6 +498,7 @@ class _MustacheWindowState extends State<MustacheWindow>
     if (widget.customize case final path?) _customizing = path;
     _searchFocus.addListener(_menusChanged);
     _saveFocus.addListener(_menusChanged);
+    _startSettings();
     _load();
   }
 
@@ -504,6 +510,7 @@ class _MustacheWindowState extends State<MustacheWindow>
 
   @override
   void dispose() {
+    widget.settings?.removeListener(_settingsChanged);
     _closeHistoryMenu?.call();
     _menuHub?.release(this);
     _closeInfoWindows();
@@ -542,18 +549,28 @@ class _MustacheWindowState extends State<MustacheWindow>
 
   /// ⌘N: another window, i.e. another process started from the app's .desktop entry.
   Future<void> _newWindow() async {
-    final app = _registry.apps[mustacheDesktopId];
-    if (app == null) {
-      _showError(l10n.cantOpenWindow, l10n.entryNotInstalled);
-      return;
-    }
     final home =
         widget.places
             .where((p) => p.kind == PlaceKind.home)
             .firstOrNull
             ?.path ??
         _history.current;
-    final error = await launchApp(app, [home]);
+    // Settings › General: the folder new windows show, and a tab instead of a window.
+    final target = newWindowPath(
+      widget.settings?.newWindowFolder,
+      widget.places,
+      home,
+    );
+    if ((widget.settings?.tabsForNewWindows ?? false) && _hasTabs) {
+      _tabCommand(NewTabIntent(target));
+      return;
+    }
+    final app = _registry.apps[mustacheDesktopId];
+    if (app == null) {
+      _showError(l10n.cantOpenWindow, l10n.entryNotInstalled);
+      return;
+    }
+    final error = await launchApp(app, [target]);
     if (error != null && mounted) _showError(error);
   }
 
@@ -1149,18 +1166,26 @@ class _MustacheWindowState extends State<MustacheWindow>
                               sections: [
                                 SidebarSection(l10n.sidebarPinned, [
                                   for (final place in widget.places)
-                                    if (place.kind != PlaceKind.home) place,
+                                    if (place.kind != PlaceKind.home &&
+                                        _sidebarShows(place.kind.name))
+                                      place,
                                 ]),
                                 SidebarSection(l10n.sidebarPlaces, [
                                   for (final place in widget.places)
-                                    if (place.kind == PlaceKind.home) place,
-                                  widget.trash,
+                                    if (place.kind == PlaceKind.home &&
+                                        _sidebarShows(place.kind.name))
+                                      place,
+                                  if (_sidebarShows(PlaceKind.trash.name))
+                                    widget.trash,
                                 ]),
                                 SidebarSection(
                                   l10n.savedSearchesFolder,
                                   _savedPlaces,
                                 ),
-                                SidebarSection(l10n.sidebarTags, _tagPlaces),
+                                SidebarSection(
+                                  l10n.sidebarTags,
+                                  _sidebarShows('tags') ? _tagPlaces : const [],
+                                ),
                               ],
                               current: _savedViewShown
                                   ? '$searchPathPrefix$_savedView'

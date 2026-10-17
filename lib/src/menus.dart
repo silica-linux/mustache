@@ -55,6 +55,7 @@ class MenuSpec {
     this.selectAll,
     this.find,
     this.goToFolder,
+    this.settings,
     this.view,
     this.setView,
     this.galleryEnabled = true,
@@ -127,6 +128,9 @@ class MenuSpec {
 
   /// Go › Go to Folder… (⇧⌘G).
   final VoidCallback? goToFolder;
+
+  /// App › Settings… (⌘,).
+  final VoidCallback? settings;
 
   // View.
   final ViewMode? view;
@@ -217,12 +221,14 @@ SilicaMenu _appMenu(MenuSpec s) => SilicaMenu(
   label: appName,
   role: SilicaMenuRole.app,
   menus: [
-    // About and Settings… have no window yet: the bar shows them disabled.
+    // About has no window yet: the bar shows it disabled.
     _group([
       const SilicaMenuItem(role: SilicaMenuItemRole.about),
       SilicaMenuItem(
         role: SilicaMenuItemRole.settings,
         shortcut: _cmd(LogicalKeyboardKey.comma),
+        onSelected: s.settings,
+        enabled: s.settings != null,
       ),
     ]),
     _group([

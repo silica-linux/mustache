@@ -1065,4 +1065,77 @@ class AppLocalizationsIt extends AppLocalizations {
   String savedSearchDamaged(String name) {
     return '“$name” non è una ricerca salvata.';
   }
+
+  @override
+  String get settingsTitle => 'Impostazioni';
+
+  @override
+  String get settingsGeneral => 'Generali';
+
+  @override
+  String get settingsTags => 'Tag';
+
+  @override
+  String get settingsSidebar => 'Barra laterale';
+
+  @override
+  String get settingsAdvanced => 'Avanzate';
+
+  @override
+  String get settingsWindowsAndNames => 'Finestre e nomi';
+
+  @override
+  String get settingsNewWindowsShow => 'Le nuove finestre mostrano';
+
+  @override
+  String get settingsOpenInTabs =>
+      'Apri le cartelle in tab invece che in nuove finestre';
+
+  @override
+  String get settingsHomeFolder => 'Cartella Home';
+
+  @override
+  String get settingsShowTags => 'Mostra questi tag nella barra laterale';
+
+  @override
+  String get settingsFavouriteTags => 'Tag preferiti';
+
+  @override
+  String get settingsFavouritesCaption =>
+      'Trascina per riordinare: i primi sette compaiono nel menu contestuale.';
+
+  @override
+  String get settingsColourFolders => 'Colora le cartelle in base al tag';
+
+  @override
+  String get settingsConfirmBefore => 'Chiedi conferma prima di';
+
+  @override
+  String get settingsConfirmExtension => 'Cambiare l’estensione di un file';
+
+  @override
+  String get settingsConfirmTrash => 'Svuotare il Cestino';
+
+  @override
+  String get settingsTrashCleanup =>
+      'Rimuovi gli elementi dal Cestino dopo 30 giorni';
+
+  @override
+  String get settingsFoldersOnTop => 'Tieni le cartelle in cima';
+
+  @override
+  String get settingsFoldersOnTopWindows =>
+      'Nelle finestre se ordinate per nome';
+
+  @override
+  String get settingsFoldersOnTopDesktop => 'Sulla scrivania';
+
+  @override
+  String get settingsWhenSearching => 'Durante la ricerca';
+
+  @override
+  String get settingsSearchIn => 'Cerca in';
+
+  @override
+  String get settingsCurrentFolder => 'Cartella corrente';
 }

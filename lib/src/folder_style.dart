@@ -192,6 +192,16 @@ class FolderStyles extends ChangeNotifier {
     return _stored[path] = style;
   }
 
+  /// Settings › Tags › Colour folders by tag: off, a colour tag no longer tints the folder.
+  bool _colourByTag = true;
+  bool get colourByTag => _colourByTag;
+  set colourByTag(bool value) {
+    if (value == _colourByTag) return;
+    _colourByTag = value;
+    _looks.clear();
+    notifyListeners();
+  }
+
   /// Symbol or emoji and tint of the folder: the tint is the colour of the last assigned colour
   /// tag (tags are stored in the order they were assigned), else an older custom tint.
   FolderLook look(String path) {
@@ -199,8 +209,10 @@ class FolderStyles extends ChangeNotifier {
     if (hit != null) return hit;
     final style = stored(path);
     String? tint;
-    for (final tag in readTags(path)) {
-      if (tagColor(tag) case final color?) tint = color.name;
+    if (_colourByTag) {
+      for (final tag in readTags(path)) {
+        if (tagColor(tag) case final color?) tint = color.name;
+      }
     }
     tint ??= style?.tint;
     if (_looks.length > 4000) _looks.clear();

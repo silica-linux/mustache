@@ -29,7 +29,10 @@ void main() {
 
   tearDown(() => root.deleteSync(recursive: true));
 
-  Future<List<String>> pump(WidgetTester tester) async {
+  Future<List<String>> pump(
+    WidgetTester tester, {
+    bool foldersOnTop = true,
+  }) async {
     final opened = <String>[];
     tester.view.physicalSize = const Size(1000, 700);
     tester.view.devicePixelRatio = 1;
@@ -44,9 +47,12 @@ void main() {
           now: DateTime(2026, 10, 13, 12),
           open: opened.add,
           // The list view (the default is icons).
-          settings: Settings(
-            '${Directory.systemTemp.createTempSync('mustache-impostazioni').path}/s.json',
-          )..view = 'list',
+          settings:
+              Settings(
+                  '${Directory.systemTemp.createTempSync('mustache-impostazioni').path}/s.json',
+                )
+                ..view = 'list'
+                ..foldersOnTopWindows = foldersOnTop,
         ),
       ),
     );
@@ -102,8 +108,23 @@ void main() {
     expect(find.text('.nascosto'), findsOneWidget);
   });
 
-  testWidgets('a click on the header reverses the sort', (tester) async {
+  testWidgets('a click on the header reverses the sort; folders stay on top', (
+    tester,
+  ) async {
     await pump(tester);
+    double y(String name) => tester.getTopLeft(find.text(name)).dy;
+    expect(y('Alfa'), lessThan(y('nota.txt')));
+    await tester.tap(find.byKey(const ValueKey('header name')));
+    await tester.pump();
+    // Settings › Advanced › Keep folders on top (the default): the folder stays first.
+    expect(y('Alfa'), lessThan(y('nota.txt')));
+  });
+
+  testWidgets('without folders on top the reversed names mix them', (
+    tester,
+  ) async {
+    addTearDown(() => windowsFoldersOnTop = true);
+    await pump(tester, foldersOnTop: false);
     double y(String name) => tester.getTopLeft(find.text(name)).dy;
     expect(y('Alfa'), lessThan(y('nota.txt')));
     await tester.tap(find.byKey(const ValueKey('header name')));

@@ -228,6 +228,49 @@ class Trash {
     return error;
   }
 
+  /// Deletes for good what has been in the Trash longer than [age] (Settings › Advanced): the
+  /// items whose `.trashinfo` says they were deleted before `now − age`; those with no readable
+  /// date stay. Returns how many went.
+  int purgeOlderThan(Duration age, {DateTime? now}) {
+    final limit = (now ?? DateTime.now()).subtract(age);
+    var removed = 0;
+    try {
+      for (final item in Directory(info).listSync(followLinks: false)) {
+        if (item is! File || !item.path.endsWith('.trashinfo')) continue;
+        final DateTime? deleted;
+        try {
+          deleted = _deletionDate(item.readAsStringSync());
+        } on FileSystemException {
+          continue;
+        }
+        if (deleted == null || !deleted.isBefore(limit)) continue;
+        final name = displayName(
+          item.path,
+        ).replaceFirst(RegExp(r'\.trashinfo$'), '');
+        final target = '$files/$name';
+        if (FileSystemEntity.typeSync(target, followLinks: false) !=
+                FileSystemEntityType.notFound &&
+            deletePermanently(target).error != null) {
+          continue;
+        }
+        deletePermanently(item.path);
+        removed++;
+      }
+    } on FileSystemException {
+      // No Trash: nothing to clean.
+    }
+    return removed;
+  }
+
+  static DateTime? _deletionDate(String text) {
+    for (final line in text.split('\n')) {
+      if (line.startsWith('DeletionDate=')) {
+        return DateTime.tryParse(line.substring('DeletionDate='.length).trim());
+      }
+    }
+    return null;
+  }
+
   /// Moves to the Trash; the result is the path inside `files/`.
   OpResult put(String path, {DateTime? now}) {
     final type = FileSystemEntity.typeSync(path, followLinks: false);

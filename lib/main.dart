@@ -29,19 +29,22 @@ void main(List<String> args) {
   ];
   // Get Info on the Customize Folder section, from the desktop's menu (--customize=<folder>).
   final customize = customizeArgument(args);
+  final places = userPlaces(
+    home: home,
+    userDirs: userDirs.existsSync() ? userDirs.readAsStringSync() : null,
+  );
+  // New windows start where Settings › General says (the home folder by default).
+  String newWindowFolder() =>
+      newWindowPath(Settings.forUser(env).newWindowFolder, places, home);
   final start =
       dialog?.folder ??
       (customize != null
           ? File(customize).parent.path
           : folders.isNotEmpty && Directory(folders.first).existsSync()
           ? folders.first
-          : home);
-  final places = userPlaces(
-    home: home,
-    userDirs: userDirs.existsSync() ? userDirs.readAsStringSync() : null,
-  );
+          : newWindowFolder());
   final trash = trashPlace(home: home, dataHome: env['XDG_DATA_HOME']);
-  final settings = Settings.forUser(env);
+  final settings = Settings.forUser(env)..watch();
   final iconPositions = IconPositions.forUser(env);
   WidgetsFlutterBinding.ensureInitialized();
   // The desktop (silica-desktop#147): Ossido starts this mode on the bottom layer and keeps it
@@ -63,6 +66,7 @@ void main(List<String> args) {
               choices: DesktopChoices.forUser(env),
               env: env,
               places: places,
+              settings: settings,
             ),
           ),
         ),
@@ -110,7 +114,7 @@ void main(List<String> args) {
         child: MenuScope(
           child: SilicaWindowHost(
             child: SilicaAppWindow(
-              onClosed: () => opensAt = home,
+              onClosed: () => opensAt = newWindowFolder(),
               // One window per tab (⌘T).
               builder: (context) => TabsHost(
                 start: opensAt,

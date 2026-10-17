@@ -23,7 +23,9 @@ class TabInfo {
 }
 
 class NewTabIntent extends Intent {
-  const NewTabIntent();
+  /// A new tab, at [at] (the current folder by default).
+  const NewTabIntent([this.at]);
+  final String? at;
 }
 
 class CloseTabIntent extends Intent {
@@ -100,8 +102,8 @@ class TabsHostState extends State<TabsHost> {
       child: Actions(
         actions: {
           NewTabIntent: CallbackAction<NewTabIntent>(
-            onInvoke: (_) {
-              newTab();
+            onInvoke: (intent) {
+              newTab(intent.at);
               return null;
             },
           ),

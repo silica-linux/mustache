@@ -1065,4 +1065,76 @@ class AppLocalizationsEn extends AppLocalizations {
   String savedSearchDamaged(String name) {
     return '“$name” is not a saved search.';
   }
+
+  @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get settingsGeneral => 'General';
+
+  @override
+  String get settingsTags => 'Tags';
+
+  @override
+  String get settingsSidebar => 'Sidebar';
+
+  @override
+  String get settingsAdvanced => 'Advanced';
+
+  @override
+  String get settingsWindowsAndNames => 'Windows and names';
+
+  @override
+  String get settingsNewWindowsShow => 'New windows show';
+
+  @override
+  String get settingsOpenInTabs =>
+      'Open folders in tabs instead of new windows';
+
+  @override
+  String get settingsHomeFolder => 'Home folder';
+
+  @override
+  String get settingsShowTags => 'Show these tags in the sidebar';
+
+  @override
+  String get settingsFavouriteTags => 'Favourite tags';
+
+  @override
+  String get settingsFavouritesCaption =>
+      'Drag to reorder: the first seven appear in the context menu.';
+
+  @override
+  String get settingsColourFolders => 'Colour folders by tag';
+
+  @override
+  String get settingsConfirmBefore => 'Ask for confirmation before';
+
+  @override
+  String get settingsConfirmExtension => 'Changing a file extension';
+
+  @override
+  String get settingsConfirmTrash => 'Emptying the Trash';
+
+  @override
+  String get settingsTrashCleanup =>
+      'Remove items from the Trash after 30 days';
+
+  @override
+  String get settingsFoldersOnTop => 'Keep folders on top';
+
+  @override
+  String get settingsFoldersOnTopWindows => 'In windows when sorting by name';
+
+  @override
+  String get settingsFoldersOnTopDesktop => 'On the desktop';
+
+  @override
+  String get settingsWhenSearching => 'When searching';
+
+  @override
+  String get settingsSearchIn => 'Search in';
+
+  @override
+  String get settingsCurrentFolder => 'Current folder';
 }

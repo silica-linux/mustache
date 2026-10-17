@@ -90,7 +90,9 @@ extension _Tags on _MustacheWindowState {
     return AmalfiMenuAction(
       l10n.tagsMenu,
       submenu: [
-        for (final color in TagColor.values)
+        for (final color in favouriteOrder(
+          widget.settings?.favouriteTags ?? const [],
+        ))
           AmalfiMenuAction(
             tagName(color),
             icon: TagDot(
@@ -108,7 +110,8 @@ extension _Tags on _MustacheWindowState {
   /// The places of the Tags section.
   List<Place> get _tagPlaces => [
     for (final color in TagColor.values)
-      Place(tagName(color), '$tagPathPrefix${tagName(color)}', PlaceKind.tag),
+      if (!(widget.settings?.hiddenTags.contains(color.name) ?? false))
+        Place(tagName(color), '$tagPathPrefix${tagName(color)}', PlaceKind.tag),
   ];
 
   /// Shows the items in home with the tag, as the search finds them.

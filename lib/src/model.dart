@@ -117,15 +117,26 @@ bool _isDigit(int c) => c >= 0x30 && c <= 0x39;
 
 /// Items sorted by `key`. Ties are sorted by name; folders are mixed with files (mixed order is the
 /// default, to be verified: MU-20).
+/// Settings › Keep folders on top in windows when sorting by name (set from the settings).
+bool windowsFoldersOnTop = true;
+
+/// Sorts [entries]; sorting by name puts the folders first when [foldersFirst] (the windows'
+/// setting by default).
 List<Entry> sortEntries(
   Iterable<Entry> entries,
   SortKey key, {
   bool descending = false,
   String Function(Entry)? kindOf,
+  bool? foldersFirst,
 }) {
+  final folders = key == SortKey.name && (foldersFirst ?? windowsFoldersOnTop);
   final kind = kindOf ?? kindLabel;
   int compare(Entry a, Entry b) {
     final byName = naturalCompare(a.name, b.name);
+    if (folders && a.isDirectory != b.isDirectory) {
+      // Folders stay on top whichever way the names run.
+      return a.isDirectory ? -1 : 1;
+    }
     final primary = switch (key) {
       SortKey.name => byName,
       SortKey.modified => a.modified.compareTo(b.modified),
@@ -139,7 +150,14 @@ List<Entry> sortEntries(
   }
 
   final sorted = entries.toList()..sort(compare);
-  return descending ? sorted.reversed.toList() : sorted;
+  if (!descending) return sorted;
+  final reversed = sorted.reversed.toList();
+  if (!folders) return reversed;
+  // Descending names: each group reversed, the folders still first.
+  return [
+    ...reversed.where((e) => e.isDirectory),
+    ...reversed.where((e) => !e.isDirectory),
+  ];
 }
 
 const List<String> _units = ['KB', 'MB', 'GB', 'TB'];
@@ -314,6 +332,19 @@ class Place {
   final String label;
   final String path;
   final PlaceKind kind;
+}
+
+/// The folder new windows show: the place chosen in Settings › General (`home` by default),
+/// [fallback] if there is no such place.
+String newWindowPath(String? choice, List<Place> places, String fallback) {
+  for (final p in places) {
+    if (p.kind.name == (choice ?? 'home') &&
+        p.kind != PlaceKind.tag &&
+        p.kind != PlaceKind.search) {
+      return p.path;
+    }
+  }
+  return fallback;
 }
 
 enum PlaceKind {

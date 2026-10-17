@@ -11,6 +11,21 @@ import 'l10n.dart';
 
 enum TagColor { red, orange, yellow, green, blue, purple, gray }
 
+/// The colours in the order of Settings › Tags › Favourite tags: [names] first (in that order,
+/// odd and repeated ones ignored), the rest after in the default order.
+List<TagColor> favouriteOrder(List<String> names) {
+  final result = <TagColor>[];
+  for (final n in names) {
+    final c = TagColor.values.where((c) => c.name == n).firstOrNull;
+    if (c != null && !result.contains(c)) result.add(c);
+  }
+  return [
+    ...result,
+    for (final c in TagColor.values)
+      if (!result.contains(c)) c,
+  ];
+}
+
 /// The names of the default tags in every language Mustache has: tags are stored on the files by
 /// name, so a tag written in another language keeps its color.
 const Map<TagColor, List<String>> defaultTagNames = {

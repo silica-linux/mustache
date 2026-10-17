@@ -68,7 +68,8 @@ extension _Operations on _MustacheWindowState {
       _showError(problem);
       return;
     }
-    if (extensionChanges(entry.name, name, isDirectory: entry.isDirectory)) {
+    if (extensionChanges(entry.name, name, isDirectory: entry.isDirectory) &&
+        (widget.settings?.confirmExtension ?? true)) {
       final (_, oldExt) = splitExtension(entry.name);
       final (newBase, newExt) = splitExtension(name);
       _showAlert(
@@ -327,6 +328,14 @@ extension _Operations on _MustacheWindowState {
 
   /// App › Empty Trash… (⇧⌘⌫): the alert of the reference (R9.12), then the Trash is emptied.
   void _confirmEmptyTrash() {
+    // Settings › Advanced: without the question the Trash is emptied at once.
+    if (!(widget.settings?.confirmEmptyTrash ?? true)) {
+      final error = _trash.empty();
+      _select(const []);
+      _load();
+      if (error != null) _showError(l10n.cantDelete, error);
+      return;
+    }
     _showAlert(
       MustacheAlert(
         opaque: true,

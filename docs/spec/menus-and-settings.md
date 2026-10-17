@@ -159,12 +159,12 @@ same items; the state decides which are enabled and a few labels, as measured:
   Delete Immediately…, Open in New Tab, …) are not menu items: the bar has no alternates; the
   keyboard shortcuts that exist keep working.
 - No Quit: Mustache keeps running without a window (DOCK-02).
-- Shown disabled, not done yet: About, Settings…, New Folder with Selection, New
+- Shown disabled, not done yet: About, New Folder with Selection, New
   Smart Folder, Compress, Make Link, Share…, Manage Shared Folder…, Show Original, Add to Sidebar,
   Eject, Print, Cut, Show Clipboard, Use Groups, Sort By › Last Opened, Date Added, Created and
   Tags, Show Tab Bar, Show All Tabs, Hide Toolbar, Customize Toolbar…, Show View Options, Show
   Preview Options, Recents, Nearby Sharing, Network, Cloud Drive, Shared, Applications, Utilities,
-  Recent Folders ›, Go to Folder…, Connect to Server…, Move Tab to New Window, Merge All Windows
+  Recent Folders ›, Connect to Server…, Move Tab to New Window, Merge All Windows
   and Show Progress Window. The tag colour row of File and the system Edit items (writing tools,
   autofill, dictation, emoji) are not drawn: they belong to the system.
 
@@ -243,3 +243,20 @@ same items; the state decides which are enabled and a few labels, as measured:
 | Advanced | remove items from the Trash after 30 days | automatic Trash cleanup |
 | Advanced | keep folders on top: in windows sorted by name, on the desktop | sorting (R3.5) |
 | Advanced | when searching: search this computer, search the current folder, use the previous scope | the default search scope ([search.md](search.md)) |
+
+## Settings window and saved searches (kit `Apps/Mustache/Settings *`, `Go To Folder Sheet`, `Save Search Sheet`)
+
+- **Settings…** (⌘,) opens a 600 pt window (a sheet of the file manager window where Silica cannot open
+  windows) with four panes, as tall as their rows. Every row is written to
+  `$XDG_CONFIG_HOME/mustache/settings.json` and the windows and the desktop follow the file at once.
+  Drawn: General (the folder new windows show, ⌘N opens a tab), Tags (tags shown in the sidebar, the
+  favourite tags' order in the Tags menu, colour folders by tag), Sidebar (the pinned places, Home
+  folder, Trash and the Tags section), Advanced (confirmations before changing an extension and
+  emptying the Trash, removing Trash items after 30 days, folders on top by name in windows and on the
+  desktop, the default search scope). Not drawn, as Mustache cannot do them yet: the desktop's volumes,
+  showing all filename extensions, suggested names, Computer / disks in the sidebar.
+- **Go to Folder** (⇧⌘G) is the 460 × 212 sheet of the kit: inline completion, up to four folder
+  suggestions, arrows, Tab, Return, Esc.
+- **Save search**: the scope bar's Save button opens the 413 × 263 sheet; the search is kept as a
+  `.search` JSON file (`{"version": 1, "query", "scope", "folder"}`) in ~/Saved Searches or the chosen
+  folder and, with Add to Sidebar, listed in the sidebar's Saved Searches section.

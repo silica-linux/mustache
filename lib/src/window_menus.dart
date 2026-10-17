@@ -99,6 +99,7 @@ extension _WindowMenus on _MustacheWindowState {
       selectAll: run(_selectAll, when: _ordered.isNotEmpty),
       find: run(_startSearch),
       goToFolder: run(_openGoToFolder, when: !dialog),
+      settings: dialog ? null : _openSettings,
       view: _view,
       setView: blocked ? null : _setView,
       galleryEnabled: !dialog,

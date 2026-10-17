@@ -43,6 +43,7 @@ import 'menus.dart';
 import 'model.dart';
 import 'operations.dart';
 import 'rename_field.dart';
+import 'settings.dart';
 import 'sounds.dart';
 import 'tags.dart';
 import 'xattr.dart' as xattr;
@@ -416,7 +417,11 @@ class DesktopView extends StatefulWidget {
     this.readTags = xattr.readTags,
     this.writeTags = xattr.writeTags,
     this.places = const [],
+    this.settings,
   });
+
+  /// Settings (folders on top, colour by tag); null keeps the defaults.
+  final Settings? settings;
 
   /// The user's folders (the Go menu opens a window on one).
   final List<Place> places;
@@ -548,6 +553,8 @@ class DesktopViewState extends State<DesktopView>
   void initState() {
     super.initState();
     Directory(widget.folder).createSync(recursive: true);
+    widget.settings?.addListener(_settingsChanged);
+    folderStyles.colourByTag = widget.settings?.colourFolders ?? true;
     _load();
     if (widget.watch) {
       _unwatch = folderWatcher.watch(widget.folder, (paths) {
@@ -588,6 +595,7 @@ class DesktopViewState extends State<DesktopView>
 
   @override
   void dispose() {
+    widget.settings?.removeListener(_settingsChanged);
     _menuHub?.release(this);
     _unwatch?.call();
     _drags?.cancel();
@@ -619,11 +627,23 @@ class DesktopViewState extends State<DesktopView>
     }
   }
 
+  /// settings.json changed: the order and the folders' colours follow.
+  void _settingsChanged() {
+    if (!mounted) return;
+    folderStyles.colourByTag = widget.settings?.colourFolders ?? true;
+    setState(_relayout);
+  }
+
   List<DesktopIcon> _icons() {
     final key = sortKeyOf(widget.choices.sort);
     final order = key == null
         ? (_entries.toList()..sort((a, b) => naturalCompare(a.name, b.name)))
-        : sortEntries(_entries, key, kindOf: _kind);
+        : sortEntries(
+            _entries,
+            key,
+            kindOf: _kind,
+            foldersFirst: widget.settings?.foldersOnTopDesktop ?? false,
+          );
     return widget.choices.stacks
         ? groupStacks(order, _kind)
         : [for (final e in order) DesktopIcon.item(e)];
@@ -797,7 +817,12 @@ class DesktopViewState extends State<DesktopView>
           final key = sortKeyOf(id.substring(10));
           if (key == null) return;
           // Lays every icon out in that order, then keeps them free (Sort By › None).
-          final order = sortEntries(_entries, key, kindOf: _kind);
+          final order = sortEntries(
+            _entries,
+            key,
+            kindOf: _kind,
+            foldersFirst: widget.settings?.foldersOnTopDesktop ?? false,
+          );
           final grid = _grid;
           setState(() {
             widget.choices
